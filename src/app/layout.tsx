@@ -10,11 +10,11 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-const SITE_URL = "https://science-lab-3d.vercel.app";
+const SITE_URL = "https://sciencelab-two.vercel.app";
 const SITE_NAME = "ScienceLab 3D";
-const SITE_TITLE = "ScienceLab 3D — Interactive 3D Science Experiments | Physics, Chemistry, Biology, Math";
+const SITE_TITLE = "ScienceLab 3D — Interactive STEM Education | 40+ Virtual Science Experiments";
 const SITE_DESCRIPTION =
-  "Explore 40+ free interactive 3D science experiments in Physics, Chemistry, Biology, and Mathematics. Control variables, watch real-time simulations, and learn STEM like never before. No download required.";
+  "ScienceLab 3D — Free interactive STEM education platform with 40+ virtual experiments in physics, chemistry & biology. 3D visualizations, real-time data analysis. Learn science by doing.";
 
 export const metadata: Metadata = {
   title: {
@@ -23,6 +23,15 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
+    "science lab",
+    "virtual experiments",
+    "STEM education",
+    "physics",
+    "chemistry",
+    "biology",
+    "3D",
+    "interactive",
+    "education",
     "science education",
     "3D science experiments",
     "interactive learning",
@@ -30,7 +39,6 @@ export const metadata: Metadata = {
     "chemistry experiments",
     "biology education",
     "mathematics visualization",
-    "STEM education",
     "virtual science lab",
     "online science lab",
     "free science experiments",
