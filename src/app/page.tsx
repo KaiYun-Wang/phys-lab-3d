@@ -4,9 +4,11 @@ import { useState, useMemo, useEffect } from "react";
 import { experiments, categories } from "@/data/experiments";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Star, Moon, Sun, Mail, Globe,
-  Search, X, ChevronDown, ArrowRight,
+  Star, Moon, Sun,
+  ChevronDown, ArrowRight,
 } from "lucide-react";
+import { useLocaleContext } from "@/lib/i18n/locale-context";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 // Favorites utilities
 function getFavorites(): string[] {
@@ -25,12 +27,20 @@ function isFavorite(id: string): boolean {
 // ========== NAVBAR ==========
 function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void }) {
   const [scrolled, setScrolled] = useState(false);
+  const { dict } = useLocaleContext();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  const navCategories = [
+    { id: "physics", icon: "⚛️", name: dict.nav.physics },
+    { id: "chemistry", icon: "🧪", name: dict.nav.chemistry },
+    { id: "biology", icon: "🧬", name: dict.nav.biology },
+    { id: "math", icon: "📐", name: dict.nav.math },
+  ];
 
   return (
     <nav
@@ -48,7 +58,7 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
           ScienceLab 3D
         </a>
         <div className="hidden md:flex gap-2">
-          {categories.map((cat) => (
+          {navCategories.map((cat) => (
             <a
               key={cat.id}
               href={`#experiments`}
@@ -58,13 +68,16 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
             </a>
           ))}
         </div>
-        <button
-          onClick={toggleTheme}
-          className="p-2.5 glass rounded-full hover:scale-105 transition-transform"
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 glass rounded-full hover:scale-105 transition-transform"
+            title={theme === "dark" ? dict.common.lightModeTitle : dict.common.darkModeTitle}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        </div>
       </div>
     </nav>
   );
@@ -72,6 +85,7 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
 
 // ========== HERO SECTION ==========
 function HeroSection() {
+  const { dict } = useLocaleContext();
   return (
     <section className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
       {/* Animated background grid */}
@@ -98,7 +112,7 @@ function HeroSection() {
         className="relative z-10"
       >
         <div className="text-xs sm:text-sm font-medium text-blue-300/70 mb-4 tracking-[0.3em] uppercase">
-          Interactive 3D Science Platform
+          {dict.hero.subtitle}
         </div>
         <h1
           className="text-5xl md:text-7xl font-black mb-6 bg-linear-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent leading-tight"
@@ -107,22 +121,20 @@ function HeroSection() {
           ScienceLab 3D
         </h1>
         <p className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-          Explore 40+ interactive experiments across Physics, Chemistry, Biology,
-          and Mathematics. Control variables, watch simulations, and learn
-          science like never before.
+          {dict.hero.description}
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <a
             href="#experiments"
             className="px-8 py-3.5 bg-linear-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:scale-105 transition-transform animate-pulse-glow"
           >
-            Start Exploring
+            {dict.hero.startExploring}
           </a>
           <a
             href="#about"
             className="px-8 py-3.5 glass rounded-full font-semibold hover:scale-105 transition-transform"
           >
-            Learn More
+            {dict.hero.learnMore}
           </a>
         </div>
       </motion.div>
@@ -135,10 +147,10 @@ function HeroSection() {
         className="relative z-10 mt-16 flex gap-8 md:gap-16 flex-wrap justify-center"
       >
         {[
-          { num: "40+", label: "Experiments" },
-          { num: "4", label: "Subjects" },
-          { num: "3D", label: "Interactive" },
-          { num: "∞", label: "Learning" },
+          { num: "40+", label: dict.hero.experiments },
+          { num: "4", label: dict.hero.subjects },
+          { num: "3D", label: dict.hero.interactive },
+          { num: "∞", label: dict.hero.learning },
         ].map((s) => (
           <div key={s.label} className="text-center">
             <div className="text-3xl font-bold bg-linear-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -208,6 +220,7 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
   onToggleFavorite: (id: string) => void;
 }) {
   const [fav, setFav] = useState(false);
+  const { dict } = useLocaleContext();
 
   useEffect(() => {
     setFav(isFavorite(exp.id));
@@ -218,6 +231,16 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
     e.stopPropagation();
     onToggleFavorite(exp.id);
     setFav((f) => !f);
+  };
+
+  const expDict = (dict.experiments as Record<string, { title: string; description: string; topics: string[] }>)[exp.id];
+  const title = expDict?.title || exp.title;
+  const description = expDict?.description || exp.description;
+  const topics = expDict?.topics || exp.topics;
+  const difficultyMap: Record<string, string> = {
+    Beginner: dict.common.beginner,
+    Intermediate: dict.common.intermediate,
+    Advanced: dict.common.advanced,
   };
 
   return (
@@ -251,7 +274,7 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
         className={`absolute top-4 right-4 p-2 rounded-lg transition-all ${
           fav ? "text-yellow-400 bg-yellow-400/10" : "text-gray-500 hover:text-yellow-400"
         }`}
-        title={fav ? "Remove from favorites" : "Add to favorites"}
+        title={fav ? dict.common.removeFromFavorites : dict.common.addToFavorites}
       >
         <Star size={16} fill={fav ? "currentColor" : "none"} />
       </button>
@@ -265,15 +288,15 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
             color: exp.color,
           }}
         >
-          {exp.difficulty}
+          {difficultyMap[exp.difficulty] || exp.difficulty}
         </span>
       </div>
       <h3 className="text-lg font-bold mb-2 group-hover:text-white transition-colors">
-        {exp.title}
+        {title}
       </h3>
-      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{exp.description}</p>
+      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{description}</p>
       <div className="flex flex-wrap gap-1.5">
-        {exp.topics.slice(0, 3).map((t) => (
+        {topics.slice(0, 3).map((t) => (
           <span
             key={t}
             className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-gray-500"
@@ -281,9 +304,9 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
             {t}
           </span>
         ))}
-        {exp.topics.length > 3 && (
+        {topics.length > 3 && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-gray-500">
-            +{exp.topics.length - 3}
+            +{topics.length - 3}
           </span>
         )}
       </div>
@@ -291,10 +314,10 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
       {/* Launch indicator on hover */}
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <span className="text-xs font-medium capitalize" style={{ color: exp.color }}>
-          {exp.category}
+          {dict.nav[exp.category as keyof typeof dict.nav] || exp.category}
         </span>
         <span className="text-xs text-gray-400 flex items-center gap-1">
-          Launch <ArrowRight size={12} />
+          {dict.common.launch} <ArrowRight size={12} />
         </span>
       </div>
     </motion.a>
@@ -305,9 +328,16 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [favoritesCount, setFavoritesCount] = useState(0);
+  const { dict } = useLocaleContext();
+
+  const translatedCategories = categories.map((cat) => ({
+    ...cat,
+    name: (dict.categories as Record<string, string>)[cat.id] || cat.name,
+  }));
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -329,16 +359,28 @@ export default function Home() {
 
   const filtered = useMemo(() => {
     let result = experiments.filter((exp) => {
+      const expDict = (dict.experiments as Record<string, { title: string; description: string; topics: string[] }>)[exp.id];
+      const localTitle = expDict?.title || exp.title;
+      const localDesc = expDict?.description || exp.description;
+      const localTopics = expDict?.topics || exp.topics;
+
       const matchCat =
         activeCategory === "all" || exp.category === activeCategory;
+      const matchDifficulty =
+        !selectedDifficulty || exp.difficulty === selectedDifficulty;
       const matchSearch =
         search === "" ||
+        localTitle.toLowerCase().includes(search.toLowerCase()) ||
+        localDesc.toLowerCase().includes(search.toLowerCase()) ||
+        localTopics.some((t) =>
+          t.toLowerCase().includes(search.toLowerCase())
+        ) ||
         exp.title.toLowerCase().includes(search.toLowerCase()) ||
         exp.description.toLowerCase().includes(search.toLowerCase()) ||
         exp.topics.some((t) =>
           t.toLowerCase().includes(search.toLowerCase())
         );
-      return matchCat && matchSearch;
+      return matchCat && matchDifficulty && matchSearch;
     });
 
     if (showFavoritesOnly) {
@@ -347,7 +389,7 @@ export default function Home() {
     }
 
     return result;
-  }, [activeCategory, search, showFavoritesOnly]);
+  }, [activeCategory, search, selectedDifficulty, showFavoritesOnly, dict]);
 
   const handleToggleFavorite = (id: string) => {
     const favorites = getFavorites();
@@ -374,33 +416,10 @@ export default function Home() {
           className="mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center relative inline-block w-full">
-            Explore Experiments
+            {dict.explore.title}
             <span className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
           </h2>
-          <p className="text-gray-400 text-center mb-8 max-w-xl mx-auto mt-4">
-            Choose a subject or search for a specific experiment. Each one is
-            fully interactive with real-time 3D controls.
-          </p>
 
-          {/* Search */}
-          <div className="max-w-md mx-auto mb-8 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-            <input
-              type="text"
-              placeholder="Search experiments..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-11 pr-10 py-3 glass rounded-xl bg-transparent text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-purple-500/50 text-sm"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
 
           {/* Category filters */}
           <div className="flex gap-3 justify-start md:justify-center overflow-x-auto pb-2 px-4 -mx-4 md:mx-0 md:px-0 scrollbar-hide">
@@ -408,6 +427,7 @@ export default function Home() {
               onClick={() => {
                 setActiveCategory("all");
                 setShowFavoritesOnly(false);
+                setSelectedDifficulty(null);
               }}
               className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 whitespace-nowrap ${
                 activeCategory === "all" && !showFavoritesOnly
@@ -416,7 +436,7 @@ export default function Home() {
               }`}
             >
               <span className="text-xl">🔬</span>
-              All Experiments
+              {dict.common.allExperiments}
               {activeCategory === "all" && !showFavoritesOnly && (
                 <motion.div
                   layoutId="activeCategory"
@@ -438,7 +458,7 @@ export default function Home() {
               }`}
             >
               <span className="text-xl">⭐</span>
-              Favorites
+              {dict.common.favorites}
               {favoritesCount > 0 && (
                 <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
                   {favoritesCount}
@@ -452,7 +472,7 @@ export default function Home() {
               )}
             </button>
 
-            {categories.map((cat) => (
+            {translatedCategories.map((cat) => (
               <CategoryBadge
                 key={cat.id}
                 category={cat}
@@ -467,13 +487,21 @@ export default function Home() {
 
           {/* Difficulty filters */}
           <div className="flex gap-2 justify-center flex-wrap mb-8">
-            {["Beginner", "Intermediate", "Advanced"].map((diff) => (
+            {[
+              { key: "Beginner", label: dict.common.beginner },
+              { key: "Intermediate", label: dict.common.intermediate },
+              { key: "Advanced", label: dict.common.advanced },
+            ].map((diff) => (
               <button
-                key={diff}
-                onClick={() => setSearch(search ? `${search} ${diff}` : diff)}
-                className="px-4 py-2 glass rounded-full text-sm text-gray-400 hover:text-white transition-colors"
+                key={diff.key}
+                onClick={() => setSelectedDifficulty(selectedDifficulty === diff.key ? null : diff.key)}
+                className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                  selectedDifficulty === diff.key
+                    ? "bg-linear-to-r from-blue-600/20 to-purple-600/20 text-white shadow-lg shadow-purple-500/20 scale-105"
+                    : "glass text-gray-400 hover:text-white"
+                }`}
               >
-                {diff}
+                {diff.label}
               </button>
             ))}
           </div>
@@ -482,7 +510,7 @@ export default function Home() {
         {/* Experiment Grid */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeCategory + search + showFavoritesOnly}
+            key={activeCategory + search + selectedDifficulty + showFavoritesOnly}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -502,8 +530,8 @@ export default function Home() {
         {filtered.length === 0 && (
           <div className="text-center py-20 text-gray-500">
             {showFavoritesOnly
-              ? "No favorites yet. Click the star icon on any experiment to add it!"
-              : "No experiments found. Try a different search or category."}
+              ? dict.common.noFavorites
+              : dict.common.noResults}
           </div>
         )}
       </section>
@@ -516,7 +544,7 @@ export default function Home() {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl font-bold mb-4 relative inline-block">
-            How It Works
+            {dict.howItWorks.title}
             <span className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative mt-8">
@@ -526,18 +554,18 @@ export default function Home() {
             {[
               {
                 icon: "🎯",
-                title: "Choose",
-                desc: "Pick from 40+ experiments across 4 scientific subjects",
+                title: dict.howItWorks.choose,
+                desc: dict.howItWorks.chooseDesc,
               },
               {
                 icon: "🎛️",
-                title: "Control",
-                desc: "Adjust variables with interactive sliders and real-time controls",
+                title: dict.howItWorks.control,
+                desc: dict.howItWorks.controlDesc,
               },
               {
                 icon: "🧠",
-                title: "Learn",
-                desc: "Watch 3D simulations and understand the science behind each experiment",
+                title: dict.howItWorks.learn,
+                desc: dict.howItWorks.learnDesc,
               },
             ].map((s, i) => (
               <motion.div
@@ -560,19 +588,6 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* CTA Section */}
-      <section className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <div className="glass rounded-2xl p-8 md:p-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Explore Science?</h2>
-          <p className="text-gray-400 mb-6">40+ free interactive 3D experiments. No downloads, no sign-ups.</p>
-          <a
-            href="#experiments"
-            className="inline-block px-8 py-3 bg-linear-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:scale-105 transition-transform shadow-lg shadow-blue-500/25"
-          >
-            Start Now
-          </a>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="border-t border-white/5 pt-12 pb-8 text-center text-gray-500 text-sm">
@@ -585,89 +600,30 @@ export default function Home() {
                 ScienceLab 3D
               </h3>
               <p className="text-gray-500 text-sm leading-relaxed">
-                Free interactive 3D science experiments for Physics, Chemistry, Biology &amp; Mathematics.
+                {dict.footer.description}
               </p>
             </div>
 
             {/* Quick Links */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Quick Links</h4>
+              <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">{dict.footer.quickLinks}</h4>
               <div className="space-y-2">
-                {categories.map((cat) => (
+                {translatedCategories.map((cat) => (
                   <a
                     key={cat.id}
                     href="#experiments"
                     className="block text-sm text-gray-500 hover:text-gray-300 transition-colors"
                   >
-                    {cat.icon} {cat.name} Experiments
+                    {cat.icon} {cat.name} {dict.footer.experimentsSuffix}
                   </a>
                 ))}
               </div>
             </div>
 
-            {/* Connect */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Connect</h4>
-              <div className="flex gap-3 flex-wrap">
-                <a
-                  href="https://rudra496.github.io/site"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 glass rounded-full text-gray-400 hover:text-white hover:scale-105 transition-all duration-200 text-sm"
-                >
-                  <Globe size={14} />
-                  <span>Portfolio</span>
-                </a>
-                <a
-                  href="https://github.com/rudra496"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 glass rounded-full text-gray-400 hover:text-white hover:scale-105 transition-all duration-200 text-sm"
-                >
-                  <span>GitHub</span>
-                </a>
-                <a
-                  href="https://www.linkedin.com/in/rudrasarker"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 glass rounded-full text-gray-400 hover:text-blue-400 hover:scale-105 transition-all duration-200 text-sm"
-                >
-                  <span>LinkedIn</span>
-                </a>
-                <a
-                  href="https://www.facebook.com/share/1AHSdHLeoz/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 glass rounded-full text-gray-400 hover:text-blue-500 hover:scale-105 transition-all duration-200 text-sm"
-                >
-                  <span>Facebook</span>
-                </a>
-                <a
-                  href="mailto:rudrasarker125@gmail.com"
-                  className="flex items-center gap-2 px-3 py-1.5 glass rounded-full text-gray-400 hover:text-red-400 hover:scale-105 transition-all duration-200 text-sm"
-                >
-                  <Mail size={14} />
-                  <span>Email</span>
-                </a>
-              </div>
-            </div>
+
           </div>
 
-          {/* Copyright */}
-          <div className="border-t border-white/5 pt-6">
-            <p className="text-gray-600 mb-1">
-              Built with ❤️ by{" "}
-              <a
-                href="https://rudra496.github.io/site"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                Rudra Sarker
-              </a>{" "}
-              — ScienceLab 3D © 2026
-            </p>
-          </div>
+
         </div>
       </footer>
     </main>

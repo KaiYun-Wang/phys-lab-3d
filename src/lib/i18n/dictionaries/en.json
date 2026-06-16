@@ -1,0 +1,263 @@
+{
+  "common": {
+    "appName": "ScienceLab 3D",
+    "darkModeTitle": "Switch to dark mode",
+    "lightModeTitle": "Switch to light mode",
+    "launch": "Launch",
+    "allExperiments": "All Experiments",
+    "favorites": "Favorites",
+    "noFavorites": "No favorites yet. Click the star icon on any experiment to add it!",
+    "noResults": "No experiments found. Try a different search or category.",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "nav": {
+    "physics": "Physics",
+    "chemistry": "Chemistry",
+    "biology": "Biology",
+    "math": "Mathematics"
+  },
+  "hero": {
+    "subtitle": "Interactive 3D Science Platform",
+    "description": "Explore 40+ interactive experiments across Physics, Chemistry, Biology, and Mathematics. Control variables, watch simulations, and learn science like never before.",
+    "startExploring": "Start Exploring",
+    "learnMore": "Learn More",
+    "experiments": "Experiments",
+    "subjects": "Subjects",
+    "interactive": "Interactive",
+    "learning": "Learning"
+  },
+  "explore": {
+    "title": "Explore Experiments"
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "choose": "Choose",
+    "chooseDesc": "Pick from 40+ experiments across 4 scientific subjects",
+    "control": "Control",
+    "controlDesc": "Adjust variables with interactive sliders and real-time controls",
+    "learn": "Learn",
+    "learnDesc": "Watch 3D simulations and understand the science behind each experiment"
+  },
+
+  "footer": {
+    "description": "Free interactive 3D science experiments for Physics, Chemistry, Biology & Mathematics.",
+    "quickLinks": "Quick Links",
+    "experimentsSuffix": "Experiments"
+  },
+  "categories": {
+    "physics": "Physics",
+    "chemistry": "Chemistry",
+    "biology": "Biology",
+    "math": "Mathematics",
+    "physicsDesc": "Forces, motion, waves, and energy",
+    "chemistryDesc": "Atoms, molecules, and reactions",
+    "biologyDesc": "Life, cells, and ecosystems",
+    "mathDesc": "Numbers, shapes, and patterns"
+  },
+  "experiments": {
+    "pendulum": {
+      "title": "Simple Pendulum",
+      "description": "Explore simple harmonic motion by controlling pendulum length, mass, and initial angle. Observe how gravity and tension create periodic oscillation.",
+      "topics": ["SHM", "Gravity", "Period", "Amplitude"]
+    },
+    "projectile-motion": {
+      "title": "Projectile Motion",
+      "description": "Launch projectiles at different angles and velocities. Visualize parabolic trajectories and understand range, height, and time of flight.",
+      "topics": ["Kinematics", "Trajectory", "Range", "Velocity"]
+    },
+    "double-slit": {
+      "title": "Double-Slit Experiment",
+      "description": "Witness wave-particle duality. Fire photons through two slits and observe the interference pattern that proves quantum mechanics.",
+      "topics": ["Quantum", "Wave-Particle Duality", "Interference", "Photons"]
+    },
+    "wave-interference": {
+      "title": "Wave Interference",
+      "description": "Create two wave sources and watch constructive and destructive interference patterns form in real-time 3D space.",
+      "topics": ["Waves", "Superposition", "Interference", "Frequency"]
+    },
+    "electromagnetic": {
+      "title": "Electromagnetic Field",
+      "description": "Place charges in 3D space and visualize electric field lines, potential surfaces, and force vectors interactively.",
+      "topics": ["Electric Field", "Coulomb's Law", "Potential", "Vectors"]
+    },
+    "spring-mass": {
+      "title": "Spring-Mass System",
+      "description": "Attach masses to springs with adjustable stiffness and damping. Explore Hooke's law, resonance, and energy conservation.",
+      "topics": ["Hooke's Law", "Resonance", "Energy", "Damping"]
+    },
+    "gravitational-orbits": {
+      "title": "Gravitational Orbits",
+      "description": "Simulate planetary orbits by adjusting mass, velocity, and distance. Observe elliptical, circular, and escape trajectories.",
+      "topics": ["Gravity", "Orbits", "Kepler's Laws", "Escape Velocity"]
+    },
+    "doppler": {
+      "title": "Doppler Effect",
+      "description": "Move a sound source and observer in 3D. Watch wavefronts compress and expand as frequency shifts in real-time.",
+      "topics": ["Sound", "Frequency Shift", "Wavefronts", "Relativity"]
+    },
+    "refraction": {
+      "title": "Refraction & Reflection",
+      "description": "Shoot light rays through different media. Control angle of incidence, refractive index, and see Snell's law in action.",
+      "topics": ["Optics", "Snell's Law", "Total Internal Reflection", "Prism"]
+    },
+    "ohms-law": {
+      "title": "Ohm's Law Circuit",
+      "description": "Build circuits with resistors, batteries, and LEDs. Adjust voltage and resistance to see current flow with animated electrons.",
+      "topics": ["Electricity", "Ohm's Law", "Resistance", "Current"]
+    },
+    "atomic-structure": {
+      "title": "Atomic Structure",
+      "description": "Explore atoms in 3D — add/remove protons, neutrons, and electrons. See how elements change and electron shells fill up.",
+      "topics": ["Atoms", "Electron Shells", "Protons", "Periodic Table"]
+    },
+    "chemical-bonding": {
+      "title": "Chemical Bonding",
+      "description": "Visualize ionic, covalent, and metallic bonds in 3D. Watch atoms share or transfer electrons to form molecules.",
+      "topics": ["Ionic", "Covalent", "Metallic", "Electron Sharing"]
+    },
+    "electrolysis": {
+      "title": "Electrolysis",
+      "description": "Run electrolysis experiments on water and other solutions. See bubbles form at electrodes and understand redox reactions.",
+      "topics": ["Redox", "Electrodes", "Anode", "Cathode"]
+    },
+    "titration": {
+      "title": "Acid-Base Titration",
+      "description": "Perform virtual titration. Control the burette drop-by-drop and watch the pH indicator change color at the equivalence point.",
+      "topics": ["pH", "Acid", "Base", "Equivalence Point"]
+    },
+    "gas-laws": {
+      "title": "Gas Laws (PV=nRT)",
+      "description": "Compress and heat gas molecules in a 3D container. See Boyle's, Charles's, and Gay-Lussac's laws come alive with bouncing particles.",
+      "topics": ["Boyle's Law", "Charles's Law", "Ideal Gas", "Pressure"]
+    },
+    "acid-base-reactions": {
+      "title": "Acid-Base Reactions",
+      "description": "Mix acids and bases and watch neutralization occur. See pH changes, salt formation, and energy release in 3D.",
+      "topics": ["Neutralization", "pH Scale", "Salts", "Exothermic"]
+    },
+    "crystal-lattice": {
+      "title": "Crystal Lattice Structures",
+      "description": "Explore 3D crystal structures — FCC, BCC, HCP, diamond cubic. Rotate, zoom, and understand unit cells and packing efficiency.",
+      "topics": ["Crystals", "FCC", "BCC", "Unit Cell"]
+    },
+    "diffusion": {
+      "title": "Molecular Diffusion",
+      "description": "Watch particles diffuse through a membrane or between two gases. Control temperature and concentration gradients.",
+      "topics": ["Diffusion", "Osmosis", "Concentration", "Brownian Motion"]
+    },
+    "thermochemistry": {
+      "title": "Exothermic & Endothermic",
+      "description": "Visualize energy changes during chemical reactions. See bonds break and form with energy diagrams and temperature effects.",
+      "topics": ["Enthalpy", "Activation Energy", "Bonds", "Energy Diagrams"]
+    },
+    "periodic-trends": {
+      "title": "Periodic Table Trends",
+      "description": "Interactive 3D periodic table. Explore atomic radius, electronegativity, ionization energy trends with animated visualizations.",
+      "topics": ["Atomic Radius", "Electronegativity", "Ionization", "Trends"]
+    },
+    "cell-structure": {
+      "title": "Animal Cell Structure",
+      "description": "Explore a detailed 3D animal cell. Click on organelles to learn about nucleus, mitochondria, ER, Golgi, and more.",
+      "topics": ["Organelles", "Nucleus", "Mitochondria", "Membrane"]
+    },
+    "dna-replication": {
+      "title": "DNA Replication",
+      "description": "Watch the double helix unzip and replicate step-by-step. See helicase, polymerase, and primase in action.",
+      "topics": ["DNA", "Helicase", "Polymerase", "Replication Fork"]
+    },
+    "protein-synthesis": {
+      "title": "Protein Synthesis",
+      "description": "Follow transcription and translation in 3D. Watch mRNA leave the nucleus and ribosomes build proteins codon by codon.",
+      "topics": ["Transcription", "Translation", "mRNA", "Ribosomes"]
+    },
+    "photosynthesis": {
+      "title": "Photosynthesis",
+      "description": "Enter a chloroplast and follow light reactions and Calvin cycle. Control light intensity and CO2 levels.",
+      "topics": ["Chloroplast", "Light Reactions", "Calvin Cycle", "Glucose"]
+    },
+    "cellular-respiration": {
+      "title": "Cellular Respiration",
+      "description": "Trace glucose through glycolysis, Krebs cycle, and electron transport chain. See ATP production in 3D mitochondria.",
+      "topics": ["Glycolysis", "Krebs Cycle", "ATP", "Mitochondria"]
+    },
+    "mitosis-meiosis": {
+      "title": "Mitosis & Meiosis",
+      "description": "Watch cell division in 3D. Step through prophase, metaphase, anaphase, telophase. Compare mitosis vs meiosis side-by-side.",
+      "topics": ["Mitosis", "Meiosis", "Chromosomes", "Cell Division"]
+    },
+    "natural-selection": {
+      "title": "Natural Selection Simulator",
+      "description": "Simulate evolution! Control environment factors and watch populations adapt over generations with trait variations.",
+      "topics": ["Evolution", "Adaptation", "Genetics", "Fitness"]
+    },
+    "nervous-system": {
+      "title": "Neuron & Synapse",
+      "description": "Trace an action potential along a neuron in 3D. Watch neurotransmitters cross the synaptic cleft.",
+      "topics": ["Neurons", "Action Potential", "Synapse", "Neurotransmitters"]
+    },
+    "ecosystem": {
+      "title": "Ecosystem Food Web",
+      "description": "Build and explore food webs in 3D. Add/remove species and watch population dynamics change in real-time.",
+      "topics": ["Food Web", "Trophic Levels", "Population", "Biodiversity"]
+    },
+    "immune-response": {
+      "title": "Immune System Response",
+      "description": "Watch the immune system fight a virus! See macrophages, T-cells, and antibodies in a 3D blood vessel environment.",
+      "topics": ["Antibodies", "T-Cells", "Macrophages", "Antigens"]
+    },
+    "fourier-transform": {
+      "title": "Fourier Transform Visualizer",
+      "description": "Build any waveform by adding sine waves. Watch the frequency spectrum update in real-time as you add or remove harmonics.",
+      "topics": ["Frequency", "Waveform", "Harmonics", "Signal Processing"]
+    },
+    "fibonacci-spiral": {
+      "title": "Fibonacci & Golden Spiral",
+      "description": "Watch the Fibonacci sequence build the golden spiral in 3D. Explore its appearance in nature, art, and architecture.",
+      "topics": ["Fibonacci", "Golden Ratio", "Spiral", "Phi"]
+    },
+    "3d-geometry": {
+      "title": "3D Geometry Explorer",
+      "description": "Interact with Platonic solids and Archimedean solids in 3D. Explore faces, edges, vertices, and Euler's formula.",
+      "topics": ["Platonic Solids", "Euler's Formula", "Symmetry", "Polyhedra"]
+    },
+    "calculus-visualizer": {
+      "title": "Calculus Visualizer",
+      "description": "Visualize derivatives and integrals in 3D. Watch tangent lines, area under curves, and Riemann sums animate.",
+      "topics": ["Derivatives", "Integrals", "Limits", "Riemann Sums"]
+    },
+    "mandelbrot": {
+      "title": "Mandelbrot Fractal",
+      "description": "Dive into the infinite Mandelbrot set in 3D. Zoom into regions and watch fractal detail emerge at every scale.",
+      "topics": ["Fractals", "Complex Numbers", "Iteration", "Infinity"]
+    },
+    "probability-distributions": {
+      "title": "Probability Distributions",
+      "description": "Generate random data and watch distributions form. Compare Normal, Binomial, Poisson, and Uniform distributions.",
+      "topics": ["Normal", "Binomial", "Mean", "Standard Deviation"]
+    },
+    "linear-algebra": {
+      "title": "Linear Algebra Viz",
+      "description": "Visualize vectors, matrices, and transformations in 3D. Apply rotations, scaling, and shearing to see linear maps in action.",
+      "topics": ["Vectors", "Matrices", "Eigenvalues", "Transformations"]
+    },
+    "trigonometry": {
+      "title": "Trigonometry Explorer",
+      "description": "Explore sine, cosine, and tangent on a 3D unit circle. Adjust angles and see how all trig functions relate.",
+      "topics": ["Sin", "Cos", "Tan", "Unit Circle"]
+    },
+    "complex-numbers": {
+      "title": "Complex Number Plane",
+      "description": "Visualize complex numbers on the Argand plane. Perform arithmetic operations and see geometric interpretations.",
+      "topics": ["Complex Numbers", "Argand Plane", "Modulus", "Argument"]
+    },
+    "topology-surfaces": {
+      "title": "Topology & Surfaces",
+      "description": "Explore mathematical surfaces — Möbius strip, Klein bottle, torus, and more in interactive 3D.",
+      "topics": ["Topology", "Möbius Strip", "Klein Bottle", "Manifolds"]
+    }
+  }
+}

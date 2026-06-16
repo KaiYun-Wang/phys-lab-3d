@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { LocaleProvider } from "@/lib/i18n/locale-context";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -197,7 +198,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="m-0 p-0">{children}</body>
+      <body className="m-0 p-0">
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

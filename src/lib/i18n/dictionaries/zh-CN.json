@@ -1,0 +1,263 @@
+{
+  "common": {
+    "appName": "ScienceLab 3D",
+    "darkModeTitle": "切换至深色模式",
+    "lightModeTitle": "切换至浅色模式",
+    "launch": "启动",
+    "allExperiments": "全部实验",
+    "favorites": "收藏",
+    "noFavorites": "还没有收藏。点击任意实验上的星标图标即可添加！",
+    "noResults": "未找到实验。请尝试其他搜索条件或分类。",
+    "addToFavorites": "添加收藏",
+    "removeFromFavorites": "取消收藏",
+    "beginner": "入门",
+    "intermediate": "进阶",
+    "advanced": "高级"
+  },
+  "nav": {
+    "physics": "物理",
+    "chemistry": "化学",
+    "biology": "生物",
+    "math": "数学"
+  },
+  "hero": {
+    "subtitle": "交互式3D科学平台",
+    "description": "探索40+个交互式实验，涵盖物理、化学、生物和数学。控制变量、观察模拟，以前所未有的方式学习科学。",
+    "startExploring": "开始探索",
+    "learnMore": "了解更多",
+    "experiments": "实验",
+    "subjects": "学科",
+    "interactive": "交互",
+    "learning": "学习"
+  },
+  "explore": {
+    "title": "探索实验"
+  },
+  "howItWorks": {
+    "title": "使用方法",
+    "choose": "选择",
+    "chooseDesc": "从4大学科的40+实验中挑选",
+    "control": "控制",
+    "controlDesc": "通过交互式滑块和实时控件调节变量",
+    "learn": "学习",
+    "learnDesc": "观看3D模拟，理解每个实验背后的科学原理"
+  },
+
+  "footer": {
+    "description": "免费的交互式3D科学实验，涵盖物理、化学、生物和数学。",
+    "quickLinks": "快速链接",
+    "experimentsSuffix": "实验"
+  },
+  "categories": {
+    "physics": "物理",
+    "chemistry": "化学",
+    "biology": "生物",
+    "math": "数学",
+    "physicsDesc": "力、运动、波和能量",
+    "chemistryDesc": "原子、分子和反应",
+    "biologyDesc": "生命、细胞和生态系统",
+    "mathDesc": "数字、形状和模式"
+  },
+  "experiments": {
+    "pendulum": {
+      "title": "单摆运动",
+      "description": "通过控制摆长、质量和初始角度探索简谐运动。观察重力和张力如何产生周期性振动。",
+      "topics": ["简谐运动", "重力", "周期", "振幅"]
+    },
+    "projectile-motion": {
+      "title": "抛体运动",
+      "description": "以不同角度和速度发射抛体。可视化抛物线轨迹，理解射程、高度和飞行时间。",
+      "topics": ["运动学", "轨迹", "射程", "速度"]
+    },
+    "double-slit": {
+      "title": "双缝实验",
+      "description": "见证波粒二象性。让光子通过双缝，观察证明量子力学的干涉图样。",
+      "topics": ["量子", "波粒二象性", "干涉", "光子"]
+    },
+    "wave-interference": {
+      "title": "波的干涉",
+      "description": "创建两个波源，观看相长和相消干涉图样在实时3D空间中形成。",
+      "topics": ["波", "叠加", "干涉", "频率"]
+    },
+    "electromagnetic": {
+      "title": "电磁场",
+      "description": "在3D空间中放置电荷，交互式可视化电场线、等势面和力向量。",
+      "topics": ["电场", "库仑定律", "电势", "向量"]
+    },
+    "spring-mass": {
+      "title": "弹簧-质量系统",
+      "description": "将质量连接到刚度和阻尼可调的弹簧上。探索胡克定律、共振和能量守恒。",
+      "topics": ["胡克定律", "共振", "能量", "阻尼"]
+    },
+    "gravitational-orbits": {
+      "title": "引力轨道",
+      "description": "通过调整质量、速度和距离模拟行星轨道。观察椭圆、圆形和逃逸轨迹。",
+      "topics": ["引力", "轨道", "开普勒定律", "逃逸速度"]
+    },
+    "doppler": {
+      "title": "多普勒效应",
+      "description": "在3D中移动声源和观察者。观看波前压缩和膨胀，实时感受频率变化。",
+      "topics": ["声波", "频移", "波前", "相对论"]
+    },
+    "refraction": {
+      "title": "折射与反射",
+      "description": "让光线穿过不同介质。控制入射角、折射率，观察斯涅尔定律的实际效果。",
+      "topics": ["光学", "斯涅尔定律", "全内反射", "棱镜"]
+    },
+    "ohms-law": {
+      "title": "欧姆定律电路",
+      "description": "用电阻、电池和LED搭建电路。调节电压和电阻，观看动画电子流动。",
+      "topics": ["电学", "欧姆定律", "电阻", "电流"]
+    },
+    "atomic-structure": {
+      "title": "原子结构",
+      "description": "在3D中探索原子——添加/移除质子、中子和电子。观察元素变化和电子壳层填充。",
+      "topics": ["原子", "电子壳层", "质子", "元素周期表"]
+    },
+    "chemical-bonding": {
+      "title": "化学键",
+      "description": "在3D中可视化离子键、共价键和金属键。观看原子共享或转移电子形成分子。",
+      "topics": ["离子键", "共价键", "金属键", "电子共享"]
+    },
+    "electrolysis": {
+      "title": "电解",
+      "description": "在水和其他溶液上进行电解实验。观察电极处气泡形成，理解氧化还原反应。",
+      "topics": ["氧化还原", "电极", "阳极", "阴极"]
+    },
+    "titration": {
+      "title": "酸碱滴定",
+      "description": "进行虚拟滴定。逐滴控制滴定管，观察pH指示剂在等当点时的颜色变化。",
+      "topics": ["pH", "酸", "碱", "等当点"]
+    },
+    "gas-laws": {
+      "title": "气体定律 (PV=nRT)",
+      "description": "在3D容器中压缩和加热气体分子。通过弹跳粒子观察玻意耳定律、查理定律和盖-吕萨克定律。",
+      "topics": ["玻意耳定律", "查理定律", "理想气体", "压强"]
+    },
+    "acid-base-reactions": {
+      "title": "酸碱反应",
+      "description": "混合酸和碱，观察中和反应。在3D中查看pH变化、盐的形成和能量释放。",
+      "topics": ["中和", "pH标度", "盐", "放热反应"]
+    },
+    "crystal-lattice": {
+      "title": "晶体点阵结构",
+      "description": "探索3D晶体结构——FCC、BCC、HCP、金刚石立方。旋转、缩放，理解晶胞和堆积效率。",
+      "topics": ["晶体", "面心立方", "体心立方", "晶胞"]
+    },
+    "diffusion": {
+      "title": "分子扩散",
+      "description": "观看粒子通过膜或在两种气体之间扩散。控制温度和浓度梯度。",
+      "topics": ["扩散", "渗透", "浓度", "布朗运动"]
+    },
+    "thermochemistry": {
+      "title": "放热与吸热反应",
+      "description": "可视化化学反应中的能量变化。通过能量图和温度效应观察键的断裂和形成。",
+      "topics": ["焓", "活化能", "化学键", "能量图"]
+    },
+    "periodic-trends": {
+      "title": "元素周期表趋势",
+      "description": "交互式3D元素周期表。通过动画可视化探索原子半径、电负性和电离能趋势。",
+      "topics": ["原子半径", "电负性", "电离", "趋势"]
+    },
+    "cell-structure": {
+      "title": "动物细胞结构",
+      "description": "探索精细的3D动物细胞。点击细胞器了解细胞核、线粒体、内质网、高尔基体等。",
+      "topics": ["细胞器", "细胞核", "线粒体", "细胞膜"]
+    },
+    "dna-replication": {
+      "title": "DNA复制",
+      "description": "观看双螺旋逐步解开和复制。观察解旋酶、聚合酶和引物酶的工作过程。",
+      "topics": ["DNA", "解旋酶", "聚合酶", "复制叉"]
+    },
+    "protein-synthesis": {
+      "title": "蛋白质合成",
+      "description": "在3D中跟踪转录和翻译过程。观看mRNA离开细胞核，核糖体逐个密码子构建蛋白质。",
+      "topics": ["转录", "翻译", "mRNA", "核糖体"]
+    },
+    "photosynthesis": {
+      "title": "光合作用",
+      "description": "进入叶绿体，跟踪光反应和卡尔文循环。控制光照强度和CO2浓度。",
+      "topics": ["叶绿体", "光反应", "卡尔文循环", "葡萄糖"]
+    },
+    "cellular-respiration": {
+      "title": "细胞呼吸",
+      "description": "追踪葡萄糖经过糖酵解、克雷布斯循环和电子传递链。在3D线粒体中观察ATP生成。",
+      "topics": ["糖酵解", "克雷布斯循环", "ATP", "线粒体"]
+    },
+    "mitosis-meiosis": {
+      "title": "有丝分裂与减数分裂",
+      "description": "在3D中观看细胞分裂。逐步经历前期、中期、后期、末期。并排比较有丝分裂和减数分裂。",
+      "topics": ["有丝分裂", "减数分裂", "染色体", "细胞分裂"]
+    },
+    "natural-selection": {
+      "title": "自然选择模拟器",
+      "description": "模拟进化！控制环境因素，观察种群在几代中如何适应，产生性状变异。",
+      "topics": ["进化", "适应", "遗传学", "适应度"]
+    },
+    "nervous-system": {
+      "title": "神经元与突触",
+      "description": "在3D中追踪动作电位沿神经元传导。观看神经递质穿越突触间隙。",
+      "topics": ["神经元", "动作电位", "突触", "神经递质"]
+    },
+    "ecosystem": {
+      "title": "生态系统食物网",
+      "description": "在3D中构建和探索食物网。添加/移除物种，实时观察种群动态变化。",
+      "topics": ["食物网", "营养级", "种群", "生物多样性"]
+    },
+    "immune-response": {
+      "title": "免疫系统反应",
+      "description": "观看免疫系统对抗病毒！在3D血管环境中观察巨噬细胞、T细胞和抗体。",
+      "topics": ["抗体", "T细胞", "巨噬细胞", "抗原"]
+    },
+    "fourier-transform": {
+      "title": "傅里叶变换可视化",
+      "description": "通过叠加正弦波构建任意波形。添加或移除谐波时，实时观察频谱更新。",
+      "topics": ["频率", "波形", "谐波", "信号处理"]
+    },
+    "fibonacci-spiral": {
+      "title": "斐波那契与黄金螺旋",
+      "description": "在3D中观看斐波那契数列构建黄金螺旋。探索它在自然、艺术和建筑中的出现。",
+      "topics": ["斐波那契", "黄金比例", "螺旋", "Phi"]
+    },
+    "3d-geometry": {
+      "title": "3D几何探索器",
+      "description": "在3D中与柏拉图立体和阿基米德立体交互。探索面、边、顶点和欧拉公式。",
+      "topics": ["柏拉图立体", "欧拉公式", "对称", "多面体"]
+    },
+    "calculus-visualizer": {
+      "title": "微积分可视化",
+      "description": "在3D中可视化导数和积分。观看切线、曲线下面积和黎曼和的动画。",
+      "topics": ["导数", "积分", "极限", "黎曼和"]
+    },
+    "mandelbrot": {
+      "title": "曼德博集合分形",
+      "description": "在3D中潜入无限的曼德博集合。缩放进入各区域，观看分形细节在每一个尺度上涌现。",
+      "topics": ["分形", "复数", "迭代", "无穷"]
+    },
+    "probability-distributions": {
+      "title": "概率分布",
+      "description": "生成随机数据，观看分布形成。比较正态分布、二项分布、泊松分布和均匀分布。",
+      "topics": ["正态分布", "二项分布", "均值", "标准差"]
+    },
+    "linear-algebra": {
+      "title": "线性代数可视化",
+      "description": "在3D中可视化向量、矩阵和变换。应用旋转、缩放和剪切，观察线性映射的效果。",
+      "topics": ["向量", "矩阵", "特征值", "变换"]
+    },
+    "trigonometry": {
+      "title": "三角函数探索",
+      "description": "在3D单位圆上探索正弦、余弦和正切。调整角度，观察所有三角函数如何关联。",
+      "topics": ["正弦", "余弦", "正切", "单位圆"]
+    },
+    "complex-numbers": {
+      "title": "复数平面",
+      "description": "在阿尔冈平面上可视化复数。执行算术运算并观察几何解释。",
+      "topics": ["复数", "阿尔冈平面", "模", "辐角"]
+    },
+    "topology-surfaces": {
+      "title": "拓扑与曲面",
+      "description": "探索数学曲面——莫比乌斯带、克莱因瓶、环面等，在交互式3D中体验。",
+      "topics": ["拓扑", "莫比乌斯带", "克莱因瓶", "流形"]
+    }
+  }
+}
