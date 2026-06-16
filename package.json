@@ -3,31 +3,32 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "cross-env NEXT_TELEMETRY_DISABLED=1 next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.1.0",
+    "@react-three/postprocessing": "^3.0.0",
+    "framer-motion": "^12.40.0",
+    "leva": "^0.10.0",
+    "lucide-react": "^1.18.0",
     "next": "^15.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@react-three/fiber": "^9.1.0",
-    "@react-three/drei": "^10.0.0",
-    "@react-three/postprocessing": "^3.0.0",
-    "three": "^0.184.0",
-    "leva": "^0.10.0",
-    "framer-motion": "^12.40.0",
-    "lucide-react": "^1.18.0"
+    "three": "^0.184.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.0",
+    "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "^25.9.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.184.1",
+    "cross-env": "^10.1.0",
+    "postcss": "^8.5.15",
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.3.1",
-    "postcss": "^8.5.15"
+    "typescript": "^5.8.0"
   },
   "overrides": {
     "postcss": "^8.5.15"
