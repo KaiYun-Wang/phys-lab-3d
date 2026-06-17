@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: 交互式3D科学实验仿真平台
+title: 交互式3D科学实验平台
 scope:
     - README.md
     - CONTRIBUTING.md
