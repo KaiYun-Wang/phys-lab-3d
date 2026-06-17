@@ -27,7 +27,7 @@ export default function DoubleSlitPage() {
   const [resetTrigger, setResetTrigger] = useState(0);
 
   // Quantum parameters
-  const [wavelength, setWavelength] = useState(500);
+  const wavelength = 500; // fixed
   const [slitSeparation, setSlitSeparation] = useState(2);
   const [slitWidth, setSlitWidth] = useState(0.3);
   const [particleRate, setParticleRate] = useState(3);
@@ -35,6 +35,7 @@ export default function DoubleSlitPage() {
   // Display options
   const [showParticles, setShowParticles] = useState(true);
   const [showWaveView, setShowWaveView] = useState(false);
+  const [observerMode, setObserverMode] = useState(true); // true=particle, false=wave
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
@@ -50,17 +51,6 @@ export default function DoubleSlitPage() {
   const parameterControls = (
     <div className="space-y-4">
       <ControlGroup title="Quantum Parameters">
-        <ControlSlider
-          label="Wavelength (λ)"
-          value={wavelength}
-          unit="nm"
-          min={380}
-          max={700}
-          step={10}
-          color={wavelengthColor}
-          onChange={setWavelength}
-          decimals={0}
-        />
         <ControlSlider
           label="Slit Separation (d)"
           value={slitSeparation}
@@ -97,6 +87,29 @@ export default function DoubleSlitPage() {
       </ControlGroup>
 
       <ControlGroup title="Display Options">
+        <div className="p-3 rounded-lg border-2 transition-all" style={{
+          borderColor: observerMode ? "#ef4444" : "#22c55e",
+          backgroundColor: observerMode ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)",
+        }}>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <span className="text-sm font-semibold" style={{ color: observerMode ? "#ef4444" : "#22c55e" }}>
+                {observerMode ? "📹 Observer ON" : "🌊 Wave Nature"}
+              </span>
+              <p className="text-xs mt-0.5" style={{ color: observerMode ? "#f87171" : "#4ade80" }}>
+                {observerMode ? "Particle behavior (collapsed)" : "Wave interference (superposition)"}
+              </p>
+            </div>
+            <button
+              onClick={() => setObserverMode(!observerMode)}
+              className="relative w-12 h-6 rounded-full transition-all duration-300"
+              style={{ backgroundColor: observerMode ? "#ef4444" : "#22c55e" }}
+            >
+              <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300"
+                style={{ transform: observerMode ? "translateX(24px)" : "translateX(0)" }} />
+            </button>
+          </div>
+        </div>
         {[
           { label: "Show Particles", checked: showParticles, onChange: setShowParticles },
           { label: "Theory Curve", checked: showWaveView, onChange: setShowWaveView },
@@ -136,7 +149,9 @@ export default function DoubleSlitPage() {
       />
       <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
         <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-purple-400">Wave-Particle Duality:</strong> Individual particles hit randomly but accumulate to form an interference pattern.
+          <strong className="text-purple-400">Wave-Particle Duality:</strong> {observerMode
+            ? "With a camera observing, particles pass through slits individually — wavefunction collapses to particle behavior."
+            : "Without observation, each particle exists in a superposition through both slits — producing wave interference patterns."}
         </p>
         <p className="text-xs text-gray-500 mt-2 font-mono">
           I(y) = cos²(π·d·y/λ·L) · sinc²(π·a·y/λ·L)
@@ -160,6 +175,7 @@ export default function DoubleSlitPage() {
         dataPanel={null}
       >
         <DoubleSlitSceneComponent
+          observerMode={observerMode}
           onDataChange={setData}
           wavelength={wavelength}
           slitSeparation={slitSeparation}

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Environment, ContactShadows } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { ArrowLeft, Settings, BarChart3 } from "lucide-react";
 import * as THREE from "three";
 
@@ -202,7 +202,6 @@ export function ExperimentContainer({
         {enableFog && (
           <fog attach="fog" args={["#0d0d2b", 150, 400]} />
         )}
-        <Environment preset="night" />
 
         <group>{children}</group>
       </Canvas>

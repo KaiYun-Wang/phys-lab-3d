@@ -2,7 +2,7 @@
 schema_version: 1
 locale: zh-CN
 branch: main
-exported_at: "2026-06-16T07:46:59Z"
+exported_at: "2026-06-16T09:29:42Z"
 modules:
     "":
         dir_name: 交互式3D科学实验仿真平台
