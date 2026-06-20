@@ -121,6 +121,17 @@ export const experiments: Experiment[] = [
     color: "#4f8fff",
     topics: ["Electricity", "Ohm's Law", "Resistance", "Current"],
   },
+  {
+    id: "bernoulli-venturi",
+    title: "Bernoulli's Principle (Venturi Tube)",
+    category: "physics",
+    difficulty: "Intermediate",
+    description:
+      "Explore Bernoulli's principle with a Venturi tube. Adjust flow speed and cross-sectional area to see how pressure changes with fluid velocity.",
+    icon: "💨",
+    color: "#4f8fff",
+    topics: ["Bernoulli", "Continuity", "Pressure", "Fluid Dynamics"],
+  },
 
   // ========== CHEMISTRY (10) ==========
   {
