@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: build_system
+title: Next.js 构建与开发工作流
+scope: []
+source_files:
+    - package.json
+    - next.config.ts
+    - tsconfig.json
+    - postcss.config.mjs
+    - CONTRIBUTING.md
+depends_on: []
+related_to: []

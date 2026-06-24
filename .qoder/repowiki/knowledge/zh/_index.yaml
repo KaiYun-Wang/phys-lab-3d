@@ -2,7 +2,8 @@
 schema_version: 1
 locale: zh-CN
 branch: main
-exported_at: "2026-06-17T05:47:24Z"
+nodes_managed: true
+exported_at: "2026-06-24T03:27:55Z"
 modules:
     "":
         dir_name: 交互式3D科学实验平台
@@ -225,6 +226,57 @@ modules:
             - src\types\css.d.ts
             - src\utils\physics.ts
         source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    build_system:
+        dir_name: Next.js 构建与开发工作流
+        title: Next.js 构建与开发工作流
+        scope: []
+        source_files:
+            - package.json
+            - next.config.ts
+            - tsconfig.json
+            - postcss.config.mjs
+            - CONTRIBUTING.md
+        children: []
+        depends_on: []
+        related_to: []
+    configuration_system:
+        dir_name: 配置系统：基于 Next.js 约定与静态数据驱动
+        title: 配置系统：基于 Next.js 约定与静态数据驱动
+        scope: []
+        source_files:
+            - next.config.ts
+            - package.json
+            - src/data/experiments.ts
+            - src/lib/i18n/locales.ts
+            - src/lib/i18n/locale-context.tsx
+            - src/app/layout.tsx
+        children: []
+        depends_on: []
+        related_to: []
+    dependency_management:
+        dir_name: 依赖管理：基于 npm 与 Next.js 的前端依赖体系
+        title: 依赖管理：基于 npm 与 Next.js 的前端依赖体系
+        scope: []
+        source_files:
+            - package.json
+            - package-lock.json
+            - next.config.ts
+        children: []
+        depends_on: []
+        related_to: []
+    frontend_style:
+        dir_name: 前端视觉风格系统：Tailwind CSS v4 + CSS 变量主题 + Glassmorphism
+        title: 前端视觉风格系统：Tailwind CSS v4 + CSS 变量主题 + Glassmorphism
+        scope: []
+        source_files:
+            - src/app/globals.css
+            - package.json
+            - postcss.config.mjs
+            - src/app/layout.tsx
+            - src/app/page.tsx
         children: []
         depends_on: []
         related_to: []

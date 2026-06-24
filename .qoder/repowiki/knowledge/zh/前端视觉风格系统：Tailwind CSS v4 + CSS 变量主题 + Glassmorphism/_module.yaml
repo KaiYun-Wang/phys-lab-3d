@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: frontend_style
+title: 前端视觉风格系统：Tailwind CSS v4 + CSS 变量主题 + Glassmorphism
+scope: []
+source_files:
+    - src/app/globals.css
+    - package.json
+    - postcss.config.mjs
+    - src/app/layout.tsx
+    - src/app/page.tsx
+depends_on: []
+related_to: []
