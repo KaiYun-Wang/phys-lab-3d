@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-06-24T03:27:55Z"
+exported_at: "2026-06-24T05:08:15Z"
 modules:
     "":
-        dir_name: 交互式3D科学实验平台
-        title: 交互式3D科学实验平台
+        dir_name: STEM 3D 仿真实验平台
+        title: STEM 3D 仿真实验平台
         scope:
             - README.md
             - CONTRIBUTING.md
@@ -264,6 +264,18 @@ modules:
             - package.json
             - package-lock.json
             - next.config.ts
+        children: []
+        depends_on: []
+        related_to: []
+    error_handling:
+        dir_name: 错误处理机制
+        title: 错误处理机制
+        scope: []
+        source_files:
+            - src/app/page.tsx
+            - src/app/not-found.tsx
+            - src/utils/physics.ts
+            - src/app/layout.tsx
         children: []
         depends_on: []
         related_to: []
