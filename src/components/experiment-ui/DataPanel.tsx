@@ -8,6 +8,7 @@ export interface DataPanelProps {
   onToggle?: () => void;
   initialPosition?: { x: number; y: number };
   defaultCollapsed?: boolean;
+  title?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export function DataPanel({
   onToggle,
   initialPosition,
   defaultCollapsed = false,
+  title = "📊 Data",
 }: DataPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isDragging, setIsDragging] = useState(false);
@@ -185,7 +187,7 @@ export function DataPanel({
       <div className="w-full bg-gray-900/90 backdrop-blur-xl border border-gray-600/50 rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between bg-gradient-to-r from-cyan-600 to-blue-600 py-2 px-3 sm:px-4 -mx-0.5 border-b border-gray-600/50 shrink-0">
-          <h2 className="text-sm sm:text-base font-bold text-white">📊 Data</h2>
+          <h2 className="text-sm sm:text-base font-bold text-white">{title}</h2>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}

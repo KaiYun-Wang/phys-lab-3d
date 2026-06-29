@@ -94,6 +94,11 @@
       "description": "Simulate planetary orbits by adjusting mass, velocity, and distance. Observe elliptical, circular, and escape trajectories.",
       "topics": ["Gravity", "Orbits", "Kepler's Laws", "Escape Velocity"]
     },
+    "general-relativity": {
+      "title": "General Relativity · Black Hole",
+      "description": "Dive into curved spacetime around a Schwarzschild black hole. Watch geodesic orbits, gravitational lensing, redshift, and a glowing accretion disk in stunning 3D.",
+      "topics": ["General Relativity", "Black Holes", "Geodesics", "Gravitational Lensing"]
+    },
     "doppler": {
       "title": "Doppler Effect",
       "description": "Move a sound source and observer in 3D. Watch wavefronts compress and expand as frequency shifts in real-time.",

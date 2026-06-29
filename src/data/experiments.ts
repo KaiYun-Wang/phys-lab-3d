@@ -89,6 +89,17 @@ export const experiments: Experiment[] = [
     topics: ["Gravity", "Orbits", "Kepler's Laws", "Escape Velocity"],
   },
   {
+    id: "general-relativity",
+    title: "General Relativity · Black Hole",
+    category: "physics",
+    difficulty: "Advanced",
+    description:
+      "Dive into curved spacetime around a Schwarzschild black hole. Watch geodesic orbits, gravitational lensing, redshift, and a glowing accretion disk in stunning 3D.",
+    icon: "🕳️",
+    color: "#7c3aed",
+    topics: ["General Relativity", "Black Holes", "Geodesics", "Gravitational Lensing"],
+  },
+  {
     id: "doppler",
     title: "Doppler Effect",
     category: "physics",

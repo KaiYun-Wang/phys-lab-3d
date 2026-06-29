@@ -684,3 +684,331 @@ export function mapRange(
 ): number {
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
+
+// ========== General Relativity (Schwarzschild, G=c=1) ==========
+
+export interface TimelikeGeodesicState {
+  r: number;
+  phi: number;
+  dr: number;
+  dphi: number;
+  E: number;
+  L: number;
+  /** +1 outward / −1 inward, from conserved E,L */
+  radialSign: 1 | -1;
+}
+
+/** Schwarzschild radius rs = 2M */
+export function schwarzschildRadius(M: number): number {
+  return 2 * M;
+}
+
+/** Gravitational redshift z = 1/sqrt(1-rs/r) - 1 */
+export function gravitationalRedshift(r: number, rs: number): number {
+  if (r <= rs) return Infinity;
+  return 1 / Math.sqrt(1 - rs / r) - 1;
+}
+
+/** Flamm paraboloid embedding depth (visual funnel) — valid only for r > rs */
+export function schwarzschildEmbeddingZ(r: number, rs: number, scale = 1): number {
+  if (r <= rs) return 0;
+  return -scale * 2 * Math.sqrt(rs * (r - rs));
+}
+
+/**
+ * 时空嵌入图：Flamm 抛物面形态（r>rs 时 z∝-√(r-rs)），边缘拉平为 y=0。
+ * 教学用嵌入图，非严格 3D 度规投影。
+ */
+export function spacetimeEmbeddingY(
+  r: number,
+  rs: number,
+  scale = 1,
+  rimR = 99
+): number {
+  const rimDrop = 2 * Math.sqrt(Math.max(rs * (rimR - rs), 0.01));
+  if (r >= rimR) return 0;
+  if (r <= rs) {
+    return -scale * rimDrop - scale * (rs - r) * 0.6;
+  }
+  const flamm = 2 * Math.sqrt(rs * (r - rs));
+  return -scale * (rimDrop - flamm);
+}
+
+/** @deprecated use spacetimeEmbeddingY — kept for tests */
+export function spacetimeFunnelY(
+  r: number,
+  rs: number,
+  scale = 1,
+  rimR = 70
+): number {
+  return spacetimeEmbeddingY(r, rs, scale, rimR);
+}
+
+/** ISCO radius = 3 rs */
+export function iscoRadius(rs: number): number {
+  return 3 * rs;
+}
+
+/** Photon sphere radius = 1.5 rs */
+export function photonSphereRadius(rs: number): number {
+  return 1.5 * rs;
+}
+
+/** Circular orbit tangential speed at r (v = r·dφ/dτ, Schwarzschild G=c=1) */
+export function schwarzschildCircularVelocity(r: number, rs: number): number {
+  if (r <= 2 * rs) return Infinity;
+  return Math.sqrt(rs / (2 * (r - 2 * rs)));
+}
+
+/** Escape velocity for a purely tangential launch (E=1, dr=0) — Schwarzschild, G=c=1 */
+export function schwarzschildEscapeVelocity(r: number, rs: number): number {
+  return Math.sqrt(rs / (r - rs));
+}
+
+/** Newtonian radial escape speed at r (for comparison / weak field) */
+export function schwarzschildRadialEscapeVelocity(r: number, rs: number): number {
+  return Math.sqrt(rs / r);
+}
+
+/** Specific energy E (G=c=m=1) from launch parameters; v_tang = r·dφ/dτ */
+export function timelikeOrbitEnergy(
+  r: number,
+  vTangential: number,
+  rs: number,
+  vRadial = 0
+): number {
+  const f = 1 - rs / r;
+  const dphi = vTangential / r;
+  return Math.sqrt(f + vRadial * vRadial + f * r * r * dphi * dphi);
+}
+
+/** (dr/dτ)² from conserved E,L — Schwarzschild equatorial timelike geodesic */
+export function timelikeRadialSpeedSquared(
+  r: number,
+  E: number,
+  L: number,
+  rs: number
+): number {
+  const f = 1 - rs / r;
+  return E * E - f * (1 + (L * L) / (r * r));
+}
+
+function initialRadialSign(
+  r: number,
+  E: number,
+  L: number,
+  rs: number,
+  vRadial: number
+): 1 | -1 {
+  if (vRadial !== 0) return vRadial < 0 ? -1 : 1;
+  const f = 1 - rs / r;
+  const dt = E / f;
+  const d2r =
+    -(rs / (2 * r * r)) * f * dt * dt +
+    (L * L) / (r * r * r) * (1 - (3 * rs) / (2 * r));
+  if (d2r > 0) return 1;
+  if (d2r < 0) return -1;
+  return -1;
+}
+
+function radialAcceleration(r: number, E: number, L: number, rs: number): number {
+  const f = 1 - rs / r;
+  const dt = E / f;
+  return (
+    -(rs / (2 * r * r)) * f * dt * dt +
+    (L * L) / (r * r * r) * (1 - (3 * rs) / (2 * r))
+  );
+}
+
+function velocitiesFromConserved(
+  r: number,
+  E: number,
+  L: number,
+  rs: number,
+  radialSign: 1 | -1,
+  dtau = 0
+): { dr: number; dphi: number } {
+  if (r <= rs * 1.005) return { dr: 0, dphi: 0 };
+  const rad = timelikeRadialSpeedSquared(r, E, L, rs);
+  const dphi = L / (r * r);
+  if (rad > 1e-11) {
+    return { dr: radialSign * Math.sqrt(rad), dphi };
+  }
+  // 近拱点/远拱点：dr/dτ=0 但 d²r/dτ²≠0，用 ½a·Δt 启动径向运动
+  const d2r = radialAcceleration(r, E, L, rs);
+  const sign =
+    Math.abs(d2r) > 1e-15 ? (Math.sign(d2r) as 1 | -1) : radialSign;
+  const drKick = sign * 0.5 * Math.abs(d2r) * Math.max(dtau, 1e-5);
+  return { dr: drKick, dphi };
+}
+
+/** Mass-scaled plunge preset: inside ISCO, bound energy, inward bias */
+export function schwarzschildPlungePreset(rs: number) {
+  const r = Math.max(Math.round(2.4 * rs), Math.ceil(rs * 1.12));
+  const vt =
+    schwarzschildCircularVelocity(Math.max(r, 2 * rs + 0.5), rs) * 0.72;
+  const vr = -schwarzschildEscapeVelocity(r, rs) * 0.1;
+  return { r, vt, vr };
+}
+
+/** Mass-scaled escape preset: E > 1, small outward radial kick to leave apsis */
+export function schwarzschildEscapePreset(rs: number) {
+  const r = Math.round(4 * rs);
+  return {
+    r,
+    vt: schwarzschildEscapeVelocity(r, rs) * 1.08,
+    vr: schwarzschildEscapeVelocity(r, rs) * 0.04,
+  };
+}
+/** Build timelike geodesic state from r, tangential speed v_tang = r·dφ/dτ, optional v_rad = dr/dτ */
+export function createTimelikeGeodesic(
+  r: number,
+  vTangential: number,
+  rs: number,
+  phi = 0,
+  vRadial = 0
+): TimelikeGeodesicState {
+  const dphi = vTangential / r;
+  const L = r * r * dphi;
+  const E = timelikeOrbitEnergy(r, vTangential, rs, vRadial);
+  const radialSign = initialRadialSign(r, E, L, rs, vRadial);
+  const rad = timelikeRadialSpeedSquared(r, E, L, rs);
+  const dr =
+    vRadial !== 0
+      ? vRadial
+      : rad > 0
+        ? radialSign * Math.sqrt(rad)
+        : 0;
+  return { r, phi, dr, dphi, E, L, radialSign };
+}
+
+/** RK4 step: integrate r,φ with dr/dτ, dφ/dτ from conserved E,L (no energy drift) */
+export function timelikeGeodesicStep(
+  state: TimelikeGeodesicState,
+  rs: number,
+  dtau: number
+): TimelikeGeodesicState {
+  if (state.r <= rs * 1.005 || !Number.isFinite(state.r)) return state;
+
+  const { E, L } = state;
+  const vel = (r: number, sign: 1 | -1, stepDt: number) =>
+    velocitiesFromConserved(r, E, L, rs, sign, stepDt);
+
+  const k1 = vel(state.r, state.radialSign, dtau);
+  const k2 = vel(state.r + 0.5 * dtau * k1.dr, state.radialSign, dtau);
+  const k3 = vel(state.r + 0.5 * dtau * k2.dr, state.radialSign, dtau);
+  const k4 = vel(state.r + dtau * k3.dr, state.radialSign, dtau);
+
+  let newR =
+    state.r +
+    (dtau / 6) * (k1.dr + 2 * k2.dr + 2 * k3.dr + k4.dr);
+  const newPhi =
+    state.phi +
+    (dtau / 6) * (k1.dphi + 2 * k2.dphi + 2 * k3.dphi + k4.dphi);
+
+  if (!Number.isFinite(newR) || !Number.isFinite(newPhi)) return state;
+  newR = Math.max(newR, rs * 1.001);
+
+  let radialSign = state.radialSign;
+  const deltaR = newR - state.r;
+  if (Math.abs(deltaR) > 1e-8) {
+    radialSign = deltaR > 0 ? 1 : -1;
+  }
+
+  const radNew = timelikeRadialSpeedSquared(newR, E, L, rs);
+  if (radNew <= 1e-14 && Math.abs(k1.dr) > 1e-8) {
+    radialSign = radialSign === 1 ? -1 : 1;
+  }
+
+  const dr = radNew > 0 ? radialSign * Math.sqrt(radNew) : 0;
+  const dphi = L / (newR * newR);
+
+  return { r: newR, phi: newPhi, dr, dphi, E, L, radialSign };
+}
+
+/** Classify orbit type from energy and angular momentum */
+export function classifySchwarzschildOrbit(
+  r: number,
+  vTangential: number,
+  rs: number,
+  vRadial = 0
+): "Bound" | "Escape" | "Plunge" | "Circular" {
+  const E = timelikeOrbitEnergy(r, vTangential, rs, vRadial);
+  const vCirc = schwarzschildCircularVelocity(r, rs);
+  if (Math.abs(vTangential - vCirc) < 0.02 && Math.abs(vRadial) < 0.02) {
+    return "Circular";
+  }
+  if (E < 1) {
+    if (r < 3 * rs) return "Plunge";
+    return "Bound";
+  }
+  return "Escape";
+}
+
+/** Null geodesic deflection angle (weak field approx) in radians: 4M/b = 2rs/b */
+export function nullGeodesicDeflection(b: number, rs: number): number {
+  if (b <= rs) return Math.PI;
+  return (2 * rs) / b;
+}
+
+/** Integrate null geodesic path points in xy plane (u = 1/r) */
+export function integrateNullGeodesic(
+  impactParam: number,
+  rs: number,
+  startX: number,
+  steps = 400
+): { x: number; y: number }[] {
+  return tracePhotonPath(startX, impactParam, rs, steps).points;
+}
+
+/** Numerical photon path trace for visualization (equatorial plane) */
+export function tracePhotonPath(
+  startX: number,
+  impactParam: number,
+  rs: number,
+  steps = 400
+): { points: { x: number; y: number }[]; absorbed: boolean } {
+  let x = startX;
+  let z = impactParam;
+  let vx = 1;
+  let vz = 0;
+  const points: { x: number; y: number }[] = [];
+  const stepSize = 0.35;
+  let absorbed = false;
+  for (let i = 0; i < steps; i++) {
+    points.push({ x, y: z });
+    const r2 = x * x + z * z;
+    const r = Math.sqrt(r2);
+    if (r < rs * 1.05) {
+      absorbed = true;
+      points.push({ x: x * 0.6, y: z * 0.6 });
+      break;
+    }
+    if (x > 75) break;
+    const bend = (1.5 * rs) / (r2 * r);
+    vx += -bend * x * stepSize;
+    vz += -bend * z * stepSize;
+    const vlen = Math.sqrt(vx * vx + vz * vz) || 1;
+    vx /= vlen;
+    vz /= vlen;
+    x += vx * stepSize;
+    z += vz * stepSize;
+  }
+  return { points, absorbed };
+}
+
+/** Perihelion precession rate per orbit (radians) — GR correction */
+export function perihelionPrecessionRate(a: number, e: number, rs: number): number {
+  return (3 * Math.PI * rs) / (a * (1 - e * e));
+}
+
+// ponytail: self-check when imported in Node (build/lint)
+if (typeof window === "undefined") {
+  const rs = schwarzschildRadius(5);
+  console.assert(Math.abs(rs - 10) < 1e-9, "rs = 2M");
+  console.assert(gravitationalRedshift(20, 10) > 0, "redshift positive");
+  console.assert(schwarzschildEmbeddingZ(20, 10) < 0, "embedding dips");
+  console.assert(spacetimeEmbeddingY(99, 10, 1, 99) === 0, "rim flat");
+  console.assert(spacetimeEmbeddingY(10, 10, 1, 99) < spacetimeEmbeddingY(50, 10, 1, 99), "deeper near hole");
+  console.assert(nullGeodesicDeflection(20, 10) > 0, "deflection positive");
+}
