@@ -79,6 +79,11 @@
       "description": "Create two wave sources and watch constructive and destructive interference patterns form in real-time 3D space.",
       "topics": ["Waves", "Superposition", "Interference", "Frequency"]
     },
+    "wave-mechanics": {
+      "title": "Transverse & Longitudinal Waves",
+      "description": "Compare transverse and longitudinal waves side by side with synchronized wave parameters and 3D particle visualization.",
+      "topics": ["Transverse", "Longitudinal", "Wavelength", "Frequency"]
+    },
     "electromagnetic": {
       "title": "Electromagnetic Field",
       "description": "Place charges in 3D space and visualize electric field lines, potential surfaces, and force vectors interactively.",

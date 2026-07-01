@@ -10,6 +10,8 @@ export interface SimulationControllerProps {
   onSpeedChange: (speed: number) => void;
   timeElapsed?: number;
   initialPosition?: { x: number; y: number };
+  timeLabel?: string;
+  speedLabel?: string;
 }
 
 /**
@@ -32,6 +34,8 @@ export function SimulationController({
   onSpeedChange,
   timeElapsed = 0,
   initialPosition,
+  timeLabel = "Time",
+  speedLabel = "Speed",
 }: SimulationControllerProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -191,7 +195,7 @@ export function SimulationController({
           {/* Time Elapsed */}
           {timeElapsed !== undefined && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">Time</span>
+              <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">{timeLabel}</span>
               <span className="text-xs sm:text-sm font-mono text-cyan-400 min-w-16 text-center">
                 {formatTime(timeElapsed)}
               </span>
@@ -203,7 +207,7 @@ export function SimulationController({
 
           {/* Speed control */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-            <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">Speed</span>
+            <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">{speedLabel}</span>
             <input
               type="range"
               min="0.1"

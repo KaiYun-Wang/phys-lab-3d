@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NEXT_TELEMETRY_DISABLED=1 next dev",
+    "dev:clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){}\" && cross-env NEXT_TELEMETRY_DISABLED=1 next dev",
     "build": "next build",
     "start": "next start"
   },

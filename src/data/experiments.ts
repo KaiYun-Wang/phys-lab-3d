@@ -56,6 +56,17 @@ export const experiments: Experiment[] = [
     topics: ["Waves", "Superposition", "Interference", "Frequency"],
   },
   {
+    id: "wave-mechanics",
+    title: "横波与纵波",
+    category: "physics",
+    difficulty: "Intermediate",
+    description:
+      "左右分屏对比横波与纵波，同步调节频率、振幅、波长，可视化波前、疏密区与相位同步。",
+    icon: "📡",
+    color: "#4f8fff",
+    topics: ["横波", "纵波", "波长", "频率"],
+  },
+  {
     id: "electromagnetic",
     title: "Electromagnetic Field",
     category: "physics",
