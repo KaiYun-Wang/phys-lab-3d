@@ -7,8 +7,26 @@ import {
   Star, Moon, Sun,
   ChevronDown, ArrowRight,
 } from "lucide-react";
-import { useLocaleContext } from "@/lib/i18n/locale-context";
-import { LanguageSwitcher } from "@/components/ui/language-switcher";
+
+const NAV_CATEGORIES = [
+  { id: "physics", icon: "⚛️", name: "物理" },
+  { id: "chemistry", icon: "🧪", name: "化学" },
+  { id: "biology", icon: "🧬", name: "生物" },
+  { id: "math", icon: "📐", name: "数学" },
+] as const;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  physics: "物理",
+  chemistry: "化学",
+  biology: "生物",
+  math: "数学",
+};
+
+const DIFFICULTY_LABELS: Record<string, string> = {
+  Beginner: "入门",
+  Intermediate: "进阶",
+  Advanced: "高级",
+};
 
 // Favorites utilities
 function getFavorites(): string[] {
@@ -27,20 +45,12 @@ function isFavorite(id: string): boolean {
 // ========== NAVBAR ==========
 function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void }) {
   const [scrolled, setScrolled] = useState(false);
-  const { dict } = useLocaleContext();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
-
-  const navCategories = [
-    { id: "physics", icon: "⚛️", name: dict.nav.physics },
-    { id: "chemistry", icon: "🧪", name: dict.nav.chemistry },
-    { id: "biology", icon: "🧬", name: dict.nav.biology },
-    { id: "math", icon: "📐", name: dict.nav.math },
-  ];
 
   return (
     <nav
@@ -58,7 +68,7 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
           ScienceLab 3D
         </a>
         <div className="hidden md:flex gap-2">
-          {navCategories.map((cat) => (
+          {NAV_CATEGORIES.map((cat) => (
             <a
               key={cat.id}
               href={`#experiments`}
@@ -69,11 +79,10 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
           <button
             onClick={toggleTheme}
             className="p-2.5 glass rounded-full hover:scale-105 transition-transform"
-            title={theme === "dark" ? dict.common.lightModeTitle : dict.common.darkModeTitle}
+            title={theme === "dark" ? "切换至浅色模式" : "切换至深色模式"}
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -85,7 +94,6 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
 
 // ========== HERO SECTION ==========
 function HeroSection() {
-  const { dict } = useLocaleContext();
   return (
     <section className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
       {/* Animated background grid */}
@@ -112,7 +120,7 @@ function HeroSection() {
         className="relative z-10"
       >
         <div className="text-xs sm:text-sm font-medium text-blue-300/70 mb-4 tracking-[0.3em] uppercase">
-          {dict.hero.subtitle}
+          交互式3D科学平台
         </div>
         <h1
           className="text-5xl md:text-7xl font-black mb-6 bg-linear-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent leading-tight"
@@ -121,20 +129,20 @@ function HeroSection() {
           ScienceLab 3D
         </h1>
         <p className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-          {dict.hero.description}
+          探索40+个交互式实验，涵盖物理、化学、生物和数学。控制变量、观察模拟，以前所未有的方式学习科学。
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <a
             href="#experiments"
             className="px-8 py-3.5 bg-linear-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:scale-105 transition-transform animate-pulse-glow"
           >
-            {dict.hero.startExploring}
+            开始探索
           </a>
           <a
             href="#about"
             className="px-8 py-3.5 glass rounded-full font-semibold hover:scale-105 transition-transform"
           >
-            {dict.hero.learnMore}
+            了解更多
           </a>
         </div>
       </motion.div>
@@ -147,10 +155,10 @@ function HeroSection() {
         className="relative z-10 mt-16 flex gap-8 md:gap-16 flex-wrap justify-center"
       >
         {[
-          { num: "40+", label: dict.hero.experiments },
-          { num: "4", label: dict.hero.subjects },
-          { num: "3D", label: dict.hero.interactive },
-          { num: "∞", label: dict.hero.learning },
+          { num: "40+", label: "实验" },
+          { num: "4", label: "学科" },
+          { num: "3D", label: "交互" },
+          { num: "∞", label: "学习" },
         ].map((s) => (
           <div key={s.label} className="text-center">
             <div className="text-3xl font-bold bg-linear-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -220,7 +228,6 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
   onToggleFavorite: (id: string) => void;
 }) {
   const [fav, setFav] = useState(false);
-  const { dict } = useLocaleContext();
 
   useEffect(() => {
     setFav(isFavorite(exp.id));
@@ -231,16 +238,6 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
     e.stopPropagation();
     onToggleFavorite(exp.id);
     setFav((f) => !f);
-  };
-
-  const expDict = (dict.experiments as Record<string, { title: string; description: string; topics: string[] }>)[exp.id];
-  const title = expDict?.title || exp.title;
-  const description = expDict?.description || exp.description;
-  const topics = expDict?.topics || exp.topics;
-  const difficultyMap: Record<string, string> = {
-    Beginner: dict.common.beginner,
-    Intermediate: dict.common.intermediate,
-    Advanced: dict.common.advanced,
   };
 
   return (
@@ -274,7 +271,7 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
         className={`absolute top-4 right-4 p-2 rounded-lg transition-all ${
           fav ? "text-yellow-400 bg-yellow-400/10" : "text-gray-500 hover:text-yellow-400"
         }`}
-        title={fav ? dict.common.removeFromFavorites : dict.common.addToFavorites}
+        title={fav ? "取消收藏" : "添加收藏"}
       >
         <Star size={16} fill={fav ? "currentColor" : "none"} />
       </button>
@@ -288,15 +285,15 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
             color: exp.color,
           }}
         >
-          {difficultyMap[exp.difficulty] || exp.difficulty}
+          {DIFFICULTY_LABELS[exp.difficulty] || exp.difficulty}
         </span>
       </div>
       <h3 className="text-lg font-bold mb-2 group-hover:text-white transition-colors">
-        {title}
+        {exp.title}
       </h3>
-      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{description}</p>
+      <p className="text-sm text-gray-400 mb-4 line-clamp-2">{exp.description}</p>
       <div className="flex flex-wrap gap-1.5">
-        {topics.slice(0, 3).map((t) => (
+        {exp.topics.slice(0, 3).map((t) => (
           <span
             key={t}
             className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-gray-500"
@@ -304,9 +301,9 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
             {t}
           </span>
         ))}
-        {topics.length > 3 && (
+        {exp.topics.length > 3 && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-gray-500">
-            +{topics.length - 3}
+            +{exp.topics.length - 3}
           </span>
         )}
       </div>
@@ -314,10 +311,10 @@ function ExperimentCard({ exp, index, onToggleFavorite }: {
       {/* Launch indicator on hover */}
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <span className="text-xs font-medium capitalize" style={{ color: exp.color }}>
-          {dict.nav[exp.category as keyof typeof dict.nav] || exp.category}
+          {CATEGORY_LABELS[exp.category] || exp.category}
         </span>
         <span className="text-xs text-gray-400 flex items-center gap-1">
-          {dict.common.launch} <ArrowRight size={12} />
+          启动 <ArrowRight size={12} />
         </span>
       </div>
     </motion.a>
@@ -332,12 +329,6 @@ export default function Home() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [favoritesCount, setFavoritesCount] = useState(0);
-  const { dict } = useLocaleContext();
-
-  const translatedCategories = categories.map((cat) => ({
-    ...cat,
-    name: (dict.categories as Record<string, string>)[cat.id] || cat.name,
-  }));
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -359,22 +350,12 @@ export default function Home() {
 
   const filtered = useMemo(() => {
     let result = experiments.filter((exp) => {
-      const expDict = (dict.experiments as Record<string, { title: string; description: string; topics: string[] }>)[exp.id];
-      const localTitle = expDict?.title || exp.title;
-      const localDesc = expDict?.description || exp.description;
-      const localTopics = expDict?.topics || exp.topics;
-
       const matchCat =
         activeCategory === "all" || exp.category === activeCategory;
       const matchDifficulty =
         !selectedDifficulty || exp.difficulty === selectedDifficulty;
       const matchSearch =
         search === "" ||
-        localTitle.toLowerCase().includes(search.toLowerCase()) ||
-        localDesc.toLowerCase().includes(search.toLowerCase()) ||
-        localTopics.some((t) =>
-          t.toLowerCase().includes(search.toLowerCase())
-        ) ||
         exp.title.toLowerCase().includes(search.toLowerCase()) ||
         exp.description.toLowerCase().includes(search.toLowerCase()) ||
         exp.topics.some((t) =>
@@ -389,7 +370,7 @@ export default function Home() {
     }
 
     return result;
-  }, [activeCategory, search, selectedDifficulty, showFavoritesOnly, dict]);
+  }, [activeCategory, search, selectedDifficulty, showFavoritesOnly]);
 
   const handleToggleFavorite = (id: string) => {
     const favorites = getFavorites();
@@ -416,7 +397,7 @@ export default function Home() {
           className="mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center relative inline-block w-full">
-            {dict.explore.title}
+            探索实验
             <span className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
           </h2>
 
@@ -436,7 +417,7 @@ export default function Home() {
               }`}
             >
               <span className="text-xl">🔬</span>
-              {dict.common.allExperiments}
+              全部实验
               {activeCategory === "all" && !showFavoritesOnly && (
                 <motion.div
                   layoutId="activeCategory"
@@ -458,7 +439,7 @@ export default function Home() {
               }`}
             >
               <span className="text-xl">⭐</span>
-              {dict.common.favorites}
+              收藏
               {favoritesCount > 0 && (
                 <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
                   {favoritesCount}
@@ -472,7 +453,7 @@ export default function Home() {
               )}
             </button>
 
-            {translatedCategories.map((cat) => (
+            {categories.map((cat) => (
               <CategoryBadge
                 key={cat.id}
                 category={cat}
@@ -488,9 +469,9 @@ export default function Home() {
           {/* Difficulty filters */}
           <div className="flex gap-2 justify-center flex-wrap mb-8">
             {[
-              { key: "Beginner", label: dict.common.beginner },
-              { key: "Intermediate", label: dict.common.intermediate },
-              { key: "Advanced", label: dict.common.advanced },
+              { key: "Beginner", label: "入门" },
+              { key: "Intermediate", label: "进阶" },
+              { key: "Advanced", label: "高级" },
             ].map((diff) => (
               <button
                 key={diff.key}
@@ -530,8 +511,8 @@ export default function Home() {
         {filtered.length === 0 && (
           <div className="text-center py-20 text-gray-500">
             {showFavoritesOnly
-              ? dict.common.noFavorites
-              : dict.common.noResults}
+              ? "还没有收藏。点击任意实验上的星标图标即可添加！"
+              : "未找到实验。请尝试其他搜索条件或分类。"}
           </div>
         )}
       </section>
@@ -544,7 +525,7 @@ export default function Home() {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl font-bold mb-4 relative inline-block">
-            {dict.howItWorks.title}
+            使用方法
             <span className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative mt-8">
@@ -554,18 +535,18 @@ export default function Home() {
             {[
               {
                 icon: "🎯",
-                title: dict.howItWorks.choose,
-                desc: dict.howItWorks.chooseDesc,
+                title: "选择",
+                desc: "从4大学科的40+实验中挑选",
               },
               {
                 icon: "🎛️",
-                title: dict.howItWorks.control,
-                desc: dict.howItWorks.controlDesc,
+                title: "控制",
+                desc: "通过交互式滑块和实时控件调节变量",
               },
               {
                 icon: "🧠",
-                title: dict.howItWorks.learn,
-                desc: dict.howItWorks.learnDesc,
+                title: "学习",
+                desc: "观看3D模拟，理解每个实验背后的科学原理",
               },
             ].map((s, i) => (
               <motion.div
@@ -600,21 +581,21 @@ export default function Home() {
                 ScienceLab 3D
               </h3>
               <p className="text-gray-500 text-sm leading-relaxed">
-                {dict.footer.description}
+                免费的交互式3D科学实验，涵盖物理、化学、生物和数学。
               </p>
             </div>
 
             {/* Quick Links */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">{dict.footer.quickLinks}</h4>
+              <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">快速链接</h4>
               <div className="space-y-2">
-                {translatedCategories.map((cat) => (
+                {categories.map((cat) => (
                   <a
                     key={cat.id}
                     href="#experiments"
                     className="block text-sm text-gray-500 hover:text-gray-300 transition-colors"
                   >
-                    {cat.icon} {cat.name} {dict.footer.experimentsSuffix}
+                    {cat.icon} {cat.name} 实验
                   </a>
                 ))}
               </div>

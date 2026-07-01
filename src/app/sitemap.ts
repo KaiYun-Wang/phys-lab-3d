@@ -2,7 +2,6 @@ import { MetadataRoute } from "next";
 import { experiments } from "@/data/experiments";
 
 const SITE_URL = "https://sciencelab-two.vercel.app";
-const LOCALES = ["en", "zh-CN"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -13,14 +12,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "weekly",
       priority: 1.0,
-      alternates: {
-        languages: Object.fromEntries(
-          LOCALES.map((locale) => [
-            locale,
-            locale === "en" ? SITE_URL : `${SITE_URL}/${locale}`,
-          ])
-        ),
-      },
     },
   ];
 
@@ -30,32 +21,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.8,
-      alternates: {
-        languages: Object.fromEntries(
-          LOCALES.map((locale) => [
-            locale,
-            locale === "en"
-              ? `${SITE_URL}/experiments/${exp.id}`
-              : `${SITE_URL}/${locale}/experiments/${exp.id}`,
-          ])
-        ),
-      },
     },
     {
       url: `${SITE_URL}/experiments/${exp.id}/details`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.6,
-      alternates: {
-        languages: Object.fromEntries(
-          LOCALES.map((locale) => [
-            locale,
-            locale === "en"
-              ? `${SITE_URL}/experiments/${exp.id}/details`
-              : `${SITE_URL}/${locale}/experiments/${exp.id}/details`,
-          ])
-        ),
-      },
     },
   ]);
 

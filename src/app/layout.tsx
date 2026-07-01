@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { LocaleProvider } from "@/lib/i18n/locale-context";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -184,7 +183,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -199,7 +198,7 @@ export default function RootLayout({
         />
       </head>
       <body className="m-0 p-0">
-        <LocaleProvider>{children}</LocaleProvider>
+        {children}
       </body>
     </html>
   );
