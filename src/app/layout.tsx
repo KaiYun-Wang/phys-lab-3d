@@ -12,9 +12,9 @@ export const viewport: Viewport = {
 
 const SITE_URL = "https://sciencelab-two.vercel.app";
 const SITE_NAME = "ScienceLab 3D";
-const SITE_TITLE = "ScienceLab 3D — Interactive STEM Education | 40+ Virtual Science Experiments";
+const SITE_TITLE = "ScienceLab 3D — Interactive Physics Education | 6 Virtual Physics Experiments";
 const SITE_DESCRIPTION =
-  "ScienceLab 3D — Free interactive STEM education platform with 40+ virtual experiments in physics, chemistry & biology. 3D visualizations, real-time data analysis. Learn science by doing.";
+  "ScienceLab 3D — Free interactive physics education platform with 6 virtual experiments. 3D visualizations, real-time data analysis. Learn physics by doing.";
 
 export const metadata: Metadata = {
   title: {
@@ -25,38 +25,26 @@ export const metadata: Metadata = {
   keywords: [
     "science lab",
     "virtual experiments",
-    "STEM education",
+    "physics education",
     "physics",
-    "chemistry",
-    "biology",
     "3D",
     "interactive",
     "education",
-    "science education",
-    "3D science experiments",
+    "3D physics experiments",
     "interactive learning",
     "physics simulations",
-    "chemistry experiments",
-    "biology education",
-    "mathematics visualization",
-    "virtual science lab",
-    "online science lab",
-    "free science experiments",
+    "virtual physics lab",
+    "online physics lab",
+    "free physics experiments",
     "interactive 3D simulations",
     "pendulum simulation",
     "projectile motion",
-    "DNA replication",
-    "periodic table",
-    "gas laws",
-    "cell structure",
-    "Mandelbrot fractal",
-    "Fourier transform",
+    "wave interference",
+    "electromagnetic field",
+    "general relativity",
+    "special relativity",
     "science for students",
     "high school physics",
-    "college chemistry",
-    "biology visualization",
-    "math explorer",
-    "Rudra Sarker",
     "sciencelab3d",
   ],
   authors: [{ name: "Rudra Sarker", url: "https://rudra496.github.io/site" }],

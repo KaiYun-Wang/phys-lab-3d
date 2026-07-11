@@ -1,25 +1,15 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { experiments, categories } from "@/data/experiments";
+import { experiments } from "@/data/experiments";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Star, Moon, Sun,
   ChevronDown, ArrowRight,
 } from "lucide-react";
 
-const NAV_CATEGORIES = [
-  { id: "physics", icon: "⚛️", name: "物理" },
-  { id: "chemistry", icon: "🧪", name: "化学" },
-  { id: "biology", icon: "🧬", name: "生物" },
-  { id: "math", icon: "📐", name: "数学" },
-] as const;
-
 const CATEGORY_LABELS: Record<string, string> = {
   physics: "物理",
-  chemistry: "化学",
-  biology: "生物",
-  math: "数学",
 };
 
 const DIFFICULTY_LABELS: Record<string, string> = {
@@ -67,17 +57,6 @@ function Navbar({ theme, toggleTheme }: { theme: string; toggleTheme: () => void
         >
           ScienceLab 3D
         </a>
-        <div className="hidden md:flex gap-2">
-          {NAV_CATEGORIES.map((cat) => (
-            <a
-              key={cat.id}
-              href={`#experiments`}
-              className="px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-white glass hover:scale-105 transition-all"
-            >
-              {cat.icon} {cat.name}
-            </a>
-          ))}
-        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
@@ -129,7 +108,7 @@ function HeroSection() {
           ScienceLab 3D
         </h1>
         <p className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-          探索40+个交互式实验，涵盖物理、化学、生物和数学。控制变量、观察模拟，以前所未有的方式学习科学。
+          探索6个交互式物理实验。控制变量、观察模拟，以前所未有的方式学习物理。
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <a
@@ -137,12 +116,6 @@ function HeroSection() {
             className="px-8 py-3.5 bg-linear-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:scale-105 transition-transform animate-pulse-glow"
           >
             开始探索
-          </a>
-          <a
-            href="#about"
-            className="px-8 py-3.5 glass rounded-full font-semibold hover:scale-105 transition-transform"
-          >
-            了解更多
           </a>
         </div>
       </motion.div>
@@ -155,8 +128,8 @@ function HeroSection() {
         className="relative z-10 mt-16 flex gap-8 md:gap-16 flex-wrap justify-center"
       >
         {[
-          { num: "40+", label: "实验" },
-          { num: "4", label: "学科" },
+          { num: "6", label: "实验" },
+          { num: "1", label: "学科" },
           { num: "3D", label: "交互" },
           { num: "∞", label: "学习" },
         ].map((s) => (
@@ -178,46 +151,6 @@ function HeroSection() {
         <ChevronDown className="text-gray-500" size={24} />
       </motion.div>
     </section>
-  );
-}
-
-// ========== CATEGORY BADGE ==========
-function CategoryBadge({
-  category,
-  active,
-  onClick,
-}: {
-  category: (typeof categories)[0] | { id: string; name: string; icon: string; color?: string };
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`relative flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
-        active
-          ? "text-white shadow-lg scale-105"
-          : "glass text-gray-400 hover:text-white hover:scale-102"
-      }`}
-      style={
-        active
-          ? {
-              background: `linear-gradient(135deg, ${category.color}33, ${category.color}11)`,
-              boxShadow: `0 0 20px ${category.color}33`,
-              borderColor: `${category.color}55`,
-            }
-          : {}
-      }
-    >
-      <span className="text-xl">{category.icon}</span>
-      {category.name}
-      {active && (
-        <motion.div
-          layoutId="activeCategory"
-          className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white"
-        />
-      )}
-    </button>
   );
 }
 
@@ -452,18 +385,6 @@ export default function Home() {
                 />
               )}
             </button>
-
-            {categories.map((cat) => (
-              <CategoryBadge
-                key={cat.id}
-                category={cat}
-                active={activeCategory === cat.id && !showFavoritesOnly}
-                onClick={() => {
-                  setActiveCategory(cat.id);
-                  setShowFavoritesOnly(false);
-                }}
-              />
-            ))}
           </div>
 
           {/* Difficulty filters */}
@@ -517,94 +438,18 @@ export default function Home() {
         )}
       </section>
 
-      {/* About Section */}
-      <section id="about" className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-3xl font-bold mb-4 relative inline-block">
-            使用方法
-            <span className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" />
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative mt-8">
-            {/* Connecting line */}
-            <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-px bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-cyan-500/30" />
-
-            {[
-              {
-                icon: "🎯",
-                title: "选择",
-                desc: "从4大学科的40+实验中挑选",
-              },
-              {
-                icon: "🎛️",
-                title: "控制",
-                desc: "通过交互式滑块和实时控件调节变量",
-              },
-              {
-                icon: "🧠",
-                title: "学习",
-                desc: "观看3D模拟，理解每个实验背后的科学原理",
-              },
-            ].map((s, i) => (
-              <motion.div
-                key={s.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="relative glass rounded-2xl p-8 text-center group hover:scale-[1.02] transition-transform"
-              >
-                <div className="w-10 h-10 mx-auto mb-4 rounded-full bg-linear-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm relative z-10">
-                  {i + 1}
-                </div>
-                <span className="text-4xl mb-4 block">{s.icon}</span>
-                <h3 className="text-xl font-bold mb-2">{s.title}</h3>
-                <p className="text-gray-400 text-sm">{s.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-
       {/* Footer */}
       <footer className="border-t border-white/5 pt-12 pb-8 text-center text-gray-500 text-sm">
         <div className="h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent mb-12" />
         <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 text-left">
-            {/* Brand */}
-            <div>
-              <h3 className="text-lg font-bold bg-linear-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-3">
-                ScienceLab 3D
-              </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                免费的交互式3D科学实验，涵盖物理、化学、生物和数学。
-              </p>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">快速链接</h4>
-              <div className="space-y-2">
-                {categories.map((cat) => (
-                  <a
-                    key={cat.id}
-                    href="#experiments"
-                    className="block text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                  >
-                    {cat.icon} {cat.name} 实验
-                  </a>
-                ))}
-              </div>
-            </div>
-
-
+          <div className="mb-10 text-center">
+            <h3 className="text-lg font-bold bg-linear-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-3">
+              ScienceLab 3D
+            </h3>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              免费的交互式3D物理实验平台。
+            </p>
           </div>
-
-
         </div>
       </footer>
     </main>
