@@ -1,0 +1,12 @@
+phys-lab:
+  server:
+    port: 8080
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: phys_lab_3d
+    username: postgres
+    password: postgres
+  mybatis:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

@@ -1,0 +1,25 @@
+server:
+  port: ${phys-lab.server.port}
+
+spring:
+  application:
+    name: backend
+  profiles:
+    active: local
+  datasource:
+    driver-class-name: ${phys-lab.datasource.driver-class-name}
+    url: jdbc:postgresql://${phys-lab.datasource.host}:${phys-lab.datasource.port}/${phys-lab.datasource.database}
+    username: ${phys-lab.datasource.username}
+    password: ${phys-lab.datasource.password}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: ${physlab.mybatis.log-impl}
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:/mapper/**/*.xml

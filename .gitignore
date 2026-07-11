@@ -3,7 +3,8 @@ node_modules/
 out/
 .DS_Store
 *.tsbuildinfo
-next-env.d.ts
+frontend-user/next-env.d.ts
 Roo-Code/
 .idea
 .cursor
+backend/target
