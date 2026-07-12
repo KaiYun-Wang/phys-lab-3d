@@ -8,32 +8,31 @@ import com.wky.backend.domain.entity.User;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.mapper.UserMapper;
 import com.wky.backend.service.IUserService;
-import org.springframework.beans.factory.annotation.Value;
+import org.dromara.x.file.storage.core.FileInfo;
+import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
+    private static final String STORAGE_PLATFORM = "minio-1";
+    private static final String AVATAR_BASE_PATH = "avatars/";
+
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp");
 
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
-    @Value("${phys-lab.upload.avatar-dir}")
-    private String avatarDir;
-
-    public UserServiceImpl(PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -72,7 +71,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     @Transactional
-    public UserProfileResponse uploadAvatar(Long userId, MultipartFile file) throws IOException {
+    public UserProfileResponse uploadAvatar(Long userId, MultipartFile file) {
         if (file.isEmpty()) {
             throw new ApiException(400, "请选择图片");
         }
@@ -90,17 +89,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             default -> ".jpg";
         };
 
-        Path dir = Path.of(avatarDir);
-        Files.createDirectories(dir);
-
         User user = requireUser(userId);
         deleteAvatarFile(user.getAvatarUrl());
 
         String filename = userId + "-" + UUID.randomUUID().toString().substring(0, 8) + ext;
-        Path target = dir.resolve(filename);
-        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        FileInfo fileInfo = fileStorageService.of(file)
+                .setSaveFilename(filename)
+                .upload();
+        if (fileInfo == null) {
+            throw new ApiException(500, "头像上传失败");
+        }
 
-        user.setAvatarUrl("/uploads/avatars/" + filename);
+        user.setAvatarUrl(fileInfo.getUrl());
         updateById(user);
         return UserProfileResponse.from(user);
     }
@@ -116,13 +116,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     private void deleteAvatarFile(String avatarUrl) {
-        if (avatarUrl == null || !avatarUrl.startsWith("/uploads/avatars/")) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
             return;
         }
-        try {
-            Path path = Path.of(avatarDir).resolve(avatarUrl.substring("/uploads/avatars/".length()));
-            Files.deleteIfExists(path);
-        } catch (IOException ignored) {
+        int slash = avatarUrl.lastIndexOf('/');
+        if (slash < 0) {
+            return;
         }
+        fileStorageService.delete(avatarFileInfo(avatarUrl.substring(slash + 1)));
+    }
+
+    private static FileInfo avatarFileInfo(String filename) {
+        return new FileInfo()
+                .setPlatform(STORAGE_PLATFORM)
+                .setBasePath(AVATAR_BASE_PATH)
+                .setFilename(filename);
     }
 }

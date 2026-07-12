@@ -10,3 +10,9 @@ phys-lab:
     password: postgres
   mybatis:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  minio:
+    access-key: minioadmin
+    secret-key: minioadmin
+    endpoint: http://127.0.0.1:9000
+    bucket: phys-lab
+    domain: http://127.0.0.1:8080/api/

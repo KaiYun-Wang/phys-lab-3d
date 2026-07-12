@@ -30,6 +30,8 @@
 		<java.version>17</java.version>
 		<mybatis-plus.version>3.5.9</mybatis-plus.version>
 		<jjwt.version>0.12.6</jjwt.version>
+		<x-file-storage.version>2.3.0</x-file-storage.version>
+		<minio.version>8.5.17</minio.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -75,6 +77,16 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.dromara.x-file-storage</groupId>
+			<artifactId>x-file-storage-spring</artifactId>
+			<version>${x-file-storage.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>${minio.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

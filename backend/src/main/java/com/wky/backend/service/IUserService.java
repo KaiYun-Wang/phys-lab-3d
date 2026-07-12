@@ -7,8 +7,6 @@ import com.wky.backend.domain.dto.UserProfileResponse;
 import com.wky.backend.domain.entity.User;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-
 public interface IUserService extends IService<User> {
 
     User requireUser(Long userId);
@@ -19,7 +17,7 @@ public interface IUserService extends IService<User> {
 
     void changePassword(Long userId, ChangePasswordRequest request);
 
-    UserProfileResponse uploadAvatar(Long userId, MultipartFile file) throws IOException;
+    UserProfileResponse uploadAvatar(Long userId, MultipartFile file);
 
     UserProfileResponse resetAvatar(Long userId);
 }

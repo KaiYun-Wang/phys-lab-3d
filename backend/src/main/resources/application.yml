@@ -29,5 +29,16 @@ phys-lab:
   jwt:
     secret: phys-lab-3d
     expiration-ms: 86400000
-  upload:
-    avatar-dir: uploads/avatars
+
+dromara:
+  x-file-storage:
+    default-platform: minio-1
+    minio:
+      - platform: minio-1
+        enable-storage: true
+        access-key: ${phys-lab.minio.access-key}
+        secret-key: ${phys-lab.minio.secret-key}
+        end-point: ${phys-lab.minio.endpoint}
+        bucket-name: ${phys-lab.minio.bucket}
+        domain: ${phys-lab.minio.domain}
+        base-path: avatars/

@@ -514,7 +514,6 @@ canvas {
   }
 }
 
-/* ── 登录 / 注册页（对齐 auth.html 设计稿） ── */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -599,7 +598,6 @@ canvas {
   color: #f87171;
 }
 
-/* ── 个人中心（对齐 profile.html 设计稿） ── */
 .profile-page {
   min-height: 100vh;
   background: var(--sx-black);

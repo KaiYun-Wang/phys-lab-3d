@@ -10,7 +10,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Map;
 
 @RestController
@@ -43,7 +42,7 @@ public class UserController {
     @PostMapping("/avatar")
     public UserProfileResponse uploadAvatar(
             @AuthenticationPrincipal Long userId,
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file) {
         return userService.uploadAvatar(userId, file);
     }
 
