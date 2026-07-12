@@ -49,6 +49,7 @@ export interface ExperimentContainerProps {
   cameraPosition?: [number, number, number];
   enableFog?: boolean;
   backgroundColor?: string;
+  toneMappingExposure?: number;
   simulationBar?: SimulationBarProps;
 }
 
@@ -62,6 +63,7 @@ export function ExperimentContainer({
   cameraPosition = [10, 7, 10],
   enableFog = true,
   backgroundColor = "#000000",
+  toneMappingExposure = 1.2,
   simulationBar,
 }: ExperimentContainerProps) {
   const [showControls, setShowControls] = useState(true);
@@ -145,7 +147,7 @@ export function ExperimentContainer({
           powerPreference: "high-performance",
           outputColorSpace: THREE.SRGBColorSpace,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2,
+          toneMappingExposure,
         }}
         dpr={isMobile ? 0.75 : [1, 1.5]}
         className="w-full h-full block touch-none"

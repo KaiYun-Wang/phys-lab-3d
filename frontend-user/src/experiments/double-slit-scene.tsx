@@ -317,6 +317,12 @@ export function DoubleSlitSceneComponent({
         <Vignette offset={0.25} darkness={0.35} blendFunction={BlendFunction.NORMAL} />
       </EffectComposer>
 
+      {/* Lab fill lighting */}
+      <pointLight position={[5, 8, 0]} intensity={2.0} color="#ffffff" distance={45} decay={1.5} />
+      <pointLight position={[0, 6, 14]} intensity={1.5} color="#e2e8f0" distance={40} decay={1.5} />
+      <pointLight position={[0, 5, -12]} intensity={1.2} color="#cbd5e1" distance={40} decay={1.5} />
+      <pointLight position={[scrX, 4, 0]} intensity={1.5} color="#ffffff" distance={25} decay={1.5} />
+
       {/* ═══ Ground ═══ */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -6.5, 0]} receiveShadow>
         <planeGeometry args={[35, 25]} />

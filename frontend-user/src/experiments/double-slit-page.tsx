@@ -30,7 +30,6 @@ export default function DoubleSlitPage() {
   const [particleRate, setParticleRate] = useState(3);
 
   const [showParticles, setShowParticles] = useState(true);
-  const [showWaveView, setShowWaveView] = useState(false);
   const [observerMode, setObserverMode] = useState(true);
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
@@ -104,20 +103,15 @@ export default function DoubleSlitPage() {
             </button>
           </div>
         </div>
-        {[
-          { label: "显示粒子", checked: showParticles, onChange: setShowParticles },
-          { label: "理论曲线", checked: showWaveView, onChange: setShowWaveView },
-        ].map((opt) => (
-          <label key={opt.label} className="sx-control-row cursor-pointer">
-            <span>{opt.label}</span>
-            <input
-              type="checkbox"
-              checked={opt.checked}
-              onChange={(e) => opt.onChange(e.target.checked)}
-              className="w-4 h-4 rounded accent-white"
-            />
-          </label>
-        ))}
+        <label className="sx-control-row cursor-pointer">
+          <span>显示粒子</span>
+          <input
+            type="checkbox"
+            checked={showParticles}
+            onChange={(e) => setShowParticles(e.target.checked)}
+            className="w-4 h-4 rounded accent-white"
+          />
+        </label>
       </ControlGroup>
 
       <DetailsLinkButton href="/experiments/double-slit/details" />
@@ -171,7 +165,6 @@ export default function DoubleSlitPage() {
           slitWidth={slitWidth}
           particleRate={particleRate}
           showParticles={showParticles}
-          showWaveView={showWaveView}
           isPlaying={isPlaying}
           simulationSpeed={simulationSpeed}
           resetTrigger={resetTrigger}

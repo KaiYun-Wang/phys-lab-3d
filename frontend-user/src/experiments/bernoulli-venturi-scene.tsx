@@ -2,6 +2,8 @@
 
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import { lerp, clamp } from "@/utils/physics";
 
@@ -366,9 +368,15 @@ export function BernoulliVenturiSceneComponent({
 
   return (
     <group>
-      <pointLight position={[0, 4, 0]} intensity={2.5} distance={25} decay={1.5} color="#bfdbfe" />
-      <pointLight position={[-8, 2, 4]} intensity={1.5} distance={20} decay={1.5} color="#60a5fa" />
-      <pointLight position={[8, 2, -4]} intensity={1.5} distance={20} decay={1.5} color="#60a5fa" />
+      <EffectComposer>
+        <Bloom intensity={0.45} luminanceThreshold={0.5} luminanceSmoothing={0.6} mipmapBlur />
+        <Vignette offset={0.2} darkness={0.45} blendFunction={BlendFunction.NORMAL} />
+      </EffectComposer>
+
+      <ambientLight intensity={0.25} />
+      <directionalLight position={[10, 12, 8]} intensity={1.6} color="#ffffff" castShadow />
+      <pointLight position={[-6, 2, 0]} intensity={1.2} color="#60a5fa" distance={30} decay={1.5} />
+      <pointLight position={[0, -2, 6]} intensity={0.8} color="#a78bfa" distance={25} decay={1.5} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -7, 0]} receiveShadow>
         <planeGeometry args={[40, 25]} />
