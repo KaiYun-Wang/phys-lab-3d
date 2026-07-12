@@ -12,9 +12,9 @@ export interface ControlGroupProps {
  */
 export function ControlGroup({ title, children }: ControlGroupProps) {
   return (
-    <div className="mb-4 last:mb-0">
+    <div className="mb-5 last:mb-0">
       <h3 className="sx-control-group-title">{title}</h3>
-      <div className="space-y-2">{children}</div>
+      <div className="sx-control-stack">{children}</div>
     </div>
   );
 }

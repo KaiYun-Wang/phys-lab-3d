@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>个人中心 — PhysLab 3D</title>
+  <style>
+    :root {
+      --sx-black: #000000;
+      --sx-soft: #0c0c10;
+      --sx-elevated: #14141c;
+      --sx-hairline: #45454f;
+      --sx-hairline-strong: #62626e;
+      --sx-white: #ffffff;
+      --sx-mute: #e8e8f0;
+      --sx-ink-mute: #8a8a96;
+      --sx-shadow-card:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 8px 24px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      --sx-shadow-panel:
+        0 4px 16px rgba(0, 0, 0, 0.5),
+        0 20px 48px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      --font-display: "Arial Narrow", "Arial Black", Arial, sans-serif;
+      --font-body: Arial, Verdana, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: var(--sx-black);
+      color: var(--sx-white);
+      font-family: var(--font-body);
+      letter-spacing: 0.32px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-shell {
+      width: 80%;
+      margin: 0 auto;
+      min-width: 0;
+    }
+
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--sx-hairline);
+    }
+
+    .navbar-inner {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .sx-eyebrow {
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.96px;
+      text-transform: uppercase;
+      color: var(--sx-mute);
+      line-height: 2;
+      text-decoration: none;
+    }
+
+    .sx-eyebrow:hover { opacity: 0.8; }
+
+    .sx-display {
+      font-family: var(--font-display);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      line-height: 1.05;
+    }
+
+    .sx-section {
+      background: linear-gradient(165deg, #111118 0%, #0a0a0e 100%);
+      border: 1px solid var(--sx-hairline);
+      border-radius: 20px;
+      box-shadow: var(--sx-shadow-panel);
+      padding: 2rem 2.25rem;
+    }
+
+    .sx-panel {
+      background: linear-gradient(165deg, #12121a 0%, #0c0c10 100%);
+      border: 1px solid var(--sx-hairline);
+      border-radius: 16px;
+      box-shadow: var(--sx-shadow-panel);
+      padding: 1.5rem;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--sx-white);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.17px;
+      text-transform: uppercase;
+      border: 1px solid var(--sx-hairline-strong);
+      border-radius: 9999px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    .btn-ghost:hover {
+      background: var(--sx-white);
+      color: var(--sx-black);
+      border-color: var(--sx-white);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost-sm {
+      min-height: 36px;
+      padding: 8px 18px;
+      font-size: 11px;
+    }
+
+    .sx-chip {
+      display: inline-flex;
+      align-items: center;
+      height: 36px;
+      padding: 0 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.96px;
+      text-transform: uppercase;
+      color: var(--sx-ink-mute);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--sx-hairline);
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+
+    .sx-chip-active {
+      border-color: var(--sx-white);
+      color: var(--sx-white);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .sx-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sx-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sx-mute);
+    }
+
+    .sx-input {
+      height: 44px;
+      padding: 0 16px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--sx-hairline);
+      border-radius: 12px;
+      color: var(--sx-white);
+      font-family: var(--font-body);
+      font-size: 14px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+
+    .sx-input:focus {
+      outline: none;
+      border-color: var(--sx-hairline-strong);
+    }
+
+    .sx-input:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .sx-control-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sx-mute);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--sx-hairline);
+    }
+
+    .avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #222230 0%, #14141c 100%);
+      border: 1px solid var(--sx-hairline-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-edit {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid var(--sx-hairline);
+      border-radius: 12px;
+    }
+
+    .avatar-edit-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .avatar-edit-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .btn-ghost-muted {
+      opacity: 0.65;
+    }
+
+    .btn-ghost-muted:hover {
+      opacity: 1;
+    }
+
+    .file-input-label {
+      cursor: pointer;
+    }
+
+    .file-input-label input {
+      display: none;
+    }
+
+    .sx-hint {
+      font-size: 12px;
+      color: var(--sx-ink-mute);
+      line-height: 1.5;
+    }
+
+    .profile-hero {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem 2rem;
+      align-items: center;
+    }
+
+    .profile-identity {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .profile-meta h1 {
+      font-size: 1.35rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .profile-meta p {
+      font-size: 14px;
+      color: var(--sx-ink-mute);
+    }
+
+    .page-body {
+      padding: 2rem 0 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar-nav button {
+      text-align: left;
+      width: 100%;
+      border: none;
+      background: transparent;
+      font: inherit;
+    }
+
+    .section-pane { display: none; }
+    .section-pane.active { display: block; }
+
+    .form-grid {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--sx-hairline);
+      padding: 2.5rem 0;
+      color: #5a5a5f;
+    }
+
+    @media (max-width: 768px) {
+      .content-grid { grid-template-columns: 1fr; }
+      .sidebar-nav { flex-direction: row; flex-wrap: wrap; }
+      .avatar-edit { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="page-shell navbar-inner">
+      <a href="/" class="sx-eyebrow" style="color:#fff;">PhysLab 3D</a>
+      <nav class="nav-links">
+        <a href="/#experiments" class="sx-eyebrow" style="color:#fff;">实验</a>
+        <a href="auth.html" class="sx-eyebrow" style="color:#fff;">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-shell page-body">
+    <section class="sx-section">
+      <p class="sx-eyebrow">个人中心</p>
+      <div class="profile-hero" style="margin-top:1rem;">
+        <div class="profile-identity">
+          <div class="avatar" id="hero-avatar" aria-hidden="true">WK</div>
+          <div class="profile-meta">
+            <h1 class="sx-display" id="hero-nickname">wky</h1>
+            <p>@wky</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <div class="content-grid">
+      <aside class="sx-panel">
+        <p class="sx-control-group-title">设置</p>
+        <div class="sidebar-nav" role="tablist">
+          <button type="button" class="sx-chip sx-chip-active" data-section="profile" role="tab">基本资料</button>
+          <button type="button" class="sx-chip" data-section="security" role="tab">账号安全</button>
+        </div>
+      </aside>
+
+      <div>
+        <section id="section-profile" class="section-pane active sx-panel">
+          <p class="sx-control-group-title">基本资料</p>
+          <form class="form-grid" onsubmit="return false;">
+            <div class="sx-field">
+              <span class="sx-label">头像</span>
+              <div class="avatar-edit">
+                <div class="avatar" id="form-avatar">WK</div>
+                <div class="avatar-edit-actions">
+                  <div class="avatar-edit-btns">
+                    <label class="btn-ghost btn-ghost-sm file-input-label">
+                      上传头像
+                      <input type="file" id="avatar-input" accept="image/jpeg,image/png,image/webp" />
+                    </label>
+                    <button type="button" class="btn-ghost btn-ghost-sm btn-ghost-muted" id="avatar-reset">恢复默认</button>
+                  </div>
+                  <span class="sx-hint">支持 JPG / PNG / WebP，不超过 2MB；未上传时显示用户名前 2 字</span>
+                </div>
+              </div>
+            </div>
+            <div class="sx-field">
+              <label class="sx-label" for="username">用户名</label>
+              <input class="sx-input" id="username" type="text" value="wky" disabled />
+            </div>
+            <div class="sx-field">
+              <label class="sx-label" for="nickname">昵称</label>
+              <input class="sx-input" id="nickname" type="text" maxlength="20" value="wky" />
+            </div>
+            <button type="submit" class="btn-ghost btn-ghost-sm" style="width:fit-content;">保存</button>
+          </form>
+        </section>
+
+        <section id="section-security" class="section-pane sx-panel">
+          <p class="sx-control-group-title">账号安全</p>
+          <form class="form-grid" onsubmit="return false;">
+            <div class="sx-field">
+              <label class="sx-label" for="old-pwd">当前密码</label>
+              <input class="sx-input" id="old-pwd" type="password" minlength="5" maxlength="20" placeholder="5–20 个字符" />
+            </div>
+            <div class="sx-field">
+              <label class="sx-label" for="new-pwd">新密码</label>
+              <input class="sx-input" id="new-pwd" type="password" minlength="5" maxlength="20" placeholder="5–20 个字符" />
+            </div>
+            <div class="sx-field">
+              <label class="sx-label" for="new-pwd2">确认新密码</label>
+              <input class="sx-input" id="new-pwd2" type="password" minlength="5" maxlength="20" placeholder="再次输入新密码" />
+            </div>
+            <button type="submit" class="btn-ghost btn-ghost-sm" style="width:fit-content;">修改密码</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="page-shell sx-eyebrow">PhysLab 3D — 免费交互式 3D 物理实验</div>
+  </footer>
+
+  <script>
+    const sectionTabs = document.querySelectorAll("[data-section]");
+    const sectionPanes = {
+      profile: document.getElementById("section-profile"),
+      security: document.getElementById("section-security"),
+    };
+
+    sectionTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.section;
+        sectionTabs.forEach((t) => t.classList.toggle("sx-chip-active", t.dataset.section === name));
+        Object.entries(sectionPanes).forEach(([key, pane]) => pane.classList.toggle("active", key === name));
+      });
+    });
+
+    const usernameInput = document.getElementById("username");
+    const heroAvatar = document.getElementById("hero-avatar");
+    const formAvatar = document.getElementById("form-avatar");
+    const avatarInput = document.getElementById("avatar-input");
+    const avatarReset = document.getElementById("avatar-reset");
+
+    function avatarInitials() {
+      return (usernameInput.value || "").slice(0, 2).toUpperCase() || "?";
+    }
+
+    function setAvatar(el, src) {
+      el.innerHTML = "";
+      if (src) {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = "头像";
+        el.appendChild(img);
+      } else {
+        el.textContent = avatarInitials();
+      }
+    }
+
+    function syncAvatars(src) {
+      setAvatar(heroAvatar, src);
+      setAvatar(formAvatar, src);
+    }
+
+    avatarInput.addEventListener("change", () => {
+      const file = avatarInput.files?.[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        alert("图片不能超过 2MB");
+        avatarInput.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => syncAvatars(e.target.result);
+      reader.readAsDataURL(file);
+    });
+
+    avatarReset.addEventListener("click", () => {
+      avatarInput.value = "";
+      syncAvatars(null);
+    });
+
+    syncAvatars(null);
+  </script>
+</body>
+</html>

@@ -197,8 +197,8 @@ export function ControlPanel({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full sx-panel overflow-hidden text-white">
-        <div className="flex items-center justify-between p-2 sm:p-4 border-b border-[#45454f] bg-[#0a0a0a]">
+      <div className="w-full sx-overlay text-white">
+        <div className="sx-overlay-header">
           <h3 className="text-xs font-bold uppercase tracking-wider">{title}</h3>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -210,7 +210,7 @@ export function ControlPanel({
         </div>
 
         {!isCollapsed && (
-          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] sm:max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className="sx-overlay-body-scroll max-h-[60vh] sm:max-h-[calc(100vh-200px)]">
             {/* Playback Controls */}
             {(showPlayPause || showReset) && (
               <div className="flex gap-2">

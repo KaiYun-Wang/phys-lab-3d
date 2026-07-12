@@ -30,10 +30,10 @@ function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-black/85 backdrop-blur-md border-b border-[#45454f]">
       <div className={`${PAGE} h-14 flex items-center justify-between`}>
         <a href="/" className="sx-eyebrow text-white hover:opacity-80 transition-opacity">
-          ScienceLab 3D
+          PhysLab 3D
         </a>
-        <a href="#experiments" className="sx-eyebrow text-white hover:opacity-80 transition-opacity">
-          实验
+        <a href="/profile" className="sx-eyebrow text-white hover:opacity-80 transition-opacity">
+          个人中心
         </a>
       </div>
     </header>
@@ -61,7 +61,7 @@ function ExperimentCard({
   };
 
   return (
-    <a href={`/experiments/${exp.id}`} className="sx-card group flex flex-col h-full p-5 sm:p-6">
+    <a href={`/experiments/${exp.id}`} className="sx-card group flex flex-col h-full">
       <div className="flex items-start justify-between mb-5">
         <div className="sx-icon-well">{exp.icon}</div>
         <button
@@ -147,7 +147,7 @@ export default function Home() {
       <div className={`${PAGE} py-6 sm:py-8 space-y-6 sm:space-y-8`}>
         <section className="sx-section grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
-            <p className="sx-eyebrow mb-6">交互式 3D 科学平台</p>
+            <p className="sx-eyebrow mb-6">交互式 3D 物理仿真平台</p>
             <h1 className="sx-display text-[clamp(1.75rem,4vw,3rem)] mb-6">
               用 3D
               <br />
@@ -170,7 +170,7 @@ export default function Home() {
           </div>
 
           <div className="sx-preview">
-            <div className="px-5 py-3.5 border-b border-[#45454f] bg-black/30">
+            <div className="sx-preview-bar">
               <p className="sx-eyebrow text-[#8a8a96]">{preview.title}</p>
             </div>
             <div
@@ -265,7 +265,7 @@ export default function Home() {
 
       <footer className="w-full border-t border-[#45454f] mt-2">
         <div className={`${PAGE} py-10 sx-eyebrow text-[#5a5a5f]`}>
-          ScienceLab 3D — 免费交互式 3D 物理实验
+          PhysLab 3D — 交互式 3D 物理仿真平台
         </div>
       </footer>
     </main>

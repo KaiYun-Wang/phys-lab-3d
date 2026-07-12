@@ -1,5 +1,5 @@
 /**
- * Shared physics calculations for Science Lab 3D experiments
+ * Shared physics calculations for PhysLab 3D experiments
  * All values in SI units unless otherwise noted
  */
 

@@ -6,6 +6,10 @@ spring:
     name: backend
   profiles:
     active: local
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
   datasource:
     driver-class-name: ${phys-lab.datasource.driver-class-name}
     url: jdbc:postgresql://${phys-lab.datasource.host}:${phys-lab.datasource.port}/${phys-lab.datasource.database}
@@ -15,11 +19,15 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: ${physlab.mybatis.log-impl}
+    log-impl: ${phys-lab.mybatis.log-impl}
   global-config:
     db-config:
       id-type: auto
-      logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
   mapper-locations: classpath*:/mapper/**/*.xml
+
+phys-lab:
+  jwt:
+    secret: phys-lab-3d
+    expiration-ms: 86400000
+  upload:
+    avatar-dir: uploads/avatars

@@ -167,8 +167,8 @@ export function FloatingControlPanel({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full sx-overlay overflow-hidden text-white">
-        <div className="flex items-center justify-between sticky top-0 sx-overlay-header py-2.5 px-3 sm:px-4 shrink-0">
+      <div className="w-full sx-overlay text-white">
+        <div className="sx-overlay-header">
           <h2 className="text-xs font-bold uppercase tracking-wider">{title}</h2>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -179,9 +179,8 @@ export function FloatingControlPanel({
           </button>
         </div>
 
-        {/* Content */}
         {!isCollapsed && (
-          <div className="p-3 sm:p-4 space-y-3 max-h-[60vh] sm:max-h-[calc(100vh-80px)] overflow-y-auto">
+          <div className="sx-overlay-body-scroll max-h-[60vh] sm:max-h-[calc(100vh-80px)]">
             {children}
           </div>
         )}

@@ -268,13 +268,11 @@ export function ExperimentContainer({
           className="absolute top-0 right-0 z-30 h-full w-full sm:w-80 md:w-96 sx-overlay border-l border-[#62626e] overflow-y-auto text-white"
           style={{ WebkitOverflowScrolling: "touch", maxHeight: "100vh" }}
         >
-          <div className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6 sticky top-0 sx-overlay-header py-2 -mx-4 sm:-mx-6 px-4 sm:px-6">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">控制</h2>
-              <button onClick={() => setShowControls(false)} className="text-[#5a5a5f] hover:text-white transition-colors text-xl p-1">✕</button>
-            </div>
-            {controls}
+          <div className="sx-overlay-header sticky top-0 z-10">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-white">控制</h2>
+            <button onClick={() => setShowControls(false)} className="text-[#5a5a5f] hover:text-white transition-colors text-xl p-1">✕</button>
           </div>
+          <div className="sx-overlay-body">{controls}</div>
         </div>
       )}
 
@@ -283,33 +281,30 @@ export function ExperimentContainer({
         <div className={`
           absolute bottom-16 sm:bottom-20 left-2 sm:left-4 z-20
           sx-overlay
-          border border-[#62626e]
-          p-2 sm:p-4 max-w-full sm:max-w-sm text-white
+          max-w-full sm:max-w-sm text-white
           ${isMobile ? "max-h-[40vh] overflow-y-auto" : ""}
         `}>
-          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 pb-1.5 sm:pb-2 border-b border-[#45454f]">
+          <div className="sx-overlay-bar border-b border-[#45454f]">
             <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white">实时数据</h3>
           </div>
-          {dataPanel}
+          <div className="sx-overlay-body">{dataPanel}</div>
         </div>
       )}
 
       {/* Details Panel */}
       {details && showDetails && (
-        <div className="absolute top-20 right-4 z-40 w-80 sm:w-96 max-h-[70vh] sx-overlay overflow-hidden text-white">
-          <div className="sticky top-0 sx-overlay-header p-3 sm:p-4 shrink-0">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold uppercase tracking-wider">实验详情</h2>
-              <button
-                onClick={() => setShowDetails(false)}
-                className="text-[#5a5a5f] hover:text-white text-lg transition-colors p-1"
-              >
-                ✕
-              </button>
-            </div>
+        <div className="absolute top-20 right-4 z-40 w-80 sm:w-96 max-h-[70vh] sx-overlay text-white">
+          <div className="sx-overlay-header sticky top-0 z-10">
+            <h2 className="text-sm font-bold uppercase tracking-wider">实验详情</h2>
+            <button
+              onClick={() => setShowDetails(false)}
+              className="text-[#5a5a5f] hover:text-white text-lg transition-colors p-1"
+            >
+              ✕
+            </button>
           </div>
-          <div className="p-3 sm:p-4 overflow-y-auto max-h-[calc(70vh-60px)] text-sm text-[#e8e8f0]/90">
+          <div className="sx-overlay-body-scroll max-h-[calc(70vh-60px)] text-sm text-[#e8e8f0]/90">
             {details}
           </div>
         </div>
@@ -317,7 +312,7 @@ export function ExperimentContainer({
 
       {/* FLOATING SIMULATION BAR */}
       {simulationBar && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 sx-overlay rounded-full px-3 sm:px-5 py-2 sm:py-2.5">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 sx-overlay rounded-full sx-overlay-bar gap-3">
           <button
             onClick={simulationBar.onPlayPause}
             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-white text-white text-sm hover:bg-white hover:text-black transition-colors"

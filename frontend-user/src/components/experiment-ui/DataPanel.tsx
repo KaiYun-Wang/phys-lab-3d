@@ -184,8 +184,8 @@ export function DataPanel({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full sx-overlay overflow-hidden">
-        <div className="flex items-center justify-between sx-overlay-header py-2 px-3 sm:px-4 shrink-0">
+      <div className="w-full sx-overlay">
+        <div className="sx-overlay-header">
           <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">{title}</h2>
           <div className="flex items-center gap-1">
             <button
@@ -206,7 +206,7 @@ export function DataPanel({
         </div>
 
         {!isCollapsed && (
-          <div className="p-3 sm:p-4 space-y-3 max-h-[50vh] sm:max-h-[calc(100vh-150px)] overflow-y-auto text-[#e8e8f0]/90">
+          <div className="sx-overlay-body-scroll max-h-[50vh] sm:max-h-[calc(100vh-150px)] text-[#e8e8f0]/90">
             {children}
           </div>
         )}

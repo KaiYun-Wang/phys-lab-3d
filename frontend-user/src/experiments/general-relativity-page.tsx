@@ -261,22 +261,24 @@ export default function GeneralRelativityPage() {
       {/* 中文引导卡片 */}
       {showGuide && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 max-w-lg w-[92%] sm:w-[480px]">
-          <div className="bg-gray-900/90 backdrop-blur-md border border-purple-500/30 rounded-xl p-4 shadow-xl text-sm text-gray-200 leading-relaxed">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-purple-300">🕳️ 你在看什么？</h3>
-              <button onClick={() => setShowGuide(false)} className="text-gray-500 hover:text-gray-300 text-lg leading-none">×</button>
+          <div className="sx-overlay text-sm text-[#e8e8f0]/90 leading-relaxed">
+            <div className="sx-overlay-header">
+              <h3 className="font-bold text-white">🕳️ 你在看什么？</h3>
+              <button onClick={() => setShowGuide(false)} className="text-[#8a8a96] hover:text-white text-lg leading-none p-1">×</button>
             </div>
-            <ul className="space-y-1.5 text-xs sm:text-sm">
-              <li><span className="text-gray-400">蓝色网格</span> — Flamm 抛物面嵌入图</li>
-              <li><span className="text-gray-400">中心黑球</span> — 事件视界，坐在网格漏斗底部</li>
-              <li><span className="text-gray-400">橙色薄环</span> — 吸积盘（赤道面内旋转）</li>
-              <li><span className="text-blue-300 font-medium">青色曲线</span> — <strong>有质量粒子</strong>的测地线轨道（应绕黑洞弯成椭圆，贴网格表面）</li>
-              <li><span className="text-yellow-100 font-medium">白色曲线</span> — <strong>光子</strong>路径（无质量，飞过黑洞时被弯向中心 = 引力透镜）</li>
-            </ul>
-            <div className="mt-3 pt-2 border-t border-gray-700 text-xs text-gray-400 space-y-1">
-              <p><strong className="text-gray-300">粒子 vs 光子：</strong>粒子有质量，受引力束缚可形成轨道；光子没有质量，只能直线传播但被时空弯曲，路径呈弧线偏折。</p>
-              <p><strong className="text-gray-300">坠入不必贴视界：</strong>r &lt; 3×rs（ISCO）时轨道在真实 GR 中不稳定，会螺旋落入；远处 r 要坠入需切向速度低于圆轨道速度，或给负径向速度。</p>
-              <p><strong className="text-gray-300">时间尺度：</strong>画面为教学加速，非真实秒表；远距自由落体在坐标时间上本就很慢，可用底部速度滑块再加快。</p>
+            <div className="sx-overlay-body-scroll max-h-[60vh]">
+              <ul className="space-y-2 text-xs sm:text-sm">
+                <li><span className="text-[#8a8a96]">蓝色网格</span> — Flamm 抛物面嵌入图</li>
+                <li><span className="text-[#8a8a96]">中心黑球</span> — 事件视界，坐在网格漏斗底部</li>
+                <li><span className="text-[#8a8a96]">橙色薄环</span> — 吸积盘（赤道面内旋转）</li>
+                <li><span className="text-white font-medium">青色曲线</span> — <strong>有质量粒子</strong>的测地线轨道（应绕黑洞弯成椭圆，贴网格表面）</li>
+                <li><span className="text-white font-medium">白色曲线</span> — <strong>光子</strong>路径（无质量，飞过黑洞时被弯向中心 = 引力透镜）</li>
+              </ul>
+              <div className="pt-3 mt-1 border-t border-[#45454f] text-xs text-[#8a8a96] space-y-2">
+                <p><strong className="text-[#e8e8f0]">粒子 vs 光子：</strong>粒子有质量，受引力束缚可形成轨道；光子没有质量，只能直线传播但被时空弯曲，路径呈弧线偏折。</p>
+                <p><strong className="text-[#e8e8f0]">坠入不必贴视界：</strong>r &lt; 3×rs（ISCO）时轨道在真实 GR 中不稳定，会螺旋落入；远处 r 要坠入需切向速度低于圆轨道速度，或给负径向速度。</p>
+                <p><strong className="text-[#e8e8f0]">时间尺度：</strong>画面为教学加速，非真实秒表；远距自由落体在坐标时间上本就很慢，可用底部速度滑块再加快。</p>
+              </div>
             </div>
           </div>
         </div>

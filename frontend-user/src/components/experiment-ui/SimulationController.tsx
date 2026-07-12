@@ -166,7 +166,7 @@ export function SimulationController({
       onTouchStart={handleTouchStart}
     >
       <div className="w-full sx-overlay rounded-full overflow-hidden text-white">
-        <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-2.5">
+        <div className="sx-overlay-bar gap-2 sm:gap-3">
           {/* Play / Pause */}
           <button
             onClick={onPlayPause}
