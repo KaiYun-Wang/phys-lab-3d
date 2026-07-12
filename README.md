@@ -2,6 +2,8 @@
 
 3D 交互物理实验平台（用户端 + 后端）。
 
+基于 [ScienceLab 3D](https://github.com/rudra496/sciencelab3d) 二次开发改造，增加了用户系统、后端 API 等能力。
+
 ## 版本
 
 | 模块 | 技术栈 |
