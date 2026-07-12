@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   SpecialRelativitySceneComponent,
   SpecialRelativityData,
@@ -14,10 +13,10 @@ import {
   FloatingControlPanel,
   SimulationController,
   DataPanel,
+  DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function SpecialRelativityPage() {
-  const router = useRouter();
   const [data, setData] = useState<SpecialRelativityData | null>(null);
   const [showDataPanel, setShowDataPanel] = useState(true);
 
@@ -79,12 +78,7 @@ export default function SpecialRelativityPage() {
         </div>
       </ControlGroup>
 
-      <button
-        onClick={() => router.push("/experiments/special-relativity/details")}
-        className="w-full py-2.5 bg-gradient-to-r from-cyan-100 to-purple-100 hover:from-cyan-200 hover:to-purple-200 text-cyan-800 font-medium text-sm rounded-lg transition-all border border-cyan-300/50 flex items-center justify-center gap-2"
-      >
-        📖 查看实验详情
-      </button>
+      <DetailsLinkButton href="/experiments/special-relativity/details" />
     </div>
   );
 
@@ -137,7 +131,7 @@ export default function SpecialRelativityPage() {
         title="狭义相对论实验室"
         description="调节飞船速度，观察长度收缩、时间膨胀与相对论质量效应"
         cameraPosition={[18, 8, 18]}
-        backgroundColor="#050510"
+        backgroundColor="#000000"
         controls={null}
         dataPanel={null}
       >

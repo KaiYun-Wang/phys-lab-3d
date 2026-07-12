@@ -159,7 +159,7 @@ export function DataPanel({
       >
         <button
           onClick={handleToggle}
-          className="w-10 h-10 bg-gray-900/90 backdrop-blur-xl border border-gray-600/50 rounded-full shadow-2xl flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
+          className="w-10 h-10 sx-overlay rounded-full flex items-center justify-center text-white hover:border-white transition-colors"
           title="Show Data"
         >
           📊
@@ -184,21 +184,20 @@ export function DataPanel({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full bg-gray-900/90 backdrop-blur-xl border border-gray-600/50 rounded-xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between bg-gradient-to-r from-cyan-600 to-blue-600 py-2 px-3 sm:px-4 -mx-0.5 border-b border-gray-600/50 shrink-0">
-          <h2 className="text-sm sm:text-base font-bold text-white">{title}</h2>
+      <div className="w-full sx-overlay overflow-hidden">
+        <div className="flex items-center justify-between sx-overlay-header py-2 px-3 sm:px-4 shrink-0">
+          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">{title}</h2>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-white hover:text-gray-200 text-sm p-1 transition-colors"
+              className="text-[#8a8a96] hover:text-white text-sm p-1 transition-colors"
               aria-label={isCollapsed ? "Expand" : "Collapse"}
             >
               {isCollapsed ? "▼" : "▲"}
             </button>
             <button
               onClick={handleToggle}
-              className="text-white hover:text-gray-200 text-sm p-1 transition-colors"
+              className="text-[#8a8a96] hover:text-white text-sm p-1 transition-colors"
               aria-label="Hide"
             >
               ✕
@@ -206,9 +205,8 @@ export function DataPanel({
           </div>
         </div>
 
-        {/* Content */}
         {!isCollapsed && (
-          <div className="p-3 sm:p-4 space-y-3 max-h-[50vh] sm:max-h-[calc(100vh-150px)] overflow-y-auto">
+          <div className="p-3 sm:p-4 space-y-3 max-h-[50vh] sm:max-h-[calc(100vh-150px)] overflow-y-auto text-[#e8e8f0]/90">
             {children}
           </div>
         )}

@@ -13,6 +13,14 @@ export type { SimulationControllerProps } from './SimulationController';
 export { DataPanel } from './DataPanel';
 export type { DataPanelProps } from './DataPanel';
 
+export { DetailsLinkButton } from './DetailsLinkButton';
+export {
+  ExperimentDetailsLayout,
+  DetailsSection,
+  DetailsFormulaCard,
+  DetailsLaunchButton,
+} from './ExperimentDetailsLayout';
+
 export {
   ControlGroup,
   ControlItem,

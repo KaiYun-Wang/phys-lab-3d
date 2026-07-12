@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import {
   GeneralRelativitySceneComponent,
   GeneralRelativityData,
@@ -22,6 +21,7 @@ import {
   FloatingControlPanel,
   SimulationController,
   DataPanel,
+  DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 function DataRow({ label, value, color }: { label: string; value: string; color: string }) {
@@ -205,12 +205,7 @@ export default function GeneralRelativityPage() {
         ))}
       </ControlGroup>
 
-      <Link
-        href="/experiments/general-relativity/details"
-        className="block text-center text-xs text-purple-300 hover:text-purple-200 underline"
-      >
-        查看原理说明 →
-      </Link>
+      <DetailsLinkButton href="/experiments/general-relativity/details">查看原理说明</DetailsLinkButton>
     </div>
   );
 
@@ -240,7 +235,7 @@ export default function GeneralRelativityPage() {
         description="观察时空弯曲、测地线轨道、引力透镜与引力红移。拖动旋转视角，滚轮缩放。"
         controls={null}
         cameraPosition={[48, 32, 48]}
-        backgroundColor="#020208"
+        backgroundColor="#000000"
         enableFog={false}
       >
         <GeneralRelativitySceneComponent

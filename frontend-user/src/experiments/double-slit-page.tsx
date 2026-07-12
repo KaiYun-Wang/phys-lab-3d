@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   DoubleSlitSceneComponent,
   DoubleSlitData,
@@ -14,10 +13,10 @@ import {
   FloatingControlPanel,
   SimulationController,
   DataPanel,
+  DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function DoubleSlitPage() {
-  const router = useRouter();
   const [data, setData] = useState<DoubleSlitData | null>(null);
   const [showDataPanel, setShowDataPanel] = useState(true);
 
@@ -109,24 +108,19 @@ export default function DoubleSlitPage() {
           { label: "显示粒子", checked: showParticles, onChange: setShowParticles },
           { label: "理论曲线", checked: showWaveView, onChange: setShowWaveView },
         ].map((opt) => (
-          <label key={opt.label} className="flex items-center justify-between text-sm text-gray-700 cursor-pointer py-2 px-3 bg-gray-100/50 rounded-lg border border-gray-300/50">
+          <label key={opt.label} className="sx-control-row cursor-pointer">
             <span>{opt.label}</span>
             <input
               type="checkbox"
               checked={opt.checked}
               onChange={(e) => opt.onChange(e.target.checked)}
-              className="w-4 h-4 rounded accent-purple-500"
+              className="w-4 h-4 rounded accent-white"
             />
           </label>
         ))}
       </ControlGroup>
 
-      <button
-        onClick={() => router.push("/experiments/double-slit/details")}
-        className="w-full py-2.5 bg-gradient-to-r from-purple-100 to-purple-200 hover:from-purple-200 hover:to-purple-300 text-purple-700 font-medium text-sm rounded-lg transition-all border border-purple-300/50 flex items-center justify-center gap-2"
-      >
-        📖 查看实验详情
-      </button>
+      <DetailsLinkButton href="/experiments/double-slit/details" />
     </div>
   );
 
@@ -141,20 +135,20 @@ export default function DoubleSlitPage() {
         }}
         columns={2}
       />
-      <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-        <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-purple-400">波粒二象性：</strong>
+      <div className="mt-3 sx-note-box">
+        <p className="text-xs text-[#e8e8f0]/80 leading-relaxed">
+          <strong className="text-white">波粒二象性：</strong>
           {observerMode
             ? "开启观测时，粒子逐个通过狭缝——波函数坍缩为粒子行为。"
             : "无观测时，每个粒子同时处于通过两缝的叠加态——形成波干涉条纹。"}
         </p>
-        <p className="text-xs text-gray-500 mt-2 font-mono">
+        <p className="text-xs text-[#8a8a96] mt-2 font-mono">
           I(y) = cos²(π·d·y/λ·L) · sinc²(π·a·y/λ·L)
         </p>
       </div>
     </>
   ) : (
-    <div className="text-center text-gray-500 text-sm py-8">
+    <div className="text-center text-[#8a8a96] text-sm py-8">
       正在启动模拟…
     </div>
   );
@@ -165,7 +159,7 @@ export default function DoubleSlitPage() {
         title="双缝实验"
         description="量子力学：粒子逐点累积出波干涉条纹"
         cameraPosition={[25, 15, 25]}
-        backgroundColor="#050510"
+        backgroundColor="#000000"
         controls={null}
         dataPanel={null}
       >

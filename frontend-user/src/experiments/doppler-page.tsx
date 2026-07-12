@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   DopplerSceneComponent,
   DopplerData,
@@ -14,10 +13,10 @@ import {
   FloatingControlPanel,
   SimulationController,
   DataPanel,
+  DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function DopplerPage() {
-  const router = useRouter();
   const [data, setData] = useState<DopplerData | null>(null);
   const [showDataPanel, setShowDataPanel] = useState(true);
 
@@ -83,24 +82,24 @@ export default function DopplerPage() {
 
       <ControlGroup title="声源运动">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">模式</span>
+          <span className="text-sm font-medium text-[#e8e8f0]/90">模式</span>
           <div className="flex gap-2">
             <button
               onClick={() => setAutoOscillate(true)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+              className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
                 autoOscillate
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  ? "border-white bg-white/15 text-white"
+                  : "border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
               }`}
             >
               自动
             </button>
             <button
               onClick={() => setAutoOscillate(false)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+              className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
                 !autoOscillate
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                  ? "border-white bg-white/15 text-white"
+                  : "border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
               }`}
             >
               手动
@@ -109,10 +108,10 @@ export default function DopplerPage() {
         </div>
 
         {!autoOscillate && (
-          <div className="mb-3 p-3 bg-gray-100/50 rounded-lg border border-gray-300/50">
+          <div className="mb-3 sx-note-box">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-600">方向</span>
-              <span className="text-xs font-mono text-gray-800">
+              <span className="text-xs text-[#8a8a96]">方向</span>
+              <span className="text-xs font-mono text-white">
                 {sourceDirection > 0.1 ? "→ 向右" : sourceDirection < -0.1 ? "← 向左" : "● 静止"}
               </span>
             </div>
@@ -144,23 +143,18 @@ export default function DopplerPage() {
       </ControlGroup>
 
       <ControlGroup title="显示选项">
-        <label className="flex items-center justify-between text-sm text-gray-700 cursor-pointer py-2 px-3 bg-gray-100/50 rounded-lg border border-gray-300/50">
+        <label className="sx-control-row cursor-pointer">
           <span>显示波前</span>
           <input
             type="checkbox"
             checked={showWavefronts}
             onChange={(e) => setShowWavefronts(e.target.checked)}
-            className="w-4 h-4 rounded accent-orange-500"
+            className="w-4 h-4 rounded accent-white"
           />
         </label>
       </ControlGroup>
 
-      <button
-        onClick={() => router.push("/experiments/doppler/details")}
-        className="w-full py-2.5 bg-gradient-to-r from-orange-100 to-orange-200 hover:from-orange-200 hover:to-orange-300 text-orange-700 font-medium text-sm rounded-lg transition-all border border-orange-300/50 flex items-center justify-center gap-2"
-      >
-        📖 查看实验详情
-      </button>
+      <DetailsLinkButton href="/experiments/doppler/details" />
     </div>
   );
 
@@ -221,7 +215,7 @@ export default function DopplerPage() {
         title="多普勒效应"
         description="观察运动声源引起的频率变化"
         cameraPosition={[0, 30, 40]}
-        backgroundColor="#050510"
+        backgroundColor="#000000"
         controls={null}
         dataPanel={null}
       >

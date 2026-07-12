@@ -197,13 +197,12 @@ export function ControlPanel({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full bg-linear-to-br from-gray-900/95 to-purple-900/90 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-2 sm:p-4 border-b border-purple-500/30 bg-gray-900/50">
-          <h3 className="text-sm sm:text-base font-bold text-purple-400">{title}</h3>
+      <div className="w-full sx-panel overflow-hidden text-white">
+        <div className="flex items-center justify-between p-2 sm:p-4 border-b border-[#45454f] bg-[#0a0a0a]">
+          <h3 className="text-xs font-bold uppercase tracking-wider">{title}</h3>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base p-1"
+            className="text-[#5a5a5f] hover:text-white transition-colors text-sm sm:text-base p-1"
             aria-label={isCollapsed ? "Expand" : "Collapse"}
           >
             {isCollapsed ? "▼" : "▲"}
@@ -219,11 +218,10 @@ export function ControlPanel({
                   <button
                     onClick={handlePlayPause}
                     className={`
-                      flex-1 py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg font-medium text-xs sm:text-sm
-                      transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2
+                      flex-1 py-2 px-3 sm:py-2.5 sm:px-4 rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-wider border transition-colors
                       ${isPlaying
-                        ? "bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                        : "bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/30"
+                        ? "border-white text-white bg-white/10"
+                        : "border-[#45454f] text-white hover:border-white"
                       }
                     `}
                     aria-label={isPlaying ? "Pause" : "Play"}
@@ -244,7 +242,7 @@ export function ControlPanel({
                 {showReset && (
                   <button
                     onClick={handleReset}
-                    className="py-2 px-3 sm:py-2.5 sm:px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium text-xs sm:text-sm transition-all shadow-lg"
+                    className="py-2 px-3 sm:py-2.5 sm:px-4 border border-[#45454f] text-white rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-wider hover:border-white transition-colors"
                     aria-label="Reset"
                   >
                     <span className="text-sm sm:hidden">🔄</span>
@@ -258,8 +256,8 @@ export function ControlPanel({
             {showSpeed && (
               <div className="space-y-2">
                 <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-gray-400">Speed</span>
-                  <span className="font-mono text-purple-400">
+                  <span className="text-[#5a5a5f] uppercase text-[10px] tracking-wider">速度</span>
+                  <span className="font-mono text-white">
                     {speed.toFixed(1)}x
                   </span>
                 </div>
@@ -270,12 +268,12 @@ export function ControlPanel({
                   step="0.1"
                   value={speed}
                   onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer touch-none"
-                  style={{ accentColor: "#8b5cf6" }}
+                  className="w-full h-2 bg-[#45454f] rounded-lg appearance-none cursor-pointer touch-none"
+                  style={{ accentColor: "#ffffff" }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
                 />
-                <div className="flex justify-between text-[10px] sm:text-xs text-gray-500">
+                <div className="flex justify-between text-[10px] text-[#5a5a5f]">
                   <span>0.1x</span>
                   <span>1x</span>
                   <span>3x</span>
@@ -285,7 +283,7 @@ export function ControlPanel({
 
             {/* Custom Controls */}
             {children && (
-              <div className="pt-3 sm:pt-4 border-t border-purple-500/30 space-y-2 sm:space-y-3">
+              <div className="pt-3 sm:pt-4 border-t border-[#45454f] space-y-2 sm:space-y-3">
                 {children}
               </div>
             )}

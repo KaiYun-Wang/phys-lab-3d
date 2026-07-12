@@ -14,6 +14,7 @@ import {
   FloatingControlPanel,
   SimulationController,
   DataPanel,
+  DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
@@ -282,8 +283,8 @@ export default function WaveMechanicsPage() {
                 onClick={() => setViewMode(id)}
                 className={`py-2 text-xs rounded-lg border ${
                   viewMode === id
-                    ? "border-purple-400 bg-purple-500/20 text-purple-900"
-                    : "border-gray-300 text-gray-600 hover:border-gray-400"
+                    ? "border-white bg-white/15 text-white"
+                    : "border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
                 }`}
               >
                 {label}
@@ -293,13 +294,7 @@ export default function WaveMechanicsPage() {
         </ControlGroup>
       )}
 
-      <button
-        type="button"
-        onClick={() => router.push("/experiments/wave-mechanics/details")}
-        className="w-full py-2.5 bg-gradient-to-r from-blue-100 via-purple-100 to-orange-100 hover:from-blue-200 hover:via-purple-200 hover:to-orange-200 text-gray-800 font-medium text-sm rounded-lg transition-all border border-gray-300/60 flex items-center justify-center gap-2 shrink-0"
-      >
-        进入实验原理
-      </button>
+      <DetailsLinkButton href="/experiments/wave-mechanics/details">进入实验原理</DetailsLinkButton>
     </div>
   );
 
@@ -346,7 +341,7 @@ export default function WaveMechanicsPage() {
         title="横波与纵波"
         description="左右分屏对比横波与纵波的传播与振动差异"
         cameraPosition={[0, 8, 18]}
-        backgroundColor="#0a0a1a"
+        backgroundColor="#000000"
         enableFog={false}
         controls={null}
         dataPanel={null}

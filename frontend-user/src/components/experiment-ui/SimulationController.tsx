@@ -165,15 +165,15 @@ export function SimulationController({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full bg-gray-900/90 backdrop-blur-xl border border-gray-600/50 rounded-full shadow-2xl overflow-hidden">
+      <div className="w-full sx-overlay rounded-full overflow-hidden text-white">
         <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-2.5">
           {/* Play / Pause */}
           <button
             onClick={onPlayPause}
-            className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full font-bold text-sm sm:text-base transition-all shadow-md flex-shrink-0 ${
+            className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border font-bold text-sm transition-colors flex-shrink-0 ${
               isPlaying
-                ? "bg-orange-600 hover:bg-orange-500 text-white shadow-orange-500/40"
-                : "bg-green-600 hover:bg-green-500 text-white shadow-green-500/40"
+                ? "border-white text-white bg-white/10"
+                : "border-[#45454f] text-white hover:border-white"
             }`}
             title={isPlaying ? "Pause" : "Play"}
           >
@@ -183,31 +183,30 @@ export function SimulationController({
           {/* Reset */}
           <button
             onClick={onReset}
-            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-white text-sm sm:text-base transition-all shadow-md flex-shrink-0"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-[#45454f] text-white text-sm hover:border-white transition-colors flex-shrink-0"
             title="Reset"
           >
             🔄
           </button>
 
           {/* Divider */}
-          <div className="w-px h-6 bg-gray-600 flex-shrink-0" />
+          <div className="w-px h-6 bg-[#45454f] flex-shrink-0" />
 
           {/* Time Elapsed */}
           {timeElapsed !== undefined && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">{timeLabel}</span>
-              <span className="text-xs sm:text-sm font-mono text-cyan-400 min-w-16 text-center">
+              <span className="text-[10px] sm:text-xs text-[#8a8a96] hidden sm:inline">{timeLabel}</span>
+              <span className="text-xs sm:text-sm font-mono text-white min-w-16 text-center">
                 {formatTime(timeElapsed)}
               </span>
             </div>
           )}
 
           {/* Divider */}
-          {timeElapsed !== undefined && <div className="w-px h-6 bg-gray-600 flex-shrink-0" />}
+          {timeElapsed !== undefined && <div className="w-px h-6 bg-[#45454f] flex-shrink-0" />}
 
-          {/* Speed control */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-            <span className="text-[10px] sm:text-xs text-gray-400 hidden sm:inline">{speedLabel}</span>
+            <span className="text-[10px] sm:text-xs text-[#8a8a96] hidden sm:inline">{speedLabel}</span>
             <input
               type="range"
               min="0.1"
@@ -215,10 +214,10 @@ export function SimulationController({
               step="0.1"
               value={speed}
               onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer touch-none"
-              style={{ accentColor: "#8b5cf6" }}
+              className="w-full h-2 bg-[#45454f] rounded-full appearance-none cursor-pointer touch-none"
+              style={{ accentColor: "#ffffff" }}
             />
-            <span className="text-xs sm:text-sm font-mono text-purple-400 min-w-10 text-center flex-shrink-0">
+            <span className="text-xs font-mono text-white min-w-10 text-center flex-shrink-0">
               {speed.toFixed(1)}x
             </span>
           </div>

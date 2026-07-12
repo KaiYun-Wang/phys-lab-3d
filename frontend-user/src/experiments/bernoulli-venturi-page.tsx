@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   BernoulliVenturiSceneComponent,
   BernoulliData,
@@ -17,10 +16,10 @@ import {
   FloatingControlPanel,
   SimulationController,
   DataPanel,
+  DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function BernoulliVenturiPage() {
-  const router = useRouter();
   const [data, setData] = useState<BernoulliData | null>(null);
   const [showDataPanel, setShowDataPanel] = useState(true);
 
@@ -95,12 +94,7 @@ export default function BernoulliVenturiPage() {
         </div>
       </ControlGroup>
 
-      <button
-        onClick={() => router.push("/experiments/bernoulli-venturi/details")}
-        className="w-full py-2.5 bg-gradient-to-r from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 text-blue-700 font-medium text-sm rounded-lg transition-all border border-blue-300/50 flex items-center justify-center gap-2"
-      >
-        📖 查看实验详情
-      </button>
+      <DetailsLinkButton href="/experiments/bernoulli-venturi/details" />
     </div>
   );
 
@@ -155,7 +149,7 @@ export default function BernoulliVenturiPage() {
         title="伯努利原理（文丘里管）"
         description="调节流速、截面积与流体介质，观察流速与压强的反比关系"
         cameraPosition={[22, 12, 22]}
-        backgroundColor="#050510"
+        backgroundColor="#000000"
         controls={null}
         dataPanel={null}
       >

@@ -13,12 +13,8 @@ export interface ControlGroupProps {
 export function ControlGroup({ title, children }: ControlGroupProps) {
   return (
     <div className="mb-4 last:mb-0">
-      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2 pb-2 border-b border-gray-300">
-        {title}
-      </h3>
-      <div className="space-y-2">
-        {children}
-      </div>
+      <h3 className="sx-control-group-title">{title}</h3>
+      <div className="space-y-2">{children}</div>
     </div>
   );
 }
@@ -37,11 +33,11 @@ export function ControlItem({ label, value, unit, color = "#a855f7" }: ControlIt
   const displayValue = typeof value === "number" ? value.toFixed(2) : value;
 
   return (
-    <div className="flex items-center justify-between py-2 px-3 bg-gray-100/50 rounded-lg border border-gray-300/50">
-      <span className="text-sm text-gray-700">{label}</span>
+    <div className="sx-control-row">
+      <span className="text-sm">{label}</span>
       <span className="text-sm font-mono font-bold" style={{ color }}>
         {displayValue}
-        {unit && <span className="text-xs text-gray-500 ml-1">{unit}</span>}
+        {unit && <span className="text-xs text-[#8a8a96] ml-1">{unit}</span>}
       </span>
     </div>
   );
@@ -67,10 +63,10 @@ export function ControlSlider({ label, value, unit, min, max, step, color = "#a8
   return (
     <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`}>
       <div className="flex justify-between text-xs">
-        <span className="text-gray-700">{label}</span>
+        <span className="text-[#e8e8f0]/90">{label}</span>
         <span className="font-mono text-xs" style={{ color }}>
           {decimals === 0 ? value.toFixed(0) : value.toFixed(decimals)}
-          {unit && <span className="text-xs text-gray-500 ml-1">{unit}</span>}
+          {unit && <span className="text-xs text-[#8a8a96] ml-1">{unit}</span>}
         </span>
       </div>
       <input
@@ -81,7 +77,7 @@ export function ControlSlider({ label, value, unit, min, max, step, color = "#a8
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         disabled={disabled}
-        className="w-full h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 touch-none"
+        className="w-full h-2 bg-[#45454f] rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 touch-none"
         style={{ accentColor: color }}
       />
     </div>
@@ -107,16 +103,13 @@ export function DataGrid({ data, columns = 1 }: DataGridProps) {
   return (
     <div className={`grid ${colClasses[columns] || "grid-cols-1"} gap-2`}>
       {Object.entries(data).map(([key, item]) => (
-        <div
-          key={key}
-          className="flex items-center justify-between py-1.5 px-2 bg-gray-100/30 rounded-lg border border-gray-300/30"
-        >
-          <span className="text-xs text-gray-700 capitalize">
+        <div key={key} className="sx-data-cell">
+          <span className="text-xs text-[#e8e8f0]/80 capitalize">
             {key.replace(/([A-Z])/g, " $1").trim()}
           </span>
           <span
             className="text-xs font-mono font-medium"
-            style={{ color: item.color || "#333" }}
+            style={{ color: item.color || "#e8e8f0" }}
           >
             {item.value.toFixed(item.decimals ?? 2)} {item.unit}
           </span>
@@ -219,13 +212,13 @@ export function ControlDropdown<T extends string = string>({
   return (
     <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`}>
       <div className="flex justify-between text-xs">
-        <span className="text-gray-700">{label}</span>
+        <span className="text-[#e8e8f0]/90">{label}</span>
       </div>
       <div className="relative">
         <button
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className="w-full flex items-center justify-between py-2 px-3 bg-white rounded-lg border-2 text-left text-sm transition-all"
+          className="w-full flex items-center justify-between py-2 px-3 bg-black/30 rounded-lg border text-left text-sm transition-all"
           style={{ borderColor: color, opacity: disabled ? 0.5 : 1 }}
         >
           <span className="flex items-center gap-2">
@@ -234,12 +227,14 @@ export function ControlDropdown<T extends string = string>({
               {selectedOption?.label || value}
             </span>
           </span>
-          <span className="text-gray-400">{isOpen ? "▲" : "▼"}</span>
+          <span className="text-[#8a8a96]">{isOpen ? "▲" : "▼"}</span>
         </button>
-        
+
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white rounded-lg border-2 shadow-lg overflow-hidden"
-               style={{ borderColor: color }}>
+          <div
+            className="absolute z-50 w-full mt-1 sx-overlay rounded-lg overflow-hidden"
+            style={{ borderColor: color }}
+          >
             {options.map((option) => (
               <button
                 key={option.value}
@@ -248,7 +243,7 @@ export function ControlDropdown<T extends string = string>({
                   setIsOpen(false);
                 }}
                 className={`w-full flex items-center gap-2 py-2 px-3 text-left text-sm transition-colors ${
-                  option.value === value ? "bg-gray-100" : "hover:bg-gray-50"
+                  option.value === value ? "bg-white/10" : "hover:bg-white/5"
                 }`}
               >
                 {option.emoji && <span>{option.emoji}</span>}
@@ -364,12 +359,12 @@ export function ControlCheckbox({
   disabled = false
 }: ControlCheckboxProps) {
   return (
-    <label className={`
-      flex items-center justify-between text-sm text-gray-700
-      cursor-pointer py-2 px-3 bg-gray-100/50 rounded-lg
-      border border-gray-300/50 transition-all
-      ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}
-    `}>
+    <label
+      className={`
+      sx-control-row cursor-pointer transition-all
+      ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+    `}
+    >
       <span>{label}</span>
       <div className="relative">
         <input
@@ -428,8 +423,8 @@ export function ControlPresetButtons({
   return (
     <div className="mt-2 space-y-2">
       <div className="flex justify-between text-sm">
-        <span className="text-gray-700">{label}</span>
-        <span className="font-mono text-pink-600">
+        <span className="text-[#e8e8f0]/90">{label}</span>
+        <span className="font-mono text-white">
           {displayValue ? displayValue(value) : String(value)}
         </span>
       </div>
@@ -441,8 +436,8 @@ export function ControlPresetButtons({
             className={`
               px-2 py-1 text-xs rounded-md border transition-all
               ${isActive(preset.value)
-                ? "bg-pink-600/30 border-pink-500 text-pink-700"
-                : "bg-gray-200/50 border-gray-300 text-gray-600 hover:border-gray-400"
+                ? "bg-white/15 border-white text-white"
+                : "bg-black/25 border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
               }
             `}
           >
@@ -476,14 +471,14 @@ export function ControlProgressBar({
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
-        <span className="text-gray-700">{label}</span>
+        <span className="text-[#e8e8f0]/90">{label}</span>
         {showPercentage && (
           <span className="font-mono text-xs" style={{ color }}>
             {percentage}%
           </span>
         )}
       </div>
-      <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
+      <div className="h-2 bg-[#45454f] rounded-full overflow-hidden">
         <div
           className="h-full transition-all duration-300 rounded-full"
           style={{

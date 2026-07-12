@@ -167,13 +167,12 @@ export function FloatingControlPanel({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <div className="w-full bg-linear-to-br from-white/95 to-purple-50/90 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between sticky top-0 bg-linear-to-r from-blue-600 to-purple-600 py-2 px-3 sm:px-6 -mx-3 border-b border-purple-200 shrink-0">
-          <h2 className="text-base sm:text-lg font-bold text-white">{title}</h2>
+      <div className="w-full sx-overlay overflow-hidden text-white">
+        <div className="flex items-center justify-between sticky top-0 sx-overlay-header py-2.5 px-3 sm:px-4 shrink-0">
+          <h2 className="text-xs font-bold uppercase tracking-wider">{title}</h2>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-white hover:text-gray-200 text-lg sm:text-xl p-1 transition-colors"
+            className="text-[#8a8a96] hover:text-white text-lg p-1 transition-colors"
             aria-label={isCollapsed ? "Expand" : "Collapse"}
           >
             {isCollapsed ? "▼" : "▲"}

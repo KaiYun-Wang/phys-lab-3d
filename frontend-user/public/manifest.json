@@ -4,8 +4,8 @@
   "description": "Explore 6 interactive 3D physics experiments.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#4f8fff",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "any",
   "icons": [
     {
