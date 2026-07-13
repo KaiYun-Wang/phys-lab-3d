@@ -1,4 +1,4 @@
-package com.wky.backend.controller;
+package com.wky.backend.controller.user;
 
 import com.wky.backend.domain.dto.LoginRequest;
 import com.wky.backend.domain.dto.LoginResponse;

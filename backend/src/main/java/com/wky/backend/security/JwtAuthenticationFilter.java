@@ -29,11 +29,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             if (jwtUtil.isValid(token)) {
-                Long userId = jwtUtil.getUserId(token);
-                var auth = new UsernamePasswordAuthenticationToken(userId, null, List.of());
+                String principalType = jwtUtil.getPrincipalType(token);
+                String path = request.getRequestURI();
+
+                if (requiresAdmin(path) && !AuthPrincipal.TYPE_ADMIN.equals(principalType)) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
+                if (requiresUser(path) && !AuthPrincipal.TYPE_USER.equals(principalType)) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
+
+                Long id = jwtUtil.getPrincipalId(token);
+                AuthPrincipal principal = new AuthPrincipal(id, principalType);
+                var auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean requiresAdmin(String path) {
+        if (!path.startsWith("/api/admin/")) {
+            return false;
+        }
+        return !path.equals("/api/admin/auth/login");
+    }
+
+    private static boolean requiresUser(String path) {
+        return path.startsWith("/api/users/");
     }
 }

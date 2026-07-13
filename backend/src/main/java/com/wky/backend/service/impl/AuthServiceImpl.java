@@ -9,6 +9,7 @@ import com.wky.backend.domain.entity.User;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.mapper.UserMapper;
 import com.wky.backend.service.IAuthService;
+import com.wky.backend.security.AuthPrincipal;
 import com.wky.backend.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,7 +39,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         user.setNickname(request.getUsername());
         save(user);
 
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), AuthPrincipal.TYPE_USER);
         return new LoginResponse(token, UserProfileResponse.from(user));
     }
 
@@ -51,7 +52,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
             throw new ApiException(401, "用户名或密码错误");
         }
 
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), AuthPrincipal.TYPE_USER);
         return new LoginResponse(token, UserProfileResponse.from(user));
     }
 }

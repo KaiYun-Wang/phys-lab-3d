@@ -1,8 +1,9 @@
-package com.wky.backend.controller;
+package com.wky.backend.controller.user;
 
 import com.wky.backend.domain.dto.ChangePasswordRequest;
 import com.wky.backend.domain.dto.UpdateProfileRequest;
 import com.wky.backend.domain.dto.UserProfileResponse;
+import com.wky.backend.security.AuthPrincipal;
 import com.wky.backend.service.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,34 +21,34 @@ public class UserController {
     private final IUserService userService;
 
     @GetMapping
-    public UserProfileResponse me(@AuthenticationPrincipal Long userId) {
-        return userService.getProfile(userId);
+    public UserProfileResponse me(@AuthenticationPrincipal AuthPrincipal principal) {
+        return userService.getProfile(principal.id());
     }
 
     @PatchMapping
     public UserProfileResponse updateProfile(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal AuthPrincipal principal,
             @Valid @RequestBody UpdateProfileRequest request) {
-        return userService.updateProfile(userId, request);
+        return userService.updateProfile(principal.id(), request);
     }
 
     @PutMapping("/password")
     public Map<String, String> changePassword(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal AuthPrincipal principal,
             @Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(userId, request);
+        userService.changePassword(principal.id(), request);
         return Map.of("message", "密码已更新");
     }
 
     @PostMapping("/avatar")
     public UserProfileResponse uploadAvatar(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam("file") MultipartFile file) {
-        return userService.uploadAvatar(userId, file);
+        return userService.uploadAvatar(principal.id(), file);
     }
 
     @DeleteMapping("/avatar")
-    public UserProfileResponse resetAvatar(@AuthenticationPrincipal Long userId) {
-        return userService.resetAvatar(userId);
+    public UserProfileResponse resetAvatar(@AuthenticationPrincipal AuthPrincipal principal) {
+        return userService.resetAvatar(principal.id());
     }
 }

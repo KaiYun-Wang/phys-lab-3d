@@ -1,0 +1,22 @@
+{
+  "name": "phys-lab-admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NEXT_TELEMETRY_DISABLED=1 next dev -p 3001",
+    "build": "next build",
+    "start": "cross-env NEXT_TELEMETRY_DISABLED=1 next start -p 3001"
+  },
+  "dependencies": {
+    "next": "^15.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "cross-env": "^10.1.0",
+    "typescript": "^5.8.0"
+  }
+}

@@ -1,4 +1,4 @@
-package com.wky.backend.controller;
+package com.wky.backend.controller.user;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

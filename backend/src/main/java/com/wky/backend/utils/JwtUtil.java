@@ -1,5 +1,6 @@
 package com.wky.backend.utils;
 
+import com.wky.backend.security.AuthPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -33,11 +34,12 @@ public class JwtUtil {
         }
     }
 
-    public String generateToken(Long userId, String username) {
+    public String generateToken(Long id, String username, String principalType) {
         Date now = new Date();
         return Jwts.builder()
-                .subject(String.valueOf(userId))
+                .subject(String.valueOf(id))
                 .claim("username", username)
+                .claim("principalType", principalType)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(key)
@@ -61,7 +63,13 @@ public class JwtUtil {
         }
     }
 
-    public Long getUserId(String token) {
+    public Long getPrincipalId(String token) {
         return Long.parseLong(parseToken(token).getSubject());
+    }
+
+    public String getPrincipalType(String token) {
+        Claims claims = parseToken(token);
+        String type = claims.get("principalType", String.class);
+        return type != null ? type : AuthPrincipal.TYPE_USER;
     }
 }
