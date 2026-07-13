@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
 import { fetchDashboardSummary, fetchMe, type AdminProfile, type DashboardSummary } from "@/lib/api";
@@ -46,9 +47,9 @@ export default function DashboardPage() {
           <p>在此管理物理实验内容、用户与系统配置。当前为壳层，功能模块待后续实现。</p>
         </div>
         <div className="quick-actions">
-          <button type="button" className="btn-pill btn-pill--primary btn-pill--sm" disabled>
+          <Link href="/experiments/new" className="btn-pill btn-pill--primary btn-pill--sm">
             新建实验
-          </button>
+          </Link>
           <button type="button" className="btn-pill btn-pill--outline btn-pill--sm" disabled>
             查看用户
           </button>
@@ -65,7 +66,9 @@ export default function DashboardPage() {
             >
               <span className="stat-card__value">{formatStat(stat.value)}</span>
               <span className="stat-card__label">{stat.label}</span>
-              <span className="stat-card__delta">{summaryError ? "加载失败" : "待接入"}</span>
+              <span className="stat-card__delta">
+                {summaryError ? "加载失败" : summary ? "实时数据" : "加载中…"}
+              </span>
             </div>
           ))}
         </div>
@@ -95,11 +98,21 @@ export default function DashboardPage() {
             <span className="heading-sm">快捷入口</span>
           </div>
           <div className="placeholder-list">
-            {["实验管理", "用户列表", "系统设置"].map((title) => (
-              <div key={title} className="placeholder-row">
+            {[
+              { title: "实验管理", href: "/experiments" },
+              { title: "用户列表", href: undefined },
+              { title: "系统设置", href: undefined },
+            ].map((item) => (
+              <div key={item.title} className="placeholder-row">
                 <span className="placeholder-row__dot" style={{ background: "var(--aloe-10)" }} />
-                <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: "var(--shade-70)" }}>{title}</span>
-                <span className="pill-tag pill-tag--mint">→</span>
+                {item.href ? (
+                  <Link href={item.href} className="quick-link">
+                    {item.title}
+                  </Link>
+                ) : (
+                  <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: "var(--shade-70)" }}>{item.title}</span>
+                )}
+                <span className="pill-tag pill-tag--mint">{item.href ? "→" : "—"}</span>
               </div>
             ))}
           </div>

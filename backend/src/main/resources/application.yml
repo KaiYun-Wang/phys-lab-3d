@@ -42,3 +42,11 @@ dromara:
         bucket-name: ${phys-lab.minio.bucket}
         domain: ${phys-lab.minio.domain}
         base-path: avatars/
+      - platform: minio-covers
+        enable-storage: true
+        access-key: ${phys-lab.minio.access-key}
+        secret-key: ${phys-lab.minio.secret-key}
+        end-point: ${phys-lab.minio.endpoint}
+        bucket-name: ${phys-lab.minio.bucket}
+        domain: ${phys-lab.minio.domain}
+        base-path: covers/

@@ -1,7 +1,4 @@
 import type { ComponentType } from "react";
-import { experiments } from "@/data/experiments";
-
-export type ExperimentId = (typeof experiments)[number]["id"];
 
 export interface ExperimentMetadata {
   title: string;
@@ -14,7 +11,7 @@ interface ExperimentRegistryEntry {
   metadata: ExperimentMetadata;
 }
 
-export const experimentRegistry: Record<ExperimentId, ExperimentRegistryEntry> = {
+export const experimentRegistry = {
   "double-slit": {
     loadPage: () => import("@/experiments/double-slit-page"),
     loadDetails: () => import("@/experiments/details/double-slit-details"),
@@ -65,7 +62,9 @@ export const experimentRegistry: Record<ExperimentId, ExperimentRegistryEntry> =
       description: "交互式 3D 狭义相对论实验，演示长度收缩、时间膨胀与相对论质量。",
     },
   },
-};
+} as const satisfies Record<string, ExperimentRegistryEntry>;
+
+export type ExperimentId = keyof typeof experimentRegistry;
 
 export function isValidExperimentId(id: string): id is ExperimentId {
   return id in experimentRegistry;

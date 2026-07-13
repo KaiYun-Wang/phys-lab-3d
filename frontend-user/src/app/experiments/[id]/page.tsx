@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ExperimentLoader } from "@/components/ExperimentLoader";
+import { fetchExperiment } from "@/lib/api";
 import {
   getAllExperimentIds,
   getExperimentMetadata,
@@ -18,12 +19,22 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const metadata = getExperimentMetadata(id);
-  if (!metadata) return {};
-  return {
-    title: metadata.title,
-    description: metadata.description,
-  };
+  if (!isValidExperimentId(id)) return {};
+
+  try {
+    const exp = await fetchExperiment(id);
+    return {
+      title: `${exp.title} - 交互式物理实验室`,
+      description: exp.description,
+    };
+  } catch {
+    const metadata = getExperimentMetadata(id);
+    if (!metadata) return {};
+    return {
+      title: metadata.title,
+      description: metadata.description,
+    };
+  }
 }
 
 export default async function ExperimentRoute({

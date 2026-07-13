@@ -1,22 +1,18 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { experiments } from "@/data/experiments";
-import { Star, ArrowRight, Search } from "lucide-react";
-
-function getFavorites(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem("favorites") || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function isFavorite(id: string): boolean {
-  return getFavorites().includes(id);
-}
+import { useRouter } from "next/navigation";
+import {
+  addFavorite,
+  experimentCoverSrc,
+  experimentSubjectLabel,
+  fetchExperiments,
+  removeFavorite,
+  type Experiment,
+} from "@/lib/api";
+import { isAuthenticated } from "@/lib/auth";
+import { Star, ArrowRight, Search, Eye } from "lucide-react";
 
 const PAGE = "page-shell";
 
@@ -39,31 +35,28 @@ function ExperimentCard({
   exp,
   onToggleFavorite,
 }: {
-  exp: (typeof experiments)[0];
-  onToggleFavorite: (id: string) => void;
+  exp: Experiment;
+  onToggleFavorite: (exp: Experiment) => void;
 }) {
-  const [fav, setFav] = useState(false);
-
-  useEffect(() => {
-    setFav(isFavorite(exp.id));
-  }, [exp.id]);
+  const fav = !!exp.favorited;
+  const cover = experimentCoverSrc(exp.coverUrl);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onToggleFavorite(exp.id);
-    setFav((f) => !f);
+    onToggleFavorite(exp);
   };
 
   return (
-    <a href={`/experiments/${exp.id}`} className="sx-card sx-card--media group flex flex-col h-full">
+    <a href={`/experiments/${exp.route}`} className="sx-card sx-card--media group flex flex-col">
       <div className="sx-card-cover">
         <Image
-          src={exp.coverImage}
+          src={cover}
           alt=""
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          unoptimized={cover.startsWith("http")}
         />
         <button
           onClick={handleFavorite}
@@ -74,20 +67,38 @@ function ExperimentCard({
         </button>
       </div>
 
-      <div className="sx-card-body flex flex-col flex-1">
+      <div className="sx-card-body flex flex-col">
+        <p className="sx-eyebrow text-[#8a8a96] mb-1">{experimentSubjectLabel(exp)}</p>
         <h3 className="text-sm sm:text-base font-bold uppercase tracking-wide text-white mb-2 leading-snug">
           {exp.title}
         </h3>
 
-        <p className="text-xs sm:text-sm text-[#e8e8f0]/75 leading-relaxed line-clamp-2 flex-1">
+        <p className="text-xs sm:text-sm text-[#e8e8f0]/75 leading-relaxed line-clamp-2">
           {exp.description}
         </p>
 
-        <div className="flex flex-wrap gap-2 mt-3 mb-3">
+        <div className="flex flex-wrap gap-2 mt-3 mb-2">
           {exp.topics.slice(0, 2).map((t) => (
             <span key={t} className="sx-tag">{t}</span>
           ))}
         </div>
+
+        {(exp.viewCount != null || exp.favoriteCount != null) && (
+          <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5a5a5f] mb-1">
+            {exp.viewCount != null && (
+              <span className="inline-flex items-center gap-1">
+                <Eye size={11} />
+                {exp.viewCount}
+              </span>
+            )}
+            {exp.favoriteCount != null && (
+              <span className="inline-flex items-center gap-1">
+                <Star size={11} />
+                {exp.favoriteCount}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="sx-card-footer flex items-center justify-end text-[11px] font-bold uppercase tracking-[1.1px] text-white group-hover:text-[#e8e8f0]">
           启动
@@ -99,42 +110,96 @@ function ExperimentCard({
 }
 
 export default function Home() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadExperiments = useCallback(async (q?: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await fetchExperiments(q);
+      setExperiments(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加载失败");
+      setExperiments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadExperiments(search || undefined);
+    }, search ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [search, loadExperiments]);
+
+  const favoritesCount = useMemo(
+    () => experiments.filter((exp) => exp.favorited).length,
+    [experiments],
+  );
+
+  const filtered = useMemo(() => {
+    if (!showFavoritesOnly) return experiments;
+    return experiments.filter((exp) => exp.favorited);
+  }, [experiments, showFavoritesOnly]);
 
   const preview = experiments[1] ?? experiments[0];
 
-  useEffect(() => {
-    setFavoritesCount(getFavorites().length);
-  }, []);
+  const promptLogin = () => {
+    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+  };
 
-  const filtered = useMemo(() => {
-    let result = experiments.filter((exp) => {
-      const q = search.toLowerCase();
-      return (
-        q === "" ||
-        exp.title.toLowerCase().includes(q) ||
-        exp.description.toLowerCase().includes(q) ||
-        exp.topics.some((t) => t.toLowerCase().includes(q))
+  const handleToggleFavorite = async (exp: Experiment) => {
+    if (!isAuthenticated()) {
+      promptLogin();
+      return;
+    }
+
+    const wasFavorited = !!exp.favorited;
+    setExperiments((list) =>
+      list.map((item) =>
+        item.id === exp.id
+          ? {
+              ...item,
+              favorited: !wasFavorited,
+              favoriteCount: Math.max(0, (item.favoriteCount ?? 0) + (wasFavorited ? -1 : 1)),
+            }
+          : item,
+      ),
+    );
+
+    try {
+      if (wasFavorited) {
+        await removeFavorite(exp.id);
+      } else {
+        await addFavorite(exp.id);
+      }
+    } catch {
+      setExperiments((list) =>
+        list.map((item) =>
+          item.id === exp.id
+            ? {
+                ...item,
+                favorited: wasFavorited,
+                favoriteCount: Math.max(0, (item.favoriteCount ?? 0) + (wasFavorited ? 1 : -1)),
+              }
+            : item,
+        ),
       );
-    });
-
-    if (showFavoritesOnly) {
-      result = result.filter((exp) => getFavorites().includes(exp.id));
     }
+  };
 
-    return result;
-  }, [search, showFavoritesOnly]);
-
-  const handleToggleFavorite = (id: string) => {
-    const favorites = getFavorites();
-    if (favorites.includes(id)) {
-      localStorage.setItem("favorites", JSON.stringify(favorites.filter((f) => f !== id)));
-    } else {
-      localStorage.setItem("favorites", JSON.stringify([...favorites, id]));
+  const handleFavoritesFilter = () => {
+    if (!isAuthenticated()) {
+      promptLogin();
+      return;
     }
-    setFavoritesCount(getFavorites().length);
+    setShowFavoritesOnly((v) => !v);
   };
 
   return (
@@ -151,35 +216,42 @@ export default function Home() {
               做物理实验
             </h1>
             <p className="text-base text-[#f0f0fa]/80 leading-relaxed mb-8 max-w-md">
-              控制变量、观察模拟、实时读数。六个交互式物理实验，在浏览器中运行。
+              控制变量、观察模拟、实时读数。交互式物理实验，在浏览器中运行。
             </p>
             <div className="flex flex-wrap gap-4">
               <a href="#experiments" className="btn-ghost">
                 开始探索
               </a>
-              <a href={`/experiments/${preview.id}`} className="btn-ghost opacity-70 hover:opacity-100">
-                试玩
-              </a>
+              {preview && (
+                <a href={`/experiments/${preview.route}`} className="btn-ghost opacity-70 hover:opacity-100">
+                  试玩
+                </a>
+              )}
             </div>
             <p className="sx-eyebrow text-[#5a5a5f] mt-8">
-              6 实验 · 1 学科 · 3D 交互
+              {experiments.length > 0
+                ? `${experiments.length} 实验 · 1 学科 · 3D 交互`
+                : "3D 交互物理实验"}
             </p>
           </div>
 
-          <div className="sx-preview">
-            <div className="sx-preview-bar">
-              <p className="sx-eyebrow text-[#8a8a96]">{preview.title}</p>
+          {preview && (
+            <div className="sx-preview">
+              <div className="sx-preview-bar">
+                <p className="sx-eyebrow text-[#8a8a96]">{preview.title}</p>
+              </div>
+              <div className="sx-card-cover border-0 rounded-none">
+                <Image
+                  src={experimentCoverSrc(preview.coverUrl)}
+                  alt=""
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="object-cover"
+                  unoptimized={experimentCoverSrc(preview.coverUrl).startsWith("http")}
+                />
+              </div>
             </div>
-            <div className="sx-card-cover aspect-[4/3] border-0 rounded-none">
-              <Image
-                src={preview.coverImage}
-                alt=""
-                fill
-                sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover"
-              />
-            </div>
-          </div>
+          )}
         </section>
 
         <section id="experiments" className="sx-section">
@@ -210,7 +282,7 @@ export default function Home() {
                 全部
               </button>
               <button
-                onClick={() => setShowFavoritesOnly((v) => !v)}
+                onClick={handleFavoritesFilter}
                 className={`sx-chip ${showFavoritesOnly ? "sx-chip-active" : ""}`}
               >
                 收藏{favoritesCount > 0 ? ` ${favoritesCount}` : ""}
@@ -218,13 +290,23 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 items-stretch">
-            {filtered.map((exp) => (
-              <ExperimentCard key={exp.id} exp={exp} onToggleFavorite={handleToggleFavorite} />
-            ))}
-          </div>
+          {loading && (
+            <p className="text-center py-16 sx-eyebrow text-[#5a5a5f]">加载中…</p>
+          )}
 
-          {filtered.length === 0 && (
+          {!loading && error && (
+            <p className="text-center py-16 sx-eyebrow text-[#5a5a5f]">{error}</p>
+          )}
+
+          {!loading && !error && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 items-start">
+              {filtered.map((exp) => (
+                <ExperimentCard key={exp.id} exp={exp} onToggleFavorite={handleToggleFavorite} />
+              ))}
+            </div>
+          )}
+
+          {!loading && !error && filtered.length === 0 && (
             <p className="text-center py-16 sx-eyebrow text-[#5a5a5f]">
               {showFavoritesOnly ? "暂无收藏" : "无匹配结果"}
             </p>

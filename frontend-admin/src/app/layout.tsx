@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AuthGuard from "@/components/AuthGuard";
+import Providers from "@/components/Providers";
 import "@/styles/admin.css";
 
 export const metadata: Metadata = {
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <AuthGuard>{children}</AuthGuard>
+        <Providers>
+          <AuthGuard>{children}</AuthGuard>
+        </Providers>
       </body>
     </html>
   );

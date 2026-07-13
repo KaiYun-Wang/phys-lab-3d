@@ -1,10 +1,27 @@
 import { MetadataRoute } from "next";
-import { experiments } from "@/data/experiments";
+import { API_BASE } from "@/lib/api";
+import { getAllExperimentIds } from "@/experiments/registry";
 
 const SITE_URL = "https://sciencelab-two.vercel.app";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+type ExperimentRoute = { route: string };
+
+async function fetchPublishedRoutes(): Promise<string[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/experiments`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) throw new Error("fetch failed");
+    const data = (await res.json()) as ExperimentRoute[];
+    return data.map((exp) => exp.route);
+  } catch {
+    return getAllExperimentIds();
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const routes = await fetchPublishedRoutes();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -15,15 +32,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const experimentRoutes: MetadataRoute.Sitemap = experiments.flatMap((exp) => [
+  const experimentRoutes: MetadataRoute.Sitemap = routes.flatMap((route) => [
     {
-      url: `${SITE_URL}/experiments/${exp.id}`,
+      url: `${SITE_URL}/experiments/${route}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/experiments/${exp.id}/details`,
+      url: `${SITE_URL}/experiments/${route}/details`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.6,

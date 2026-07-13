@@ -1,6 +1,69 @@
-import { clearToken, getToken } from "./auth";
+import { clearToken, getToken, isTokenExpired } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+export const DEFAULT_EXPERIMENT_COVER = "/covers/experiment-cover.png";
+
+export type SubjectType =
+  | "MECHANICS"
+  | "ELECTRICITY"
+  | "OPTICS"
+  | "QUANTUM"
+  | "FLUID_MECHANICS"
+  | "RELATIVITY"
+  | "WAVE"
+  | "ACOUSTICS";
+
+const SUBJECT_TYPE_LABELS: Record<SubjectType, string> = {
+  MECHANICS: "力学",
+  ELECTRICITY: "电学",
+  OPTICS: "光学",
+  QUANTUM: "量子",
+  FLUID_MECHANICS: "流体力学",
+  RELATIVITY: "相对论",
+  WAVE: "波动",
+  ACOUSTICS: "声学",
+};
+
+export function getSubjectTypeLabel(subjectType: SubjectType | string): string {
+  return SUBJECT_TYPE_LABELS[subjectType as SubjectType] ?? subjectType;
+}
+
+export type Experiment = {
+  id: number;
+  route: string;
+  title: string;
+  subjectTypeId?: number;
+  subjectType: SubjectType;
+  subjectTypeLabel?: string;
+  description: string;
+  coverUrl: string | null;
+  topics: string[];
+  status?: string;
+  visitorCount?: number;
+  favoriteCount?: number;
+  viewCount?: number;
+  commentCount?: number;
+  favorited?: boolean;
+};
+
+export function experimentSubjectLabel(
+  exp: Pick<Experiment, "subjectType" | "subjectTypeLabel">,
+): string {
+  return exp.subjectTypeLabel ?? getSubjectTypeLabel(exp.subjectType);
+}
+
+function useAuthIfAvailable(): boolean {
+  const token = getToken();
+  return !!token && !isTokenExpired(token);
+}
+
+export function experimentCoverSrc(coverUrl: string | null | undefined): string {
+  if (!coverUrl) return DEFAULT_EXPERIMENT_COVER;
+  if (coverUrl.startsWith("http")) return coverUrl;
+  if (coverUrl.startsWith("/covers/")) return coverUrl;
+  return `${API_BASE}${coverUrl}`;
+}
 
 export type UserProfile = {
   id: number;
@@ -94,4 +157,25 @@ export function uploadAvatar(file: File) {
 
 export function resetAvatar() {
   return apiFetch<UserProfile>("/api/users/me/avatar", { method: "DELETE" });
+}
+
+export function fetchExperiments(q?: string) {
+  const params = q ? `?q=${encodeURIComponent(q)}` : "";
+  return apiFetch<Experiment[]>(`/api/experiments${params}`, {}, useAuthIfAvailable());
+}
+
+export function fetchExperiment(route: string) {
+  return apiFetch<Experiment>(`/api/experiments/${route}`, {}, useAuthIfAvailable());
+}
+
+export function fetchFavorites() {
+  return apiFetch<Experiment[]>("/api/users/me/favorites");
+}
+
+export function addFavorite(experimentId: number) {
+  return apiFetch<void>(`/api/users/me/favorites/${experimentId}`, { method: "POST" });
+}
+
+export function removeFavorite(experimentId: number) {
+  return apiFetch<void>(`/api/users/me/favorites/${experimentId}`, { method: "DELETE" });
 }

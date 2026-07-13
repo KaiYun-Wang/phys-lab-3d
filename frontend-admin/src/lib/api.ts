@@ -73,3 +73,245 @@ export function fetchMe() {
 export function fetchDashboardSummary() {
   return apiFetch<DashboardSummary>("/api/admin/dashboard/summary");
 }
+
+export type ExperimentStatus = "PUBLISHED" | "DRAFT";
+
+export const EXPERIMENT_STATUS_OPTIONS: { value: ExperimentStatus; label: string }[] = [
+  { value: "PUBLISHED", label: "已发布" },
+  { value: "DRAFT", label: "草稿" },
+];
+
+export function getExperimentStatusLabel(status: ExperimentStatus | string): string {
+  return EXPERIMENT_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? "草稿";
+}
+
+export function isExperimentPublished(status: ExperimentStatus | string): boolean {
+  return status === "PUBLISHED";
+}
+
+export type SubjectTypeCode =
+  | "MECHANICS"
+  | "ELECTRICITY"
+  | "OPTICS"
+  | "QUANTUM"
+  | "FLUID_MECHANICS"
+  | "RELATIVITY"
+  | "WAVE"
+  | "ACOUSTICS";
+
+/** @deprecated Use SubjectTypeRecord from API */
+export type SubjectType = SubjectTypeCode;
+
+export const SUBJECT_TYPE_OPTIONS: { value: SubjectTypeCode; label: string }[] = [
+  { value: "MECHANICS", label: "力学" },
+  { value: "ELECTRICITY", label: "电学" },
+  { value: "OPTICS", label: "光学" },
+  { value: "QUANTUM", label: "量子" },
+  { value: "FLUID_MECHANICS", label: "流体力学" },
+  { value: "RELATIVITY", label: "相对论" },
+  { value: "WAVE", label: "波动" },
+  { value: "ACOUSTICS", label: "声学" },
+];
+
+export type SubjectTypeRecord = {
+  id: number;
+  code: string;
+  label: string;
+  description?: string | null;
+  sortOrder?: number;
+  experimentCount?: number;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type SubjectTypeInput = {
+  code: string;
+  label: string;
+  description?: string;
+  sortOrder?: number;
+};
+
+export type SubjectTypeListResponse = {
+  items: SubjectTypeRecord[];
+  total: number;
+};
+
+export function getSubjectTypeLabel(
+  subjectType: SubjectTypeCode | string,
+  types?: SubjectTypeRecord[],
+): string {
+  const fromApi = types?.find((t) => t.code === subjectType || String(t.id) === subjectType);
+  if (fromApi) return fromApi.label;
+  return SUBJECT_TYPE_OPTIONS.find((o) => o.value === subjectType)?.label ?? subjectType;
+}
+
+export function getFallbackSubjectTypes(): SubjectTypeRecord[] {
+  return SUBJECT_TYPE_OPTIONS.map((opt, index) => ({
+    id: index + 1,
+    code: opt.value,
+    label: opt.label,
+    sortOrder: index,
+  }));
+}
+
+function parseSubjectTypeList(
+  data: SubjectTypeRecord[] | SubjectTypeListResponse,
+): SubjectTypeListResponse {
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length };
+  }
+  const items = data.items ?? [];
+  const total = data.total ?? items.length;
+  return { items, total };
+}
+
+export function fetchSubjectTypes() {
+  return apiFetch<SubjectTypeRecord[] | SubjectTypeListResponse>("/api/admin/subject-types").then(
+    parseSubjectTypeList,
+  );
+}
+
+export function fetchSubjectType(id: number) {
+  return apiFetch<SubjectTypeRecord>(`/api/admin/subject-types/${id}`);
+}
+
+export function createSubjectType(input: SubjectTypeInput) {
+  return apiFetch<SubjectTypeRecord>("/api/admin/subject-types", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateSubjectType(id: number, input: Omit<SubjectTypeInput, "code">) {
+  return apiFetch<SubjectTypeRecord>(`/api/admin/subject-types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteSubjectType(id: number) {
+  return apiFetch<void>(`/api/admin/subject-types/${id}`, { method: "DELETE" });
+}
+
+export type Experiment = {
+  id: number;
+  route: string;
+  title: string;
+  subjectTypeId: number;
+  subjectTypeLabel?: string;
+  subjectTypeCode?: string;
+  /** @deprecated Legacy API field */
+  subjectType?: SubjectTypeCode;
+  description: string;
+  coverUrl: string | null;
+  topics: string[];
+  status: ExperimentStatus;
+  visitorCount: number;
+  favoriteCount: number;
+  viewCount: number;
+  commentCount: number;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type ExperimentInput = {
+  route: string;
+  title: string;
+  subjectTypeId: number;
+  description: string;
+  coverUrl?: string;
+  topics: string[];
+  status: ExperimentStatus;
+};
+
+export function getExperimentSubjectLabel(
+  experiment: Experiment,
+  types?: SubjectTypeRecord[],
+): string {
+  if (experiment.subjectTypeLabel) return experiment.subjectTypeLabel;
+  const code = experiment.subjectTypeCode ?? experiment.subjectType;
+  if (code) return getSubjectTypeLabel(code, types);
+  const fromId = types?.find((t) => t.id === experiment.subjectTypeId);
+  return fromId?.label ?? String(experiment.subjectTypeId);
+}
+
+export type ExperimentListParams = {
+  q?: string;
+  status?: ExperimentStatus | "all";
+};
+
+export type ExperimentListResponse = {
+  items: Experiment[];
+  total: number;
+};
+
+type ExperimentPageResponse = {
+  records?: Experiment[];
+  items?: Experiment[];
+  total?: number;
+};
+
+function buildQuery(params: Record<string, string | undefined>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, value);
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}
+
+function parseExperimentList(
+  data: Experiment[] | ExperimentListResponse | ExperimentPageResponse,
+): ExperimentListResponse {
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length };
+  }
+  const items = "records" in data ? (data.records ?? []) : (data.items ?? []);
+  const total = data.total ?? items.length;
+  return { items, total };
+}
+
+export function fetchExperiments(params: ExperimentListParams = {}) {
+  const query = buildQuery({
+    q: params.q,
+    status: params.status && params.status !== "all" ? params.status : undefined,
+  });
+  return apiFetch<Experiment[] | ExperimentListResponse | ExperimentPageResponse>(
+    `/api/admin/experiments${query}`,
+  ).then(parseExperimentList);
+}
+
+export function fetchExperiment(id: number) {
+  return apiFetch<Experiment>(`/api/admin/experiments/${id}`);
+}
+
+export function createExperiment(input: ExperimentInput) {
+  return apiFetch<Experiment>("/api/admin/experiments", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateExperiment(id: number, input: Omit<ExperimentInput, "route">) {
+  return apiFetch<Experiment>(`/api/admin/experiments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteExperiment(id: number) {
+  return apiFetch<void>(`/api/admin/experiments/${id}`, { method: "DELETE" });
+}
+
+export type CoverUploadResponse = {
+  coverUrl: string;
+};
+
+export function uploadExperimentCover(file: Blob) {
+  const form = new FormData();
+  form.append("file", file, "cover.jpg");
+  return apiFetch<CoverUploadResponse>("/api/admin/experiments/cover", {
+    method: "POST",
+    body: form,
+  });
+}

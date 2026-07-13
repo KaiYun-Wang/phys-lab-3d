@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { AdminProfile } from "@/lib/api";
 import { clearToken, displayInitials } from "@/lib/auth";
 
@@ -9,7 +9,6 @@ type NavItem = {
   icon: string;
   label: string;
   href?: string;
-  active?: boolean;
   disabled?: boolean;
 };
 
@@ -18,16 +17,22 @@ type NavGroup = {
   items: NavItem[];
 };
 
+function isNavActive(href: string | undefined, pathname: string) {
+  if (!href) return false;
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "概览",
-    items: [{ icon: "▦", label: "首页", href: "/", active: true }],
+    items: [{ icon: "▦", label: "首页", href: "/" }],
   },
   {
     label: "内容",
     items: [
-      { icon: "⚗", label: "实验管理", disabled: true },
-      { icon: "◎", label: "分类标签", disabled: true },
+      { icon: "⚗", label: "实验管理", href: "/experiments" },
+      { icon: "◎", label: "学科分类", href: "/subject-types" },
     ],
   },
   {
@@ -65,6 +70,7 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   function logout() {
     clearToken();
@@ -84,7 +90,7 @@ export default function AdminShell({
           <nav key={group.label} className="nav-group">
             <span className="nav-group__label">{group.label}</span>
             {group.items.map((item) => {
-              const className = `nav-item${item.active ? " is-active" : ""}`;
+              const className = `nav-item${isNavActive(item.href, pathname) ? " is-active" : ""}`;
               if (item.disabled || !item.href) {
                 return (
                   <button key={item.label} type="button" className={className} disabled>
