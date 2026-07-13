@@ -205,17 +205,53 @@ body {
   box-shadow: var(--sx-shadow-card-hover);
 }
 
-.sx-icon-well {
-  width: 52px;
-  height: 52px;
+.sx-card--media {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sx-card-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0a0a0e;
+  border-bottom: 1px solid var(--sx-hairline);
+}
+
+.sx-card-fav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  color: var(--sx-ink-mute);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.sx-card-fav:hover,
+.sx-card-fav.is-active {
+  color: var(--sx-white);
+  border-color: var(--sx-hairline-strong);
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.sx-card-body {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.65rem;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #222230 0%, #14141c 100%);
-  border: 1px solid var(--sx-hairline);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.35);
+  flex-direction: column;
+  flex: 1;
+  padding: 1.15rem 1.25rem;
+}
+@media (min-width: 640px) {
+  .sx-card-body {
+    padding: 1.25rem 1.35rem;
+  }
 }
 
 .sx-tag {
@@ -232,7 +268,7 @@ body {
 
 .sx-card-footer {
   margin-top: auto;
-  padding-top: 1.25rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--sx-hairline);
 }
 

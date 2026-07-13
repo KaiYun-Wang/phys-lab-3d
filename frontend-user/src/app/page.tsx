@@ -1,14 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import { experiments } from "@/data/experiments";
 import { Star, ArrowRight, Search } from "lucide-react";
-
-const DIFFICULTY_LABELS: Record<string, string> = {
-  Beginner: "入门",
-  Intermediate: "进阶",
-  Advanced: "高级",
-};
 
 function getFavorites(): string[] {
   if (typeof window === "undefined") return [];
@@ -61,39 +56,43 @@ function ExperimentCard({
   };
 
   return (
-    <a href={`/experiments/${exp.id}`} className="sx-card group flex flex-col h-full">
-      <div className="flex items-start justify-between mb-5">
-        <div className="sx-icon-well">{exp.icon}</div>
+    <a href={`/experiments/${exp.id}`} className="sx-card sx-card--media group flex flex-col h-full">
+      <div className="sx-card-cover">
+        <Image
+          src={exp.coverImage}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+        />
         <button
           onClick={handleFavorite}
-          className={`p-2 rounded-full border border-transparent hover:border-[#45454f] hover:bg-white/5 transition-colors ${fav ? "text-white" : "text-[#8a8a96] hover:text-white"}`}
+          className={`sx-card-fav ${fav ? "is-active" : ""}`}
           title={fav ? "取消收藏" : "收藏"}
         >
           <Star size={14} fill={fav ? "currentColor" : "none"} />
         </button>
       </div>
 
-      <span className="inline-flex self-start text-[10px] font-bold uppercase tracking-wider text-[#8a8a96] bg-black/30 border border-[#45454f] rounded-full px-2.5 py-0.5 mb-3">
-        {DIFFICULTY_LABELS[exp.difficulty] || exp.difficulty}
-      </span>
+      <div className="sx-card-body flex flex-col flex-1">
+        <h3 className="text-sm sm:text-base font-bold uppercase tracking-wide text-white mb-2 leading-snug">
+          {exp.title}
+        </h3>
 
-      <h3 className="text-base font-bold uppercase tracking-wide text-white mb-3 leading-snug">
-        {exp.title}
-      </h3>
+        <p className="text-xs sm:text-sm text-[#e8e8f0]/75 leading-relaxed line-clamp-2 flex-1">
+          {exp.description}
+        </p>
 
-      <p className="text-sm text-[#e8e8f0]/75 leading-relaxed line-clamp-2 flex-1 min-h-[2.75rem]">
-        {exp.description}
-      </p>
+        <div className="flex flex-wrap gap-2 mt-3 mb-3">
+          {exp.topics.slice(0, 2).map((t) => (
+            <span key={t} className="sx-tag">{t}</span>
+          ))}
+        </div>
 
-      <div className="flex flex-wrap gap-2 mt-4 mb-4">
-        {exp.topics.slice(0, 2).map((t) => (
-          <span key={t} className="sx-tag">{t}</span>
-        ))}
-      </div>
-
-      <div className="sx-card-footer flex items-center justify-end text-[11px] font-bold uppercase tracking-[1.1px] text-white group-hover:text-[#e8e8f0]">
-        启动
-        <ArrowRight size={12} className="ml-2 group-hover:translate-x-1 transition-transform" />
+        <div className="sx-card-footer flex items-center justify-end text-[11px] font-bold uppercase tracking-[1.1px] text-white group-hover:text-[#e8e8f0]">
+          启动
+          <ArrowRight size={12} className="ml-2 group-hover:translate-x-1 transition-transform" />
+        </div>
       </div>
     </a>
   );
@@ -101,7 +100,6 @@ function ExperimentCard({
 
 export default function Home() {
   const [search, setSearch] = useState("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoritesCount, setFavoritesCount] = useState(0);
 
@@ -113,14 +111,13 @@ export default function Home() {
 
   const filtered = useMemo(() => {
     let result = experiments.filter((exp) => {
-      const matchDifficulty = !selectedDifficulty || exp.difficulty === selectedDifficulty;
       const q = search.toLowerCase();
-      const matchSearch =
+      return (
         q === "" ||
         exp.title.toLowerCase().includes(q) ||
         exp.description.toLowerCase().includes(q) ||
-        exp.topics.some((t) => t.toLowerCase().includes(q));
-      return matchDifficulty && matchSearch;
+        exp.topics.some((t) => t.toLowerCase().includes(q))
+      );
     });
 
     if (showFavoritesOnly) {
@@ -128,7 +125,7 @@ export default function Home() {
     }
 
     return result;
-  }, [search, selectedDifficulty, showFavoritesOnly]);
+  }, [search, showFavoritesOnly]);
 
   const handleToggleFavorite = (id: string) => {
     const favorites = getFavorites();
@@ -173,26 +170,14 @@ export default function Home() {
             <div className="sx-preview-bar">
               <p className="sx-eyebrow text-[#8a8a96]">{preview.title}</p>
             </div>
-            <div
-              className="aspect-[4/3] relative flex items-center justify-center"
-              style={{
-                background:
-                  "radial-gradient(ellipse at 50% 80%, #1a1a22 0%, #0a0a0a 50%, #000 100%)",
-              }}
-            >
-              <div
-                className="absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-                  backgroundSize: "40px 40px",
-                }}
-                aria-hidden
+            <div className="sx-card-cover aspect-[4/3] border-0 rounded-none">
+              <Image
+                src={preview.coverImage}
+                alt=""
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                className="object-cover"
               />
-              <div className="relative text-center">
-                <span className="text-5xl block mb-3">{preview.icon}</span>
-                <p className="sx-eyebrow">3D 模拟预览</p>
-              </div>
             </div>
           </div>
         </section>
@@ -218,38 +203,22 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-[#45454f]">
-            <button
-              onClick={() => setShowFavoritesOnly(false)}
-              className={`sx-chip ${!showFavoritesOnly ? "sx-chip-active" : ""}`}
-            >
-              全部
-            </button>
-            <button
-              onClick={() => setShowFavoritesOnly((v) => !v)}
-              className={`sx-chip ${showFavoritesOnly ? "sx-chip-active" : ""}`}
-            >
-              收藏{favoritesCount > 0 ? ` ${favoritesCount}` : ""}
-            </button>
-            <span className="w-px h-5 bg-[#45454f] self-center mx-1 hidden sm:block" />
-            {[
-              { key: "Beginner", label: "入门" },
-              { key: "Intermediate", label: "进阶" },
-              { key: "Advanced", label: "高级" },
-            ].map((diff) => (
               <button
-                key={diff.key}
-                onClick={() =>
-                  setSelectedDifficulty(selectedDifficulty === diff.key ? null : diff.key)
-                }
-                className={`sx-chip ${selectedDifficulty === diff.key ? "sx-chip-active" : ""}`}
+                onClick={() => setShowFavoritesOnly(false)}
+                className={`sx-chip ${!showFavoritesOnly ? "sx-chip-active" : ""}`}
               >
-                {diff.label}
+                全部
               </button>
-            ))}
+              <button
+                onClick={() => setShowFavoritesOnly((v) => !v)}
+                className={`sx-chip ${showFavoritesOnly ? "sx-chip-active" : ""}`}
+              >
+                收藏{favoritesCount > 0 ? ` ${favoritesCount}` : ""}
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 items-stretch">
             {filtered.map((exp) => (
               <ExperimentCard key={exp.id} exp={exp} onToggleFavorite={handleToggleFavorite} />
             ))}
