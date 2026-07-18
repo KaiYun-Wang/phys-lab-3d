@@ -12,7 +12,7 @@ const DEFAULT_VALUES: ExperimentFormValues = {
   title: "",
   subjectTypeId: 1,
   description: "",
-  coverUrl: "/covers/experiment-cover.png",
+  coverUrl: "",
   topics: [],
   status: "DRAFT",
 };

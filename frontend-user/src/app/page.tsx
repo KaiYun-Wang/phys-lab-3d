@@ -50,14 +50,20 @@ function ExperimentCard({
   return (
     <a href={`/experiments/${exp.route}`} className="sx-card sx-card--media group flex flex-col">
       <div className="sx-card-cover">
-        <Image
-          src={cover}
-          alt=""
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          unoptimized={cover.startsWith("http")}
-        />
+        {cover ? (
+          <Image
+            src={cover}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            unoptimized={cover.startsWith("http")}
+          />
+        ) : (
+          <div className="sx-card-cover-fallback" aria-hidden>
+            <span>{exp.title}</span>
+          </div>
+        )}
         <button
           onClick={handleFavorite}
           className={`sx-card-fav ${fav ? "is-active" : ""}`}
@@ -202,6 +208,8 @@ export default function Home() {
     setShowFavoritesOnly((v) => !v);
   };
 
+  const previewCover = preview ? experimentCoverSrc(preview.coverUrl) : null;
+
   return (
     <main className="min-h-screen w-full bg-black">
       <Navbar />
@@ -241,14 +249,20 @@ export default function Home() {
                 <p className="sx-eyebrow text-[#8a8a96]">{preview.title}</p>
               </div>
               <div className="sx-card-cover border-0 rounded-none">
-                <Image
-                  src={experimentCoverSrc(preview.coverUrl)}
-                  alt=""
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 40vw"
-                  className="object-cover"
-                  unoptimized={experimentCoverSrc(preview.coverUrl).startsWith("http")}
-                />
+                {previewCover ? (
+                  <Image
+                    src={previewCover}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    className="object-cover"
+                    unoptimized={previewCover.startsWith("http")}
+                  />
+                ) : (
+                  <div className="sx-card-cover-fallback" aria-hidden>
+                    <span>{preview.title}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

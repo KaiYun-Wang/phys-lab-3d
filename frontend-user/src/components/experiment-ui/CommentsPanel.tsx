@@ -252,11 +252,13 @@ function Thread({
   isReply?: boolean;
 }) {
   const src = avatarSrc(comment.avatarUrl);
-  const canDelete = myId != null && comment.userId === myId;
+  const isAdmin = comment.ownerType === 1;
+  const canDelete =
+    myId != null && comment.ownerType === 0 && comment.ownerId === myId;
   return (
-    <article className={`exp-thread${isReply ? " reply" : ""}`}>
+    <article className={`exp-thread${isReply ? " reply" : ""}${isAdmin ? " official" : ""}`}>
       <div className="exp-thread-head">
-        <div className="exp-avatar">
+        <div className={`exp-avatar${isAdmin ? " official" : ""}`}>
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={src} alt="" />
@@ -265,7 +267,10 @@ function Thread({
           )}
         </div>
         <div className="exp-who">
-          <div className="name">{comment.nickname || "用户"}</div>
+          <div className="name">
+            {comment.nickname || (isAdmin ? "管理员" : "用户")}
+            {isAdmin ? <span className="exp-official-tag">官方</span> : null}
+          </div>
           <div className="time">{timeAgo(comment.createTime)}</div>
         </div>
       </div>

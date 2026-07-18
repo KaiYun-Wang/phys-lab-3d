@@ -3,6 +3,7 @@ package com.wky.backend.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wky.backend.domain.dto.AdminCommentLikeResponse;
 import com.wky.backend.domain.dto.AdminCommentResponse;
+import com.wky.backend.domain.dto.AdminReplyCommentRequest;
 import com.wky.backend.domain.dto.CommentResponse;
 import com.wky.backend.domain.dto.CreateCommentRequest;
 import com.wky.backend.domain.dto.PageResponse;
@@ -15,6 +16,9 @@ public interface IExperimentCommentService extends IService<ExperimentComment> {
 
     CommentResponse createComment(Long experimentId, Long userId, CreateCommentRequest request);
 
+    /** 管理员回复（仅 reply，不可发一级楼） */
+    CommentResponse adminReply(Long adminId, AdminReplyCommentRequest request);
+
     void deleteOwnComment(Long experimentId, Long commentId, Long userId);
 
     void likeComment(Long experimentId, Long commentId, Long userId);
@@ -22,7 +26,8 @@ public interface IExperimentCommentService extends IService<ExperimentComment> {
     void unlikeComment(Long experimentId, Long commentId, Long userId);
 
     PageResponse<AdminCommentResponse> adminPage(
-            Long experimentId, Long userId, String status, String keyword, long page, long pageSize);
+            Long experimentId, Long ownerId, Integer ownerType, String status, String keyword,
+            long page, long pageSize);
 
     void adminUpdateStatus(Long commentId, String status);
 

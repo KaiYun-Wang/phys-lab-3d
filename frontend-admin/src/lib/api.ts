@@ -341,7 +341,9 @@ export type AdminComment = {
   experimentId: number;
   experimentTitle?: string | null;
   experimentRoute?: string | null;
-  userId: number;
+  ownerId: number;
+  /** 0=用户，1=管理员 */
+  ownerType: number;
   username?: string | null;
   nickname?: string | null;
   rootId?: number | null;
@@ -388,7 +390,8 @@ export function deleteAdminFavorite(id: number) {
 
 export function fetchAdminComments(params: {
   experimentId?: string;
-  userId?: string;
+  ownerId?: string;
+  ownerType?: string;
   status?: string;
   keyword?: string;
   page?: number;
@@ -396,13 +399,25 @@ export function fetchAdminComments(params: {
 } = {}) {
   const query = buildQuery({
     experimentId: params.experimentId,
-    userId: params.userId,
+    ownerId: params.ownerId,
+    ownerType: params.ownerType,
     status: params.status && params.status !== "all" ? params.status : undefined,
     keyword: params.keyword,
     page: String(params.page ?? 1),
     size: String(params.size ?? 20),
   });
   return apiFetch<AdminPageResponse<AdminComment>>(`/api/admin/comments${query}`);
+}
+
+export function replyAdminComment(body: {
+  experimentId: number;
+  replyToId: number;
+  content: string;
+}) {
+  return apiFetch<AdminComment>(`/api/admin/comments/reply`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export function updateAdminCommentStatus(id: number, status: "VISIBLE" | "HIDDEN") {

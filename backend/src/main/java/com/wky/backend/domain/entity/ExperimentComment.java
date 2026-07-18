@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.wky.backend.enums.CommentOwnerType;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -18,7 +19,10 @@ public class ExperimentComment {
 
     private Long experimentId;
 
-    private Long userId;
+    /** 作者 ID：配合 ownerType，对应 users.id 或 admins.id */
+    private Long ownerId;
+
+    private CommentOwnerType ownerType;
 
     /** 所属一级评论；一级自身为 null */
     private Long rootId;

@@ -174,7 +174,9 @@ export default function ExperimentsPage() {
                           {coverSrc ? (
                             <img src={coverSrc} alt="" />
                           ) : (
-                            <span className="cover-thumb__fallback" />
+                            <span className="cover-thumb__fallback" title={exp.title}>
+                              {exp.title.slice(0, 2)}
+                            </span>
                           )}
                         </div>
                       </td>

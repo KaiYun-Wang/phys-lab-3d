@@ -5,15 +5,19 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wky.backend.domain.dto.AdminCommentLikeResponse;
 import com.wky.backend.domain.dto.AdminCommentResponse;
+import com.wky.backend.domain.dto.AdminReplyCommentRequest;
 import com.wky.backend.domain.dto.CommentResponse;
 import com.wky.backend.domain.dto.CreateCommentRequest;
 import com.wky.backend.domain.dto.PageResponse;
+import com.wky.backend.domain.entity.Admin;
 import com.wky.backend.domain.entity.Experiment;
 import com.wky.backend.domain.entity.ExperimentComment;
 import com.wky.backend.domain.entity.ExperimentCommentLike;
 import com.wky.backend.domain.entity.User;
+import com.wky.backend.enums.CommentOwnerType;
 import com.wky.backend.enums.ExperimentStatus;
 import com.wky.backend.exception.ApiException;
+import com.wky.backend.mapper.AdminMapper;
 import com.wky.backend.mapper.ExperimentCommentLikeMapper;
 import com.wky.backend.mapper.ExperimentCommentMapper;
 import com.wky.backend.service.IExperimentCommentService;
@@ -43,6 +47,7 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
 
     private final IExperimentService experimentService;
     private final IUserService userService;
+    private final AdminMapper adminMapper;
     private final ExperimentCommentLikeMapper likeMapper;
 
     @Override
@@ -60,7 +65,8 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
             if (currentUserId == null) {
                 return new PageResponse<>(List.of(), 0, page, pageSize);
             }
-            wrapper.eq(ExperimentComment::getUserId, currentUserId);
+            wrapper.eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
+                    .eq(ExperimentComment::getOwnerId, currentUserId);
         }
 
         Page<ExperimentComment> result = page(new Page<>(page, pageSize), wrapper);
@@ -76,41 +82,32 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
                 .in(ExperimentComment::getRootId, rootIds)
                 .orderByAsc(ExperimentComment::getCreateTime));
 
-        Set<Long> userIds = new HashSet<>();
+        List<ExperimentComment> all = new ArrayList<>(roots);
+        all.addAll(replies);
+        Map<Long, ExperimentComment> replyTargets = loadReplyTargets(replies);
+        all.addAll(replyTargets.values());
+
+        AuthorMaps authors = loadAuthors(all);
         Set<Long> commentIds = new HashSet<>();
         for (ExperimentComment c : roots) {
-            userIds.add(c.getUserId());
             commentIds.add(c.getId());
         }
         for (ExperimentComment c : replies) {
-            userIds.add(c.getUserId());
             commentIds.add(c.getId());
         }
-
-        Map<Long, User> users = loadUsers(userIds);
         Set<Long> likedIds = findLikedCommentIds(currentUserId, commentIds);
-        Map<Long, ExperimentComment> replyTargets = loadReplyTargets(replies);
-
-        // also need nicknames of reply-to authors
-        Set<Long> replyToUserIds = replyTargets.values().stream()
-                .map(ExperimentComment::getUserId)
-                .collect(Collectors.toSet());
-        if (!replyToUserIds.isEmpty()) {
-            users = mergeUsers(users, loadUsers(replyToUserIds));
-        }
 
         Map<Long, List<ExperimentComment>> repliesByRoot = replies.stream()
                 .collect(Collectors.groupingBy(ExperimentComment::getRootId));
 
-        Map<Long, User> finalUsers = users;
         List<CommentResponse> records = roots.stream()
                 .map(root -> toResponse(
                         root,
-                        finalUsers,
+                        authors,
                         likedIds,
                         replyTargets,
                         repliesByRoot.getOrDefault(root.getId(), List.of()).stream()
-                                .map(r -> toResponse(r, finalUsers, likedIds, replyTargets, null))
+                                .map(r -> toResponse(r, authors, likedIds, replyTargets, null))
                                 .toList()))
                 .toList();
 
@@ -121,29 +118,21 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
     @Transactional
     public CommentResponse createComment(Long experimentId, Long userId, CreateCommentRequest request) {
         Experiment experiment = requirePublished(experimentId);
-        String content = request.getContent() == null ? "" : request.getContent().trim();
-        if (content.isEmpty() || content.length() > 1000) {
-            throw new ApiException(400, "评论内容须为 1–1000 字");
-        }
+        String content = normalizeContent(request.getContent());
 
         Long rootId = null;
         Long replyToId = request.getReplyToId();
         ExperimentComment replyTarget = null;
 
         if (replyToId != null) {
-            replyTarget = getById(replyToId);
-            if (replyTarget == null
-                    || !Objects.equals(replyTarget.getExperimentId(), experimentId)
-                    || !STATUS_VISIBLE.equals(replyTarget.getStatus())) {
-                throw new ApiException(400, "回复目标不存在");
-            }
-            // 一级：root_id 为空；楼内回复：root_id 指向一级
+            replyTarget = requireVisibleComment(replyToId, experimentId);
             rootId = replyTarget.getRootId() != null ? replyTarget.getRootId() : replyTarget.getId();
         }
 
         ExperimentComment comment = new ExperimentComment();
         comment.setExperimentId(experimentId);
-        comment.setUserId(userId);
+        comment.setOwnerId(userId);
+        comment.setOwnerType(CommentOwnerType.USER);
         comment.setRootId(rootId);
         comment.setReplyToId(replyToId);
         comment.setContent(content);
@@ -151,30 +140,53 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
         comment.setStatus(STATUS_VISIBLE);
         save(comment);
 
-        experimentService.lambdaUpdate()
-                .eq(Experiment::getId, experiment.getId())
-                .setSql("comment_count = comment_count + 1")
-                .update();
+        bumpCommentCount(experiment.getId(), 1);
 
-        User user = userService.getById(userId);
-        Map<Long, User> users = user != null ? Map.of(userId, user) : Map.of();
+        List<ExperimentComment> forAuthors = new ArrayList<>();
+        forAuthors.add(comment);
+        if (replyTarget != null) {
+            forAuthors.add(replyTarget);
+        }
+        AuthorMaps authors = loadAuthors(forAuthors);
         Map<Long, ExperimentComment> targets = replyTarget != null
                 ? Map.of(replyTarget.getId(), replyTarget)
                 : Map.of();
-        if (replyTarget != null) {
-            User targetUser = userService.getById(replyTarget.getUserId());
-            if (targetUser != null) {
-                users = mergeUsers(users, Map.of(targetUser.getId(), targetUser));
-            }
-        }
-        return toResponse(comment, users, Set.of(), targets, List.of());
+        return toResponse(comment, authors, Set.of(), targets, List.of());
+    }
+
+    @Override
+    @Transactional
+    public CommentResponse adminReply(Long adminId, AdminReplyCommentRequest request) {
+        Long experimentId = request.getExperimentId();
+        Experiment experiment = requirePublished(experimentId);
+        String content = normalizeContent(request.getContent());
+
+        ExperimentComment replyTarget = requireVisibleComment(request.getReplyToId(), experimentId);
+        Long rootId = replyTarget.getRootId() != null ? replyTarget.getRootId() : replyTarget.getId();
+
+        ExperimentComment comment = new ExperimentComment();
+        comment.setExperimentId(experimentId);
+        comment.setOwnerId(adminId);
+        comment.setOwnerType(CommentOwnerType.ADMIN);
+        comment.setRootId(rootId);
+        comment.setReplyToId(replyTarget.getId());
+        comment.setContent(content);
+        comment.setLikeCount(0L);
+        comment.setStatus(STATUS_VISIBLE);
+        save(comment);
+
+        bumpCommentCount(experiment.getId(), 1);
+
+        AuthorMaps authors = loadAuthors(List.of(comment, replyTarget));
+        return toResponse(comment, authors, Set.of(), Map.of(replyTarget.getId(), replyTarget), List.of());
     }
 
     @Override
     @Transactional
     public void deleteOwnComment(Long experimentId, Long commentId, Long userId) {
         ExperimentComment comment = requireComment(commentId, experimentId);
-        if (!Objects.equals(comment.getUserId(), userId)) {
+        if (comment.getOwnerType() != CommentOwnerType.USER
+                || !Objects.equals(comment.getOwnerId(), userId)) {
             throw new ApiException(403, "仅可删除自己的评论");
         }
         softDeleteVisible(comment);
@@ -220,10 +232,13 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
 
     @Override
     public PageResponse<AdminCommentResponse> adminPage(
-            Long experimentId, Long userId, String status, String keyword, long page, long pageSize) {
+            Long experimentId, Long ownerId, Integer ownerType, String status, String keyword,
+            long page, long pageSize) {
+        CommentOwnerType type = ownerType != null ? CommentOwnerType.fromValue(ownerType) : null;
         LambdaQueryWrapper<ExperimentComment> wrapper = new LambdaQueryWrapper<ExperimentComment>()
                 .eq(experimentId != null, ExperimentComment::getExperimentId, experimentId)
-                .eq(userId != null, ExperimentComment::getUserId, userId)
+                .eq(ownerId != null, ExperimentComment::getOwnerId, ownerId)
+                .eq(type != null, ExperimentComment::getOwnerType, type)
                 .eq(StringUtils.hasText(status), ExperimentComment::getStatus, status)
                 .like(StringUtils.hasText(keyword), ExperimentComment::getContent, keyword)
                 .orderByDesc(ExperimentComment::getCreateTime);
@@ -258,7 +273,7 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
             if (isRoot(comment)) {
                 hideReplies(comment.getId());
             }
-            adjustCommentCount(comment.getExperimentId(), -delta);
+            bumpCommentCount(comment.getExperimentId(), -delta);
         } else if (STATUS_HIDDEN.equals(prev) && STATUS_VISIBLE.equals(status)) {
             comment.setStatus(status);
             updateById(comment);
@@ -266,7 +281,7 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
                 restoreHiddenReplies(comment.getId());
             }
             ExperimentComment refreshed = getById(commentId);
-            adjustCommentCount(
+            bumpCommentCount(
                     comment.getExperimentId(),
                     countVisibleSubtree(refreshed != null ? refreshed : comment));
         } else {
@@ -360,6 +375,14 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
                 .update();
     }
 
+    private static String normalizeContent(String raw) {
+        String content = raw == null ? "" : raw.trim();
+        if (content.isEmpty() || content.length() > 1000) {
+            throw new ApiException(400, "评论内容须为 1–1000 字");
+        }
+        return content;
+    }
+
     private static boolean isRoot(ExperimentComment comment) {
         return comment.getRootId() == null;
     }
@@ -386,7 +409,7 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
         }
 
         if (delta > 0) {
-            adjustCommentCount(comment.getExperimentId(), -delta);
+            bumpCommentCount(comment.getExperimentId(), -delta);
         }
     }
 
@@ -423,7 +446,7 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
         }
     }
 
-    private void adjustCommentCount(Long experimentId, int delta) {
+    private void bumpCommentCount(Long experimentId, int delta) {
         if (delta == 0) {
             return;
         }
@@ -475,16 +498,25 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
                 .collect(Collectors.toMap(User::getId, u -> u));
     }
 
-    private static Map<Long, User> mergeUsers(Map<Long, User> a, Map<Long, User> b) {
-        if (b.isEmpty()) {
-            return a;
+    private Map<Long, Admin> loadAdmins(Set<Long> adminIds) {
+        if (adminIds.isEmpty()) {
+            return Map.of();
         }
-        if (a.isEmpty()) {
-            return b;
+        return adminMapper.selectList(new LambdaQueryWrapper<Admin>().in(Admin::getId, adminIds)).stream()
+                .collect(Collectors.toMap(Admin::getId, a -> a));
+    }
+
+    private AuthorMaps loadAuthors(List<ExperimentComment> comments) {
+        Set<Long> userIds = new HashSet<>();
+        Set<Long> adminIds = new HashSet<>();
+        for (ExperimentComment c : comments) {
+            if (c.getOwnerType() == CommentOwnerType.ADMIN) {
+                adminIds.add(c.getOwnerId());
+            } else if (c.getOwnerId() != null) {
+                userIds.add(c.getOwnerId());
+            }
         }
-        java.util.HashMap<Long, User> merged = new java.util.HashMap<>(a);
-        merged.putAll(b);
-        return merged;
+        return new AuthorMaps(loadUsers(userIds), loadAdmins(adminIds));
     }
 
     private Map<Long, ExperimentComment> loadReplyTargets(List<ExperimentComment> replies) {
@@ -512,17 +544,17 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
 
     private CommentResponse toResponse(
             ExperimentComment comment,
-            Map<Long, User> users,
+            AuthorMaps authors,
             Set<Long> likedIds,
             Map<Long, ExperimentComment> replyTargets,
             List<CommentResponse> replies) {
-        User user = users.get(comment.getUserId());
+        AuthorView author = authors.resolve(comment.getOwnerType(), comment.getOwnerId());
         ExperimentComment target =
                 comment.getReplyToId() != null && replyTargets != null
                         ? replyTargets.get(comment.getReplyToId())
                         : null;
-        User replyToUser = target != null ? users.get(target.getUserId()) : null;
-        // 回复一级时不必展示「回复 @楼主」；仅楼内互回展示
+        AuthorView replyToAuthor =
+                target != null ? authors.resolve(target.getOwnerType(), target.getOwnerId()) : null;
         boolean showReplyTo =
                 target != null
                         && comment.getRootId() != null
@@ -531,13 +563,18 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
         return CommentResponse.builder()
                 .id(comment.getId())
                 .experimentId(comment.getExperimentId())
-                .userId(comment.getUserId())
-                .nickname(user != null ? user.getNickname() : null)
-                .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                .ownerId(comment.getOwnerId())
+                .ownerType(comment.getOwnerType() != null ? comment.getOwnerType().getCode() : null)
+                .nickname(author != null ? author.nickname() : null)
+                .avatarUrl(author != null ? author.avatarUrl() : null)
                 .rootId(comment.getRootId())
                 .replyToId(comment.getReplyToId())
-                .replyToUserId(showReplyTo && target != null ? target.getUserId() : null)
-                .replyToNickname(showReplyTo && replyToUser != null ? replyToUser.getNickname() : null)
+                .replyToOwnerId(showReplyTo && target != null ? target.getOwnerId() : null)
+                .replyToOwnerType(
+                        showReplyTo && target != null && target.getOwnerType() != null
+                                ? target.getOwnerType().getCode()
+                                : null)
+                .replyToNickname(showReplyTo && replyToAuthor != null ? replyToAuthor.nickname() : null)
                 .content(comment.getContent())
                 .likeCount(comment.getLikeCount() != null ? comment.getLikeCount() : 0L)
                 .liked(likedIds.contains(comment.getId()))
@@ -550,24 +587,24 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
         if (comments.isEmpty()) {
             return List.of();
         }
-        Set<Long> userIds = comments.stream().map(ExperimentComment::getUserId).collect(Collectors.toSet());
+        AuthorMaps authors = loadAuthors(comments);
         Set<Long> expIds = comments.stream().map(ExperimentComment::getExperimentId).collect(Collectors.toSet());
-        Map<Long, User> users = loadUsers(userIds);
         Map<Long, Experiment> experiments = experimentService.listByIds(expIds).stream()
                 .collect(Collectors.toMap(Experiment::getId, e -> e));
 
         List<AdminCommentResponse> list = new ArrayList<>();
         for (ExperimentComment c : comments) {
-            User u = users.get(c.getUserId());
+            AuthorView a = authors.resolve(c.getOwnerType(), c.getOwnerId());
             Experiment e = experiments.get(c.getExperimentId());
             list.add(AdminCommentResponse.builder()
                     .id(c.getId())
                     .experimentId(c.getExperimentId())
                     .experimentTitle(e != null ? e.getTitle() : null)
                     .experimentRoute(e != null ? e.getRoute() : null)
-                    .userId(c.getUserId())
-                    .username(u != null ? u.getUsername() : null)
-                    .nickname(u != null ? u.getNickname() : null)
+                    .ownerId(c.getOwnerId())
+                    .ownerType(c.getOwnerType() != null ? c.getOwnerType().getCode() : null)
+                    .username(a != null ? a.username() : null)
+                    .nickname(a != null ? a.nickname() : null)
                     .rootId(c.getRootId())
                     .replyToId(c.getReplyToId())
                     .content(c.getContent())
@@ -578,5 +615,27 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
                     .build());
         }
         return list;
+    }
+
+    private record AuthorView(String nickname, String username, String avatarUrl) {}
+
+    private record AuthorMaps(Map<Long, User> users, Map<Long, Admin> admins) {
+        AuthorView resolve(CommentOwnerType type, Long id) {
+            if (type == null || id == null) {
+                return null;
+            }
+            if (type.isAdmin()) {
+                Admin admin = admins.get(id);
+                if (admin == null) {
+                    return null;
+                }
+                return new AuthorView(admin.getDisplayName(), admin.getUsername(), null);
+            }
+            User user = users.get(id);
+            if (user == null) {
+                return null;
+            }
+            return new AuthorView(user.getNickname(), user.getUsername(), user.getAvatarUrl());
+        }
     }
 }

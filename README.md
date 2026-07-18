@@ -6,21 +6,21 @@
 
 ## 项目简介
 
-| 应用  | 目录               | 端口   | 角色                       |
-| --- | ---------------- | ---- | ------------------------ |
-| 用户端 | `frontend-user`  | 3000 | 浏览与操作 3D 物理实验；注册/登录、个人资料 |
-| 管理端 | `frontend-admin` | 3001 | 后台登录与运营首页（当前为壳，业务功能待扩展）  |
-| 后端  | `backend`        | 8080 | 用户端与管理端共用 API 服务         |
+| 应用 | 目录 | 端口 | 角色 |
+| --- | --- | --- | --- |
+| 用户端 | `frontend-user` | 3000 | 浏览与操作 3D 物理实验；注册/登录、个人资料、收藏、评论 |
+| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；管理员可官方回复评论 |
+| 后端 | `backend` | 8080 | 用户端与管理端共用 API 服务 |
 
 **技术栈**
 
-| 模块   | 技术                                      |
-| ---- | --------------------------------------- |
-| 用户端  | Next.js 15 · React 19 · Three.js        |
-| 管理端  | Next.js 15 · React 19 · 纯 CSS           |
-| 后端   | Spring Boot 3.5 · JDK 17 · MyBatis-Plus |
-| 数据库  | PostgreSQL 16                           |
-| 对象存储 | MinIO（用户头像）                             |
+| 模块 | 技术 |
+| --- | --- |
+| 用户端 | Next.js 15 · React 19 · Three.js |
+| 管理端 | Next.js 15 · React 19 · 纯 CSS |
+| 后端 | Spring Boot 3.5 · JDK 17 · MyBatis-Plus |
+| 数据库 | PostgreSQL 16 |
+| 对象存储 | MinIO（用户头像、实验封面） |
 
 ## 架构
 
@@ -30,13 +30,12 @@ phys-lab-3d/
 │   └── src/main/resources/
 │       ├── application.yml
 │       ├── application-local.yml   # 本地连接配置（数据库、MinIO）
-│       └── schema/                 # SQL 迁移脚本
+│       └── schema/                 # 建表 / 种子 SQL
 ├── frontend-user/           # 3D 实验 + 用户中心
 ├── frontend-admin/          # 管理后台
-├── admin-design.html        # 管理端 UI 设计稿（Shopify 事务型风格）
-├── DESIGN-shopify.md        # 管理端设计 token 说明
-├── DESIGN-spacex.md         # 用户端部分页面参考风格
-└── PROMPT-admin.md          # 管理端开发提示词（架构与交付范围）
+├── admin-design.html        # 管理端 UI 设计稿
+├── comment-design.html      # 实验侧栏 / 评论设计稿
+└── DESIGN-*.md              # 设计说明（可选参考）
 ```
 
 ## 环境准备
@@ -65,19 +64,26 @@ docker run -d `
 
 连接信息：`localhost:5432`，用户/密码 `postgres` / `postgres`。
 
-创建项目库并执行迁移：
+创建项目库：
 
 ```sql
 CREATE DATABASE phys_lab_3d;
-\c phys_lab_3d
 ```
 
-按顺序执行 `backend/src/main/resources/schema/` 下的脚本：
+### 数据库脚本执行顺序
 
-1. `001_create_users.sql` — 用户表
-2. `002_create_admins.sql` — 管理员表（含默认账号种子）
+脚本目录：`backend/src/main/resources/schema/`
 
-默认管理员：`admin` / `admin123`（见 `002_create_admins.sql`）。
+**新库推荐（两步）：**
+
+| 顺序 | 文件 | 说明 |
+| --- | --- | --- |
+| 1 | `phys_lab_3d.sql` | 完整建表（users / admins / subject_types / experiments / favorites / comments / comment_likes 等），无物理外键，逻辑关联由业务层校验 |
+| 2 | `seed_data.sql` | 种子数据：默认管理员、学科类型、示例实验 |
+
+
+默认管理员：`admin` / `admin123`。
+
 
 ### MinIO
 
@@ -99,12 +105,14 @@ docker run -d `
 - 控制台：http://localhost:9001（`minioadmin` / `minioadmin`）
 - 创建 Bucket：`phys-lab`
 
+本地连接配置见 `backend/src/main/resources/application-local.yml`。
+
 ## 启动
 
-确保 PostgreSQL、MinIO 已运行，且 schema 已迁移。
+确保 PostgreSQL、MinIO 已运行，且已按上面顺序执行 SQL。
 
 ```powershell
-# 1. 后端
+# 1. 后端 → http://localhost:8080
 cd backend
 mvn spring-boot:run
 

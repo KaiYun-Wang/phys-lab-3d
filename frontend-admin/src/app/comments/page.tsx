@@ -7,6 +7,7 @@ import {
   deleteAdminComment,
   fetchAdminComments,
   fetchMe,
+  replyAdminComment,
   updateAdminCommentStatus,
   type AdminComment,
   type AdminProfile,
@@ -15,6 +16,12 @@ import { formatCount, formatDateTime } from "@/lib/format";
 import { useToast } from "@/components/Toast";
 
 type StatusFilter = "all" | "VISIBLE" | "HIDDEN" | "DELETED";
+
+function ownerLabel(row: AdminComment) {
+  const name = row.nickname || row.username || `#${row.ownerId}`;
+  if (row.ownerType === 1) return `${name}（管理员）`;
+  return name;
+}
 
 export default function CommentsPage() {
   const toast = useToast();
@@ -28,6 +35,9 @@ export default function CommentsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<AdminComment | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<AdminComment | null>(null);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [replying, setReplying] = useState(false);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -82,6 +92,31 @@ export default function CommentsPage() {
     }
   }
 
+  async function confirmReply() {
+    if (!replyTarget) return;
+    const content = replyDraft.trim();
+    if (!content) {
+      toast.error("请输入回复内容");
+      return;
+    }
+    setReplying(true);
+    try {
+      await replyAdminComment({
+        experimentId: replyTarget.experimentId,
+        replyToId: replyTarget.id,
+        content,
+      });
+      setReplyTarget(null);
+      setReplyDraft("");
+      toast.success("已以管理员身份回复");
+      await loadList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "回复失败");
+    } finally {
+      setReplying(false);
+    }
+  }
+
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
@@ -89,7 +124,7 @@ export default function CommentsPage() {
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">评论管理</h2>
-          <p className="caption">审核评论内容（共 {total} 条）</p>
+          <p className="caption">审核评论内容；可官方回复（共 {total} 条）</p>
         </div>
       </section>
 
@@ -163,8 +198,10 @@ export default function CommentsPage() {
                       </span>
                     </td>
                     <td>
-                      {row.nickname || row.username || row.userId}
-                      <div className="caption">#{row.userId}</div>
+                      {ownerLabel(row)}
+                      <div className="caption">
+                        {row.ownerType === 1 ? "ADMIN" : "USER"} #{row.ownerId}
+                      </div>
                     </td>
                     <td>
                       {row.experimentId ? (
@@ -195,6 +232,18 @@ export default function CommentsPage() {
                     <td className="data-table__time">{formatDateTime(row.createTime)}</td>
                     <td>
                       <div className="row-actions">
+                        {row.status === "VISIBLE" && (
+                          <button
+                            type="button"
+                            className="btn-pill btn-pill--ghost btn-pill--sm"
+                            onClick={() => {
+                              setReplyTarget(row);
+                              setReplyDraft("");
+                            }}
+                          >
+                            回复
+                          </button>
+                        )}
                         {row.status !== "DELETED" && (
                           <button
                             type="button"
@@ -222,6 +271,59 @@ export default function CommentsPage() {
           </div>
         )}
       </section>
+
+      {replyTarget ? (
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={() => !replying && setReplyTarget(null)}
+        >
+          <div
+            className="modal card card--elevated"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="heading-sm">官方回复</h3>
+            <p className="caption" style={{ marginBottom: 12 }}>
+              回复 #{replyTarget.id} · {ownerLabel(replyTarget)}
+              <br />
+              「
+              {replyTarget.content.length > 80
+                ? `${replyTarget.content.slice(0, 80)}…`
+                : replyTarget.content}
+              」
+            </p>
+            <textarea
+              className="text-input text-input--textarea"
+              rows={4}
+              maxLength={1000}
+              placeholder="输入官方回复内容…"
+              value={replyDraft}
+              onChange={(e) => setReplyDraft(e.target.value)}
+              disabled={replying}
+            />
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn-pill btn-pill--outline btn-pill--sm"
+                onClick={() => setReplyTarget(null)}
+                disabled={replying}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn-pill btn-pill--sm"
+                onClick={confirmReply}
+                disabled={replying}
+              >
+                {replying ? "发送中…" : "发送回复"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {deleteTarget ? (
         <div className="modal-overlay" role="presentation" onClick={() => !deleting && setDeleteTarget(null)}>

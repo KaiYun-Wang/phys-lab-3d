@@ -13,7 +13,9 @@ public class AdminCommentResponse {
     private Long experimentId;
     private String experimentTitle;
     private String experimentRoute;
-    private Long userId;
+    private Long ownerId;
+    /** 0=用户，1=管理员 */
+    private Integer ownerType;
     private String username;
     private String nickname;
     private Long rootId;

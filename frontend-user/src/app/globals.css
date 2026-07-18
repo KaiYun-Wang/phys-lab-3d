@@ -218,6 +218,28 @@ body {
   border-bottom: 1px solid var(--sx-hairline);
 }
 
+.sx-card-cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: linear-gradient(160deg, #14141c 0%, #0a0a0e 55%, #12121a 100%);
+  color: var(--sx-white);
+  text-align: center;
+}
+.sx-card-cover-fallback span {
+  font-size: clamp(0.95rem, 2.4vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .sx-card-fav {
   position: absolute;
   top: 10px;
@@ -1254,6 +1276,29 @@ canvas {
   font-size: 13px;
   font-weight: 600;
   color: var(--sx-white);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.exp-official-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0b1a12;
+  background: #8fd4a8;
+  padding: 1px 6px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+.exp-avatar.official {
+  background: rgba(143, 212, 168, 0.25);
+  color: #8fd4a8;
+  border: 1px solid rgba(143, 212, 168, 0.45);
+}
+.exp-thread.official .exp-thread-body {
+  color: #c8e6d2;
 }
 .exp-who .time {
   font-size: 11px;

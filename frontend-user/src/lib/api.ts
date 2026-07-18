@@ -2,8 +2,6 @@ import { clearToken, getToken, isTokenExpired } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
-export const DEFAULT_EXPERIMENT_COVER = "/covers/experiment-cover.png";
-
 export type SubjectType =
   | "MECHANICS"
   | "ELECTRICITY"
@@ -58,8 +56,9 @@ function useAuthIfAvailable(): boolean {
   return !!token && !isTokenExpired(token);
 }
 
-export function experimentCoverSrc(coverUrl: string | null | undefined): string {
-  if (!coverUrl) return DEFAULT_EXPERIMENT_COVER;
+/** 无封面时返回 null，由 UI 用实验名占位 */
+export function experimentCoverSrc(coverUrl: string | null | undefined): string | null {
+  if (!coverUrl?.trim() || coverUrl === "/covers/experiment-cover.png") return null;
   if (coverUrl.startsWith("http")) return coverUrl;
   if (coverUrl.startsWith("/covers/")) return coverUrl;
   return `${API_BASE}${coverUrl}`;
@@ -183,12 +182,15 @@ export function removeFavorite(experimentId: number) {
 export type Comment = {
   id: number;
   experimentId: number;
-  userId: number;
+  ownerId: number;
+  /** 0=用户，1=管理员 */
+  ownerType: number;
   nickname?: string | null;
   avatarUrl?: string | null;
   rootId?: number | null;
   replyToId?: number | null;
-  replyToUserId?: number | null;
+  replyToOwnerId?: number | null;
+  replyToOwnerType?: number | null;
   replyToNickname?: string | null;
   content: string;
   likeCount: number;

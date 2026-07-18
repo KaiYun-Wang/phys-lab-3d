@@ -146,7 +146,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
           id="coverUrl"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="/covers/experiment-cover.png"
+          placeholder="留空则用户端显示实验名称"
           disabled={disabled || uploading}
         />
         {error && !imageSrc ? <p className="form-error">{error}</p> : null}

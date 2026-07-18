@@ -12,12 +12,15 @@ public class CommentResponse {
 
     private Long id;
     private Long experimentId;
-    private Long userId;
+    private Long ownerId;
+    /** 0=用户，1=管理员 */
+    private Integer ownerType;
     private String nickname;
     private String avatarUrl;
     private Long rootId;
     private Long replyToId;
-    private Long replyToUserId;
+    private Long replyToOwnerId;
+    private Integer replyToOwnerType;
     private String replyToNickname;
     private String content;
     private Long likeCount;
