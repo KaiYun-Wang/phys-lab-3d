@@ -10,15 +10,11 @@ import {
   ControlGroup,
   ControlSlider,
   DataGrid,
-  FloatingControlPanel,
-  SimulationController,
-  DataPanel,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function SpecialRelativityPage() {
   const [data, setData] = useState<SpecialRelativityData | null>(null);
-  const [showDataPanel, setShowDataPanel] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -130,10 +126,18 @@ export default function SpecialRelativityPage() {
       <ExperimentContainer
         title="狭义相对论实验室"
         description="调节飞船速度，观察长度收缩、时间膨胀与相对论质量效应"
+        experimentRoute="special-relativity"
         cameraPosition={[18, 8, 18]}
         backgroundColor="#000000"
-        controls={null}
-        dataPanel={null}
+        controls={parameterControls}
+        dataPanel={dataPanelContent}
+        simulationBar={{
+          isPlaying,
+          onPlayPause: handlePlayPause,
+          onReset: handleReset,
+          speed: simulationSpeed,
+          onSpeedChange: setSimulationSpeed,
+        }}
       >
         <SpecialRelativitySceneComponent
           velocity={velocity}
@@ -143,22 +147,6 @@ export default function SpecialRelativityPage() {
           onDataChange={setData}
         />
       </ExperimentContainer>
-
-      <SimulationController
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onReset={handleReset}
-        speed={simulationSpeed}
-        onSpeedChange={setSimulationSpeed}
-      />
-
-      <FloatingControlPanel title="⚡ 相对论参数" initialPosition={{ x: 20, y: 80 }}>
-        {parameterControls}
-      </FloatingControlPanel>
-
-      <DataPanel isVisible={showDataPanel} onToggle={() => setShowDataPanel(!showDataPanel)}>
-        {dataPanelContent}
-      </DataPanel>
     </>
   );
 }

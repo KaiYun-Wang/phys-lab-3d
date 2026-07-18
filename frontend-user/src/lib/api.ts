@@ -179,3 +179,70 @@ export function addFavorite(experimentId: number) {
 export function removeFavorite(experimentId: number) {
   return apiFetch<void>(`/api/users/me/favorites/${experimentId}`, { method: "DELETE" });
 }
+
+export type Comment = {
+  id: number;
+  experimentId: number;
+  userId: number;
+  nickname?: string | null;
+  avatarUrl?: string | null;
+  rootId?: number | null;
+  replyToId?: number | null;
+  replyToUserId?: number | null;
+  replyToNickname?: string | null;
+  content: string;
+  likeCount: number;
+  liked?: boolean;
+  createTime: string;
+  replies?: Comment[];
+};
+
+export type CommentPage = {
+  records: Comment[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export function fetchComments(
+  experimentId: number,
+  opts: { filter?: string; page?: number; size?: number } = {},
+) {
+  const params = new URLSearchParams();
+  if (opts.filter) params.set("filter", opts.filter);
+  params.set("page", String(opts.page ?? 1));
+  params.set("size", String(opts.size ?? 20));
+  return apiFetch<CommentPage>(
+    `/api/experiments/${experimentId}/comments?${params}`,
+    {},
+    useAuthIfAvailable(),
+  );
+}
+
+export function createComment(
+  experimentId: number,
+  body: { content: string; replyToId?: number | null },
+) {
+  return apiFetch<Comment>(`/api/experiments/${experimentId}/comments`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteComment(experimentId: number, commentId: number) {
+  return apiFetch<void>(`/api/experiments/${experimentId}/comments/${commentId}`, {
+    method: "DELETE",
+  });
+}
+
+export function likeComment(experimentId: number, commentId: number) {
+  return apiFetch<void>(`/api/experiments/${experimentId}/comments/${commentId}/likes`, {
+    method: "POST",
+  });
+}
+
+export function unlikeComment(experimentId: number, commentId: number) {
+  return apiFetch<void>(`/api/experiments/${experimentId}/comments/${commentId}/likes`, {
+    method: "DELETE",
+  });
+}

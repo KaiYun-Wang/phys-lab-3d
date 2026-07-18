@@ -55,7 +55,9 @@ export async function apiFetch<T>(
     throw new Error(await parseError(res));
   }
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export function login(username: string, password: string) {
@@ -314,4 +316,123 @@ export function uploadExperimentCover(file: Blob) {
     method: "POST",
     body: form,
   });
+}
+
+export type AdminPageResponse<T> = {
+  records: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type AdminFavorite = {
+  id: number;
+  userId: number;
+  username?: string | null;
+  nickname?: string | null;
+  experimentId: number;
+  experimentTitle?: string | null;
+  experimentRoute?: string | null;
+  createTime?: string;
+};
+
+export type AdminComment = {
+  id: number;
+  experimentId: number;
+  experimentTitle?: string | null;
+  experimentRoute?: string | null;
+  userId: number;
+  username?: string | null;
+  nickname?: string | null;
+  rootId?: number | null;
+  replyToId?: number | null;
+  content: string;
+  likeCount: number;
+  status: string;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type AdminCommentLike = {
+  id: number;
+  commentId: number;
+  commentContent?: string | null;
+  experimentId?: number | null;
+  experimentTitle?: string | null;
+  userId: number;
+  username?: string | null;
+  nickname?: string | null;
+  createTime?: string;
+};
+
+export function fetchAdminFavorites(params: {
+  keyword?: string;
+  experimentId?: string;
+  userId?: string;
+  page?: number;
+  size?: number;
+} = {}) {
+  const query = buildQuery({
+    keyword: params.keyword,
+    experimentId: params.experimentId,
+    userId: params.userId,
+    page: String(params.page ?? 1),
+    size: String(params.size ?? 20),
+  });
+  return apiFetch<AdminPageResponse<AdminFavorite>>(`/api/admin/favorites${query}`);
+}
+
+export function deleteAdminFavorite(id: number) {
+  return apiFetch<void>(`/api/admin/favorites/${id}`, { method: "DELETE" });
+}
+
+export function fetchAdminComments(params: {
+  experimentId?: string;
+  userId?: string;
+  status?: string;
+  keyword?: string;
+  page?: number;
+  size?: number;
+} = {}) {
+  const query = buildQuery({
+    experimentId: params.experimentId,
+    userId: params.userId,
+    status: params.status && params.status !== "all" ? params.status : undefined,
+    keyword: params.keyword,
+    page: String(params.page ?? 1),
+    size: String(params.size ?? 20),
+  });
+  return apiFetch<AdminPageResponse<AdminComment>>(`/api/admin/comments${query}`);
+}
+
+export function updateAdminCommentStatus(id: number, status: "VISIBLE" | "HIDDEN") {
+  return apiFetch<void>(`/api/admin/comments/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function deleteAdminComment(id: number) {
+  return apiFetch<void>(`/api/admin/comments/${id}`, { method: "DELETE" });
+}
+
+export function fetchAdminCommentLikes(params: {
+  commentId?: string;
+  userId?: string;
+  experimentId?: string;
+  page?: number;
+  size?: number;
+} = {}) {
+  const query = buildQuery({
+    commentId: params.commentId,
+    userId: params.userId,
+    experimentId: params.experimentId,
+    page: String(params.page ?? 1),
+    size: String(params.size ?? 20),
+  });
+  return apiFetch<AdminPageResponse<AdminCommentLike>>(`/api/admin/comment-likes${query}`);
+}
+
+export function deleteAdminCommentLike(id: number) {
+  return apiFetch<void>(`/api/admin/comment-likes/${id}`, { method: "DELETE" });
 }

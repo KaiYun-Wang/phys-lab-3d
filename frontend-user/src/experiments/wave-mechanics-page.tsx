@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { WaveMechanicsSceneComponent } from "@/experiments/wave-mechanics-scene";
 import type { WaveSnapshot, ViewMode } from "@/experiments/wave-mechanics/shared-wave-utils";
@@ -11,9 +10,6 @@ import {
   ControlGroup,
   ControlSlider,
   DataGrid,
-  FloatingControlPanel,
-  SimulationController,
-  DataPanel,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -109,9 +105,7 @@ function OnboardingOverlay({
 }
 
 export default function WaveMechanicsPage() {
-  const router = useRouter();
   const [data, setData] = useState<WaveSnapshot | null>(null);
-  const [showDataPanel, setShowDataPanel] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const [resetTrigger, setResetTrigger] = useState(0);
@@ -134,7 +128,6 @@ export default function WaveMechanicsPage() {
   const [mobileTab, setMobileTab] = useState<"transverse" | "longitudinal">(
     "transverse"
   );
-  const [panelOpen, setPanelOpen] = useState(false);
   const [onboardStep, setOnboardStep] = useState<number | null>(null);
 
   const waveSpeed = calculateWaveSpeed(frequency, wavelength);
@@ -340,11 +333,19 @@ export default function WaveMechanicsPage() {
       <ExperimentContainer
         title="横波与纵波"
         description="左右分屏对比横波与纵波的传播与振动差异"
+        experimentRoute="wave-mechanics"
         cameraPosition={[0, 8, 18]}
         backgroundColor="#000000"
         enableFog={false}
-        controls={null}
-        dataPanel={null}
+        controls={parameterControls}
+        dataPanel={dataPanelContent}
+        simulationBar={{
+          isPlaying,
+          onPlayPause: handlePlayPause,
+          onReset: handleReset,
+          speed: simulationSpeed,
+          onSpeedChange: setSimulationSpeed,
+        }}
       >
         <WaveMechanicsSceneComponent
           frequency={frequency}
@@ -414,51 +415,6 @@ export default function WaveMechanicsPage() {
           ))}
         </div>
       )}
-
-      <SimulationController
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onReset={handleReset}
-        speed={simulationSpeed}
-        onSpeedChange={setSimulationSpeed}
-        timeElapsed={data?.time ?? 0}
-        timeLabel="时间"
-        speedLabel="速度"
-      />
-
-      {isMobile ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setPanelOpen(true)}
-            className="fixed bottom-24 left-4 z-50 glass px-4 py-2 rounded-lg text-sm text-white"
-          >
-            参数设置
-          </button>
-          {panelOpen && (
-            <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setPanelOpen(false)}>
-              <div
-                className="absolute bottom-0 left-0 right-0 glass rounded-t-2xl p-4 max-h-[75vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {parameterControls}
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <FloatingControlPanel title="波动参数" initialPosition={{ x: 20, y: 80 }}>
-          {parameterControls}
-        </FloatingControlPanel>
-      )}
-
-      <DataPanel
-        isVisible={showDataPanel}
-        onToggle={() => setShowDataPanel(!showDataPanel)}
-        title="实时数据"
-      >
-        {dataPanelContent}
-      </DataPanel>
 
       {onboardStep != null && (
         <OnboardingOverlay

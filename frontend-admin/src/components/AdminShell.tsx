@@ -36,6 +36,14 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "运营",
+    items: [
+      { icon: "★", label: "收藏管理", href: "/favorites" },
+      { icon: "💬", label: "评论管理", href: "/comments" },
+      { icon: "♥", label: "评论点赞", href: "/comment-likes" },
+    ],
+  },
+  {
     label: "用户",
     items: [
       { icon: "◉", label: "用户列表", disabled: true },

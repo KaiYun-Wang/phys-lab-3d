@@ -10,15 +10,11 @@ import {
   ControlGroup,
   ControlSlider,
   DataGrid,
-  FloatingControlPanel,
-  SimulationController,
-  DataPanel,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function DoubleSlitPage() {
   const [data, setData] = useState<DoubleSlitData | null>(null);
-  const [showDataPanel, setShowDataPanel] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -152,10 +148,18 @@ export default function DoubleSlitPage() {
       <ExperimentContainer
         title="双缝实验"
         description="量子力学：粒子逐点累积出波干涉条纹"
+        experimentRoute="double-slit"
         cameraPosition={[25, 15, 25]}
         backgroundColor="#000000"
-        controls={null}
-        dataPanel={null}
+        controls={parameterControls}
+        dataPanel={dataPanelContent}
+        simulationBar={{
+          isPlaying,
+          onPlayPause: handlePlayPause,
+          onReset: handleReset,
+          speed: simulationSpeed,
+          onSpeedChange: setSimulationSpeed,
+        }}
       >
         <DoubleSlitSceneComponent
           observerMode={observerMode}
@@ -170,31 +174,6 @@ export default function DoubleSlitPage() {
           resetTrigger={resetTrigger}
         />
       </ExperimentContainer>
-
-      <SimulationController
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onReset={handleReset}
-        speed={simulationSpeed}
-        onSpeedChange={setSimulationSpeed}
-        timeLabel="时间"
-        speedLabel="速度"
-      />
-
-      <FloatingControlPanel
-        title="⚛️ 量子参数"
-        initialPosition={{ x: 20, y: 80 }}
-      >
-        {parameterControls}
-      </FloatingControlPanel>
-
-      <DataPanel
-        isVisible={showDataPanel}
-        onToggle={() => setShowDataPanel(!showDataPanel)}
-        title="📊 实时数据"
-      >
-        {dataPanelContent}
-      </DataPanel>
     </>
   );
 }

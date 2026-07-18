@@ -13,15 +13,11 @@ import {
   ControlSlider,
   ControlPresetButtons,
   DataGrid,
-  FloatingControlPanel,
-  SimulationController,
-  DataPanel,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function BernoulliVenturiPage() {
   const [data, setData] = useState<BernoulliData | null>(null);
-  const [showDataPanel, setShowDataPanel] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -148,10 +144,18 @@ export default function BernoulliVenturiPage() {
       <ExperimentContainer
         title="伯努利原理（文丘里管）"
         description="调节流速、截面积与流体介质，观察流速与压强的反比关系"
+        experimentRoute="bernoulli-venturi"
         cameraPosition={[22, 12, 22]}
         backgroundColor="#000000"
-        controls={null}
-        dataPanel={null}
+        controls={parameterControls}
+        dataPanel={dataPanelContent}
+        simulationBar={{
+          isPlaying,
+          onPlayPause: handlePlayPause,
+          onReset: handleReset,
+          speed: simulationSpeed,
+          onSpeedChange: setSimulationSpeed,
+        }}
       >
         <BernoulliVenturiSceneComponent
           v1={v1}
@@ -163,25 +167,6 @@ export default function BernoulliVenturiPage() {
           onDataChange={setData}
         />
       </ExperimentContainer>
-
-      <SimulationController
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onReset={handleReset}
-        speed={simulationSpeed}
-        onSpeedChange={setSimulationSpeed}
-      />
-
-      <FloatingControlPanel title="⚙️ 实验参数" initialPosition={{ x: 20, y: 80 }}>
-        {parameterControls}
-      </FloatingControlPanel>
-
-      <DataPanel
-        isVisible={showDataPanel}
-        onToggle={() => setShowDataPanel(!showDataPanel)}
-      >
-        {dataPanelContent}
-      </DataPanel>
     </>
   );
 }

@@ -18,9 +18,6 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  FloatingControlPanel,
-  SimulationController,
-  DataPanel,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -35,7 +32,6 @@ function DataRow({ label, value, color }: { label: string; value: string; color:
 
 export default function GeneralRelativityPage() {
   const [data, setData] = useState<GeneralRelativityData | null>(null);
-  const [showDataPanel, setShowDataPanel] = useState(true);
   const [showGuide, setShowGuide] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -233,7 +229,16 @@ export default function GeneralRelativityPage() {
       <ExperimentContainer
         title="广义相对论 · 史瓦西黑洞"
         description="观察时空弯曲、测地线轨道、引力透镜与引力红移。拖动旋转视角，滚轮缩放。"
-        controls={null}
+        experimentRoute="general-relativity"
+        controls={parameterControls}
+        dataPanel={dataPanelContent}
+        simulationBar={{
+          isPlaying,
+          onPlayPause: handlePlayPause,
+          onReset: handleReset,
+          speed: simulationSpeed,
+          onSpeedChange: setSimulationSpeed,
+        }}
         cameraPosition={[48, 32, 48]}
         backgroundColor="#000000"
         enableFog={false}
@@ -284,25 +289,6 @@ export default function GeneralRelativityPage() {
         </div>
       )}
 
-      <SimulationController
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onReset={handleReset}
-        speed={simulationSpeed}
-        onSpeedChange={setSimulationSpeed}
-      />
-
-      <FloatingControlPanel title="⚙️ 实验控制" initialPosition={{ x: 20, y: 80 }}>
-        {parameterControls}
-      </FloatingControlPanel>
-
-      <DataPanel
-        title="📊 实时数据"
-        isVisible={showDataPanel}
-        onToggle={() => setShowDataPanel(!showDataPanel)}
-      >
-        {dataPanelContent}
-      </DataPanel>
     </>
   );
 }

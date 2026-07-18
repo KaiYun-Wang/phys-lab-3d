@@ -10,15 +10,11 @@ import {
   ControlGroup,
   ControlSlider,
   DataGrid,
-  FloatingControlPanel,
-  SimulationController,
-  DataPanel,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
 export default function DopplerPage() {
   const [data, setData] = useState<DopplerData | null>(null);
-  const [showDataPanel, setShowDataPanel] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -214,10 +210,18 @@ export default function DopplerPage() {
       <ExperimentContainer
         title="多普勒效应"
         description="观察运动声源引起的频率变化"
+        experimentRoute="doppler"
         cameraPosition={[0, 30, 40]}
         backgroundColor="#000000"
-        controls={null}
-        dataPanel={null}
+        controls={parameterControls}
+        dataPanel={dataPanelContent}
+        simulationBar={{
+          isPlaying,
+          onPlayPause: handlePlayPause,
+          onReset: handleReset,
+          speed: simulationSpeed,
+          onSpeedChange: setSimulationSpeed,
+        }}
       >
         <DopplerSceneComponent
           onDataChange={setData}
@@ -231,32 +235,6 @@ export default function DopplerPage() {
           resetTrigger={resetTrigger}
         />
       </ExperimentContainer>
-
-      <SimulationController
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onReset={handleReset}
-        speed={simulationSpeed}
-        onSpeedChange={setSimulationSpeed}
-        timeElapsed={timeElapsed}
-        timeLabel="时间"
-        speedLabel="速度"
-      />
-
-      <FloatingControlPanel
-        title="⚙️ 多普勒参数"
-        initialPosition={{ x: 20, y: 80 }}
-      >
-        {parameterControls}
-      </FloatingControlPanel>
-
-      <DataPanel
-        isVisible={showDataPanel}
-        onToggle={() => setShowDataPanel(!showDataPanel)}
-        title="📊 实时数据"
-      >
-        {dataPanelContent}
-      </DataPanel>
     </>
   );
 }
