@@ -8,8 +8,8 @@
 
 | 应用 | 目录 | 端口 | 角色 |
 | --- | --- | --- | --- |
-| 用户端 | `frontend-user` | 3000 | 浏览与操作 3D 物理实验；注册/登录、个人资料、收藏、评论 |
-| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；管理员可官方回复评论 |
+| 用户端 | `frontend-user` | 3000 | 浏览与操作 3D 物理实验；注册/登录、个人资料、收藏、评论、AI 助手 |
+| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；知识库上传；AI 试聊 |
 | 后端 | `backend` | 8080 | 用户端与管理端共用 API 服务 |
 
 **技术栈**
@@ -18,8 +18,8 @@
 | --- | --- |
 | 用户端 | Next.js 15 · React 19 · Three.js |
 | 管理端 | Next.js 15 · React 19 · 纯 CSS |
-| 后端 | Spring Boot 3.5 · JDK 17 · MyBatis-Plus |
-| 数据库 | PostgreSQL 16 |
+| 后端 | Spring Boot 3.5 · JDK 17 · MyBatis-Plus · LangChain4j |
+| 数据库 | PostgreSQL 16 + pgvector |
 | 对象存储 | MinIO（用户头像、实验封面） |
 
 ## 架构
@@ -29,10 +29,12 @@ phys-lab-3d/
 ├── backend/                 # Spring Boot API
 │   └── src/main/resources/
 │       ├── application.yml
-│       ├── application-local.yml   # 本地连接配置（数据库、MinIO）
+│       ├── application-example.yml # 本地配置模板（复制为 application-local.yml）
+│       ├── application-local.yml   # 本地密钥/连接（gitignore，勿提交）
 │       └── schema/                 # 建表 / 种子 SQL
 ├── frontend-user/           # 3D 实验 + 用户中心
 ├── frontend-admin/          # 管理后台
+├── knowledge-base/          # 知识库测试文档（可管理端上传）
 ├── admin-design.html        # 管理端 UI 设计稿
 ├── comment-design.html      # 实验侧栏 / 评论设计稿
 └── DESIGN-*.md              # 设计说明（可选参考）
@@ -49,7 +51,6 @@ phys-lab-3d/
 ### PostgreSQL
 
 ```powershell
-cd D:\docker-home\postgresql-16
 mkdir data -ErrorAction SilentlyContinue
 
 docker run -d `
@@ -59,31 +60,19 @@ docker run -d `
   -p 5432:5432 `
   -v ${PWD}/data:/var/lib/postgresql/data `
   --restart unless-stopped `
-  postgres:16
+  pgvector/pgvector:pg16
 ```
 
-连接信息：`localhost:5432`，用户/密码 `postgres` / `postgres`。
+连接：`localhost:5432`，用户/密码 `postgres` / `postgres`。库名与本地配置一致即可（默认 `phys_lab_3d`）。
 
-创建项目库：
+### 数据库脚本
 
-```sql
-CREATE DATABASE phys_lab_3d;
-```
+目录：`backend/src/main/resources/schema/`，按顺序执行：
 
-### 数据库脚本执行顺序
-
-脚本目录：`backend/src/main/resources/schema/`
-
-**新库推荐（两步）：**
-
-| 顺序 | 文件 | 说明 |
-| --- | --- | --- |
-| 1 | `phys_lab_3d.sql` | 完整建表（users / admins / subject_types / experiments / favorites / comments / comment_likes 等），无物理外键，逻辑关联由业务层校验 |
-| 2 | `seed_data.sql` | 种子数据：默认管理员、学科类型、示例实验 |
-
+1. `phys_lab_3d.sql` — 建表  
+2. `seed_data.sql` — 种子数据  
 
 默认管理员：`admin` / `admin123`。
-
 
 ### MinIO
 
@@ -105,7 +94,8 @@ docker run -d `
 - 控制台：http://localhost:9001（`minioadmin` / `minioadmin`）
 - 创建 Bucket：`phys-lab`
 
-本地连接配置见 `backend/src/main/resources/application-local.yml`。
+本地后端配置：复制 `application-example.yml` 为 `application-local.yml` 后按文件内注释填写。
+`knowledge-base/` 下有可测试的知识库文档，管理端「知识库」上传即可。
 
 ## 启动
 

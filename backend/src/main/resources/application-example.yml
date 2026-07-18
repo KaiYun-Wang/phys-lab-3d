@@ -1,0 +1,48 @@
+# 复制为本目录下的 application-local.yml 后按需修改：
+#   copy application-example.yml application-local.yml
+# application-local.yml 含密钥，已 gitignore，勿提交到仓库。
+
+phys-lab:
+  server:
+    port: 8080
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    host: localhost
+    port: 5432
+    database: phys_lab_3d
+    username: postgres
+    password: postgres
+  mybatis:
+    # 开发期可看 SQL；生产可改为 org.apache.ibatis.logging.nologging.NoLoggingImpl
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  minio:
+    access-key: minioadmin
+    secret-key: minioadmin
+    endpoint: http://127.0.0.1:9000
+    bucket: phys-lab
+    # 后端对外拼文件 URL 的前缀（经 Spring 代理 /api/avatars、/api/covers）
+    domain: http://127.0.0.1:8080/api/
+
+  # ---------- AI（LangChain4j OpenAI 兼容协议）----------
+  # chat / embedding 可走不同厂商，但 base-url 都必须是 OpenAI 兼容接口
+  # （聊天：…/v1/chat/completions；向量：…/v1/embeddings）。
+  # DeepSeek、硅基流动、多数国内中转可用；原生 Anthropic / Gemini 专用 API 暂不支持。
+  ai:
+    chat:
+      api-key: sk-your-chat-api-key
+      # 推荐 DeepSeek 官方（OpenAI 兼容，不要多写 /v1 后缀也可，客户端会拼路径）
+      #   https://api.deepseek.com
+      # 其它中转一般形如：
+      #   https://xxx.example.com/v1
+      base-url: https://api.deepseek.com
+      # 推荐：deepseek-chat（通用）；需要思考过程可用 deepseek-reasoner / deepseek-v4-pro 等推理型号
+      model: deepseek-chat
+    embedding:
+      api-key: sk-your-embedding-api-key
+      # 推荐硅基流动（OpenAI 兼容，需带 /v1）：
+      #   https://api.siliconflow.cn/v1
+      base-url: https://api.siliconflow.cn/v1
+      # 推荐轻量中文：Qwen/Qwen3-Embedding-0.6B → 输出 1024 维
+      # 换模型时务必改 dimensions，并与库表 kb_chunks.embedding 的 vector(N) 一致
+      model: Qwen/Qwen3-Embedding-0.6B
+      dimensions: 1024

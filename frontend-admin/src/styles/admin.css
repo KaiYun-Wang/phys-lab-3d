@@ -1116,6 +1116,71 @@ body {
   padding: 32px 24px;
 }
 
+.kb-upload-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.kb-upload-form .text-input {
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
+.kb-upload-pick {
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+}
+
+.kb-upload-pick__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.kb-upload-filename {
+  font-size: 13px;
+  color: var(--shade-50);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-session-delete {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--shade-50);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0.55;
+  padding: 0;
+}
+
+.ai-session-delete:hover {
+  opacity: 1;
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+}
+
+.ai-session-delete svg {
+  width: 16px;
+  height: 16px;
+}
+
 @media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;

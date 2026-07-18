@@ -32,6 +32,7 @@
 		<jjwt.version>0.12.6</jjwt.version>
 		<x-file-storage.version>2.3.0</x-file-storage.version>
 		<minio.version>8.5.17</minio.version>
+		<langchain4j.version>1.12.1</langchain4j.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -86,6 +87,16 @@
 			<groupId>io.minio</groupId>
 			<artifactId>minio</artifactId>
 			<version>${minio.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j</artifactId>
+			<version>${langchain4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-open-ai</artifactId>
+			<version>${langchain4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

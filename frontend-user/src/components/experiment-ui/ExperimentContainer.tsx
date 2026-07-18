@@ -163,6 +163,17 @@ export function ExperimentContainer({
     };
   }, []);
 
+  // 把侧栏占位同步给全局 AI 气泡，避免与左右栏重合
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--ai-dock-left", leftOpen ? `${leftWidth}px` : "0px");
+    root.style.setProperty("--ai-dock-right", rightOpen ? `${rightWidth}px` : "0px");
+    return () => {
+      root.style.setProperty("--ai-dock-left", "0px");
+      root.style.setProperty("--ai-dock-right", "0px");
+    };
+  }, [leftOpen, rightOpen, leftWidth, rightWidth]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;

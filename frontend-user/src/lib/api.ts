@@ -248,3 +248,174 @@ export function unlikeComment(experimentId: number, commentId: number) {
     method: "DELETE",
   });
 }
+
+/* ── AI 助手 ── */
+
+export type AiChatContext = {
+  path?: string;
+  pageType?: string;
+  experimentId?: number;
+  experimentTitle?: string;
+};
+
+export type AiChatSession = {
+  id: number;
+  title: string;
+  createTime: string;
+  updateTime: string;
+};
+
+export type AiChatMessage = {
+  id: number;
+  sessionId: number;
+  role: "user" | "assistant" | "system" | "status";
+  content: string;
+  thinking?: string | null;
+  context?: AiChatContext | null;
+  createTime: string;
+};
+
+export type AiChatReply = {
+  userMessage: AiChatMessage;
+  assistantMessage: AiChatMessage;
+  session: AiChatSession;
+};
+
+export type AiSessionPage = {
+  records: AiChatSession[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export function fetchAiSessions(page = 1, size = 30) {
+  return apiFetch<AiSessionPage>(`/api/users/me/ai/sessions?page=${page}&size=${size}`);
+}
+
+export function createAiSession() {
+  return apiFetch<AiChatSession>("/api/users/me/ai/sessions", { method: "POST" });
+}
+
+export function deleteAiSession(sessionId: number) {
+  return apiFetch<void>(`/api/users/me/ai/sessions/${sessionId}`, { method: "DELETE" });
+}
+
+export function fetchAiMessages(sessionId: number, opts: { beforeId?: number; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (opts.beforeId) params.set("beforeId", String(opts.beforeId));
+  params.set("limit", String(opts.limit ?? 40));
+  return apiFetch<AiChatMessage[]>(
+    `/api/users/me/ai/sessions/${sessionId}/messages?${params}`,
+  );
+}
+
+export type AiStreamHandlers = {
+  onMeta?: (meta: { sessionId: number; sessionTitle: string; userMessageId: number }) => void;
+  onStatus?: (content: string) => void;
+  onClear?: () => void;
+  onThinking?: (content: string) => void;
+  onDelta?: (content: string) => void;
+  onDone?: (done: {
+    assistantMessageId: number;
+    sessionId: number;
+    sessionTitle: string;
+    thinking?: string;
+  }) => void;
+  onError?: (message: string) => void;
+};
+
+export async function streamAiMessage(
+  sessionId: number,
+  content: string,
+  context: AiChatContext | undefined,
+  handlers: AiStreamHandlers = {},
+) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/api/users/me/ai/sessions/${sessionId}/messages/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ content, context }),
+  });
+
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+    }
+    throw new Error("登录已过期");
+  }
+  if (!res.ok || !res.body) {
+    let msg = "流式请求失败";
+    try {
+      const data = await res.json();
+      msg = data.message ?? msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part
+        .split("\n")
+        .map((l) => l.trim())
+        .find((l) => l.startsWith("data:"));
+      if (!line) continue;
+      const raw = line.slice(5).trim();
+      if (!raw) continue;
+      try {
+        const evt = JSON.parse(raw) as {
+          type: string;
+          content?: string;
+          message?: string;
+          thinking?: string;
+          sessionId?: number;
+          sessionTitle?: string;
+          userMessageId?: number;
+          assistantMessageId?: number;
+        };
+        if (evt.type === "meta" && evt.sessionId != null && evt.userMessageId != null) {
+          handlers.onMeta?.({
+            sessionId: evt.sessionId,
+            sessionTitle: evt.sessionTitle ?? "新对话",
+            userMessageId: evt.userMessageId,
+          });
+        } else if (evt.type === "status" && evt.content) {
+          handlers.onStatus?.(evt.content);
+        } else if (evt.type === "clear") {
+          handlers.onClear?.();
+        } else if (evt.type === "thinking" && evt.content) {
+          handlers.onThinking?.(evt.content);
+        } else if (evt.type === "delta" && evt.content) {
+          handlers.onDelta?.(evt.content);
+        } else if (evt.type === "done" && evt.assistantMessageId != null && evt.sessionId != null) {
+          handlers.onDone?.({
+            assistantMessageId: evt.assistantMessageId,
+            sessionId: evt.sessionId,
+            sessionTitle: evt.sessionTitle ?? "新对话",
+            thinking: evt.thinking,
+          });
+        } else if (evt.type === "error") {
+          handlers.onError?.(evt.message ?? "流式对话失败");
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+

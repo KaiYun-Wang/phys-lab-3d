@@ -8,8 +8,8 @@ spring:
     active: local
   servlet:
     multipart:
-      max-file-size: 2MB
-      max-request-size: 2MB
+      max-file-size: 10MB
+      max-request-size: 10MB
   datasource:
     driver-class-name: ${phys-lab.datasource.driver-class-name}
     url: jdbc:postgresql://${phys-lab.datasource.host}:${phys-lab.datasource.port}/${phys-lab.datasource.database}
@@ -29,6 +29,19 @@ phys-lab:
   jwt:
     secret: phys-lab-3d
     expiration-ms: 86400000
+  ai:
+    # 对话与向量可分开配置（例如 DeepSeek 对话 + 其它厂商 Embedding）
+    chat:
+      api-key: ${PHYS_LAB_AI_CHAT_API_KEY:}
+      base-url: ${PHYS_LAB_AI_CHAT_BASE_URL:https://api.deepseek.com}
+      model: ${PHYS_LAB_AI_CHAT_MODEL:deepseek-chat}
+    embedding:
+      api-key: ${PHYS_LAB_AI_EMBEDDING_API_KEY:}
+      base-url: ${PHYS_LAB_AI_EMBEDDING_BASE_URL:https://api.openai.com/v1}
+      model: ${PHYS_LAB_AI_EMBEDDING_MODEL:Qwen/Qwen3-Embedding-0.6B}
+      dimensions: 1024
+    rag-top-k: 4
+    history-limit: 20
 
 dromara:
   x-file-storage:

@@ -451,3 +451,192 @@ export function fetchAdminCommentLikes(params: {
 export function deleteAdminCommentLike(id: number) {
   return apiFetch<void>(`/api/admin/comment-likes/${id}`, { method: "DELETE" });
 }
+
+/* ── 知识库 / AI 试聊 ── */
+
+export type KbDocument = {
+  id: number;
+  title: string;
+  filename: string;
+  contentType: string | null;
+  status: string;
+  chunkCount: number;
+  createTime: string;
+  updateTime: string;
+};
+
+export type AiChatSession = {
+  id: number;
+  title: string;
+  createTime: string;
+  updateTime: string;
+};
+
+export type AiChatMessage = {
+  id: number;
+  sessionId: number;
+  role: "user" | "assistant" | "system" | "status";
+  content: string;
+  thinking?: string | null;
+  createTime: string;
+};
+
+export type AiChatReply = {
+  userMessage: AiChatMessage;
+  assistantMessage: AiChatMessage;
+  session: AiChatSession;
+};
+
+export function fetchKbDocuments(page = 1, size = 20) {
+  return apiFetch<AdminPageResponse<KbDocument>>(
+    `/api/admin/knowledge/documents?page=${page}&size=${size}`,
+  );
+}
+
+export function uploadKbDocument(file: File, title?: string) {
+  const form = new FormData();
+  form.append("file", file);
+  if (title?.trim()) form.append("title", title.trim());
+  return apiFetch<KbDocument>("/api/admin/knowledge/documents", {
+    method: "POST",
+    body: form,
+  });
+}
+
+export function deleteKbDocument(id: number) {
+  return apiFetch<void>(`/api/admin/knowledge/documents/${id}`, { method: "DELETE" });
+}
+
+export function fetchAdminAiSessions(page = 1, size = 30) {
+  return apiFetch<AdminPageResponse<AiChatSession>>(
+    `/api/admin/ai/sessions?page=${page}&size=${size}`,
+  );
+}
+
+export function createAdminAiSession() {
+  return apiFetch<AiChatSession>("/api/admin/ai/sessions", { method: "POST" });
+}
+
+export function fetchAdminAiMessages(sessionId: number, limit = 50) {
+  return apiFetch<AiChatMessage[]>(
+    `/api/admin/ai/sessions/${sessionId}/messages?limit=${limit}`,
+  );
+}
+
+export function deleteAdminAiSession(sessionId: number) {
+  return apiFetch<void>(`/api/admin/ai/sessions/${sessionId}`, { method: "DELETE" });
+}
+
+export type AdminAiStreamHandlers = {
+  onMeta?: (meta: { sessionId: number; sessionTitle: string; userMessageId: number }) => void;
+  onStatus?: (content: string) => void;
+  onClear?: () => void;
+  onThinking?: (content: string) => void;
+  onDelta?: (content: string) => void;
+  onDone?: (done: {
+    assistantMessageId: number;
+    sessionId: number;
+    sessionTitle: string;
+    thinking?: string;
+  }) => void;
+  onError?: (message: string) => void;
+};
+
+/** SSE 流式发送（fetch + ReadableStream，便于带 Authorization） */
+export async function streamAdminAiMessage(
+  sessionId: number,
+  content: string,
+  handlers: AdminAiStreamHandlers = {},
+) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/api/admin/ai/sessions/${sessionId}/messages/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      content,
+      context: { path: "/admin/ai-chat", pageType: "admin_test" },
+    }),
+  });
+
+  if (res.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+    }
+    throw new Error("登录已过期");
+  }
+  if (!res.ok || !res.body) {
+    let msg = "流式请求失败";
+    try {
+      const data = await res.json();
+      msg = data.message ?? msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part
+        .split("\n")
+        .map((l) => l.trim())
+        .find((l) => l.startsWith("data:"));
+      if (!line) continue;
+      const raw = line.slice(5).trim();
+      if (!raw) continue;
+      try {
+        const evt = JSON.parse(raw) as {
+          type: string;
+          content?: string;
+          message?: string;
+          thinking?: string;
+          sessionId?: number;
+          sessionTitle?: string;
+          userMessageId?: number;
+          assistantMessageId?: number;
+        };
+        if (evt.type === "meta" && evt.sessionId != null && evt.userMessageId != null) {
+          handlers.onMeta?.({
+            sessionId: evt.sessionId,
+            sessionTitle: evt.sessionTitle ?? "新对话",
+            userMessageId: evt.userMessageId,
+          });
+        } else if (evt.type === "status" && evt.content) {
+          handlers.onStatus?.(evt.content);
+        } else if (evt.type === "clear") {
+          handlers.onClear?.();
+        } else if (evt.type === "thinking" && evt.content) {
+          handlers.onThinking?.(evt.content);
+        } else if (evt.type === "delta" && evt.content) {
+          handlers.onDelta?.(evt.content);
+        } else if (evt.type === "done" && evt.assistantMessageId != null && evt.sessionId != null) {
+          handlers.onDone?.({
+            assistantMessageId: evt.assistantMessageId,
+            sessionId: evt.sessionId,
+            sessionTitle: evt.sessionTitle ?? "新对话",
+            thinking: evt.thinking,
+          });
+        } else if (evt.type === "error") {
+          handlers.onError?.(evt.message ?? "流式对话失败");
+        }
+      } catch {
+        /* ignore malformed chunk */
+      }
+    }
+  }
+}
+
+

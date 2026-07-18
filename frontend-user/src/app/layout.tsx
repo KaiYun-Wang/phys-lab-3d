@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AuthGuard from "@/components/AuthGuard";
+import AiChatWidget from "@/components/AiChatWidget";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -187,7 +188,10 @@ export default function RootLayout({
         />
       </head>
       <body className="m-0 p-0">
-        <AuthGuard>{children}</AuthGuard>
+        <AuthGuard>
+          {children}
+          <AiChatWidget />
+        </AuthGuard>
       </body>
     </html>
   );
