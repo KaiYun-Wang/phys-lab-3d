@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wky.backend.config.AiModelFactory;
 import com.wky.backend.config.AiProperties;
+import com.wky.backend.domain.dto.KbChunkResponse;
 import com.wky.backend.domain.dto.KbDocumentResponse;
 import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.domain.entity.KbChunk;
@@ -30,8 +31,9 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class KnowledgeServiceImpl implements IKnowledgeService {
 
-    private static final int CHUNK_SIZE = 500;
-    private static final int CHUNK_OVERLAP = 80;
+    static final int DEFAULT_CHUNK_SIZE = 512;
+    static final int DEFAULT_CHUNK_OVERLAP = 128;
+    private static final int MAX_CHUNK_SIZE = 100_000;
 
     private final KbDocumentMapper documentMapper;
     private final KbChunkMapper chunkMapper;
@@ -49,7 +51,8 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
 
     @Override
     @Transactional
-    public KbDocumentResponse upload(String title, MultipartFile file) {
+    public KbDocumentResponse upload(
+            String title, MultipartFile file, Integer chunkSize, Integer chunkOverlap, boolean noChunk) {
         if (file == null || file.isEmpty()) {
             throw new ApiException(400, "请上传文件");
         }
@@ -64,6 +67,9 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
             throw new ApiException(400, "文件内容为空");
         }
 
+        int size = resolveChunkSize(chunkSize, noChunk);
+        int overlap = resolveOverlap(chunkOverlap, size, noChunk);
+
         KbDocument doc = new KbDocument();
         doc.setTitle(StringUtils.hasText(title) ? title.trim() : stripExt(filename));
         doc.setFilename(filename);
@@ -73,13 +79,12 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
         documentMapper.insert(doc);
 
         try {
-            int chunks = indexDocument(doc.getId(), text);
+            int chunks = indexDocument(doc.getId(), text, size, overlap);
             doc.setChunkCount(chunks);
             doc.setStatus("READY");
             documentMapper.updateById(doc);
             return toResponse(doc);
         } catch (ApiException e) {
-            // 整单回滚，避免「事务已中止还去 UPDATE」；把根因抛给前端
             throw e;
         } catch (Exception e) {
             throw new ApiException(502, "文档向量化失败：" + rootMessage(e));
@@ -95,6 +100,56 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
         }
         chunkMapper.deleteByDocumentId(documentId);
         documentMapper.deleteById(documentId);
+    }
+
+    @Override
+    public List<KbChunkResponse> listChunks(Long documentId) {
+        KbDocument doc = documentMapper.selectById(documentId);
+        if (doc == null) {
+            throw new ApiException(404, "文档不存在");
+        }
+        List<KbChunk> chunks = chunkMapper.selectList(
+                new LambdaQueryWrapper<KbChunk>()
+                        .eq(KbChunk::getDocumentId, documentId)
+                        .orderByAsc(KbChunk::getChunkIndex));
+        return chunks.stream().map(this::toChunkResponse).toList();
+    }
+
+    @Override
+    @Transactional
+    public KbChunkResponse updateChunk(Long chunkId, String content) {
+        if (!StringUtils.hasText(content)) {
+            throw new ApiException(400, "分块内容不能为空");
+        }
+        KbChunk chunk = chunkMapper.selectById(chunkId);
+        if (chunk == null) {
+            throw new ApiException(404, "分块不存在");
+        }
+        String trimmed = content.trim();
+        Embedding embedding = aiModelFactory.embeddingModel().embed(trimmed).content();
+        ensureDimension(embedding.vector().length);
+        chunk.setContent(trimmed);
+        chunk.setEmbeddingLiteral(toVectorLiteral(embedding.vector()));
+        chunkMapper.updateWithEmbedding(chunk);
+        return toChunkResponse(chunkMapper.selectById(chunkId));
+    }
+
+    @Override
+    @Transactional
+    public void deleteChunk(Long chunkId) {
+        KbChunk chunk = chunkMapper.selectById(chunkId);
+        if (chunk == null) {
+            throw new ApiException(404, "分块不存在");
+        }
+        Long documentId = chunk.getDocumentId();
+        chunkMapper.deleteById(chunkId);
+        KbDocument doc = documentMapper.selectById(documentId);
+        if (doc != null) {
+            long remaining = chunkMapper.selectCount(
+                    new LambdaQueryWrapper<KbChunk>().eq(KbChunk::getDocumentId, documentId));
+            doc.setChunkCount((int) remaining);
+            documentMapper.updateById(doc);
+        }
     }
 
     @Override
@@ -134,9 +189,9 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
         }
     }
 
-    private int indexDocument(Long documentId, String text) {
+    private int indexDocument(Long documentId, String text, int chunkSize, int chunkOverlap) {
         chunkMapper.deleteByDocumentId(documentId);
-        List<String> pieces = splitText(text);
+        List<String> pieces = splitText(text, chunkSize, chunkOverlap);
         if (pieces.isEmpty()) {
             return 0;
         }
@@ -168,15 +223,43 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
         }
     }
 
-    static List<String> splitText(String text) {
+    static int resolveChunkSize(Integer chunkSize, boolean noChunk) {
+        if (noChunk) {
+            return MAX_CHUNK_SIZE;
+        }
+        int size = chunkSize != null ? chunkSize : DEFAULT_CHUNK_SIZE;
+        if (size < 1 || size > MAX_CHUNK_SIZE) {
+            throw new ApiException(400, "块大小须在 1～" + MAX_CHUNK_SIZE + " 之间");
+        }
+        return size;
+    }
+
+    static int resolveOverlap(Integer chunkOverlap, int chunkSize, boolean noChunk) {
+        if (noChunk) {
+            return 0;
+        }
+        int overlap = chunkOverlap != null ? chunkOverlap : DEFAULT_CHUNK_OVERLAP;
+        if (overlap < 0) {
+            throw new ApiException(400, "重叠大小不能为负");
+        }
+        if (overlap >= chunkSize) {
+            throw new ApiException(400, "重叠大小须小于块大小");
+        }
+        return overlap;
+    }
+
+    static List<String> splitText(String text, int chunkSize, int chunkOverlap) {
         String normalized = text.replace("\r\n", "\n").trim();
         if (normalized.isEmpty()) {
             return List.of();
         }
+        if (normalized.length() <= chunkSize) {
+            return List.of(normalized);
+        }
         List<String> chunks = new ArrayList<>();
         int start = 0;
         while (start < normalized.length()) {
-            int end = Math.min(start + CHUNK_SIZE, normalized.length());
+            int end = Math.min(start + chunkSize, normalized.length());
             String piece = normalized.substring(start, end).trim();
             if (!piece.isEmpty()) {
                 chunks.add(piece);
@@ -184,7 +267,7 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
             if (end >= normalized.length()) {
                 break;
             }
-            start = Math.max(end - CHUNK_OVERLAP, start + 1);
+            start = Math.max(end - chunkOverlap, start + 1);
         }
         return chunks;
     }
@@ -232,6 +315,18 @@ public class KnowledgeServiceImpl implements IKnowledgeService {
                 .chunkCount(d.getChunkCount())
                 .createTime(d.getCreateTime())
                 .updateTime(d.getUpdateTime())
+                .build();
+    }
+
+    private KbChunkResponse toChunkResponse(KbChunk c) {
+        String content = c.getContent() != null ? c.getContent() : "";
+        return KbChunkResponse.builder()
+                .id(c.getId())
+                .documentId(c.getDocumentId())
+                .chunkIndex(c.getChunkIndex())
+                .content(content)
+                .charCount(content.length())
+                .createTime(c.getCreateTime())
                 .build();
     }
 }

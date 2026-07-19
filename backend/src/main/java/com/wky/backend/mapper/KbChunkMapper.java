@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -18,6 +19,13 @@ public interface KbChunkMapper extends BaseMapper<KbChunk> {
             VALUES (#{documentId}, #{chunkIndex}, #{content}, CAST(#{embeddingLiteral} AS vector))
             """)
     int insertWithEmbedding(KbChunk chunk);
+
+    @Update("""
+            UPDATE kb_chunks
+            SET content = #{content}, embedding = CAST(#{embeddingLiteral} AS vector)
+            WHERE id = #{id}
+            """)
+    int updateWithEmbedding(KbChunk chunk);
 
     @Delete("DELETE FROM kb_chunks WHERE document_id = #{documentId}")
     int deleteByDocumentId(@Param("documentId") Long documentId);

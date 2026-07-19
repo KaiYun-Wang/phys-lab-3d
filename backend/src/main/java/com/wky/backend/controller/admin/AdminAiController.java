@@ -5,8 +5,10 @@ import com.wky.backend.domain.dto.AiChatMessageRequest;
 import com.wky.backend.domain.dto.AiChatMessageResponse;
 import com.wky.backend.domain.dto.AiChatReplyResponse;
 import com.wky.backend.domain.dto.AiChatSessionResponse;
+import com.wky.backend.domain.dto.KbChunkResponse;
 import com.wky.backend.domain.dto.KbDocumentResponse;
 import com.wky.backend.domain.dto.PageResponse;
+import com.wky.backend.domain.dto.UpdateKbChunkRequest;
 import com.wky.backend.enums.CommentOwnerType;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.security.AuthPrincipal;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -54,14 +57,35 @@ public class AdminAiController {
     @ResponseStatus(HttpStatus.CREATED)
     public KbDocumentResponse upload(
             @RequestParam(required = false) String title,
-            @RequestParam("file") MultipartFile file) {
-        return knowledgeService.upload(title, file);
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) Integer chunkSize,
+            @RequestParam(required = false) Integer chunkOverlap,
+            @RequestParam(defaultValue = "false") boolean noChunk) {
+        return knowledgeService.upload(title, file, chunkSize, chunkOverlap, noChunk);
     }
 
     @DeleteMapping("/knowledge/documents/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         knowledgeService.delete(id);
+    }
+
+    @GetMapping("/knowledge/documents/{id}/chunks")
+    public List<KbChunkResponse> listChunks(@PathVariable Long id) {
+        return knowledgeService.listChunks(id);
+    }
+
+    @PutMapping("/knowledge/chunks/{chunkId}")
+    public KbChunkResponse updateChunk(
+            @PathVariable Long chunkId,
+            @Valid @RequestBody UpdateKbChunkRequest request) {
+        return knowledgeService.updateChunk(chunkId, request.getContent());
+    }
+
+    @DeleteMapping("/knowledge/chunks/{chunkId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteChunk(@PathVariable Long chunkId) {
+        knowledgeService.deleteChunk(chunkId);
     }
 
     @GetMapping("/ai/sessions")

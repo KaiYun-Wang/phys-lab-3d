@@ -1018,6 +1018,7 @@ body {
   min-height: 100px;
 }
 
+.modal-actions,
 .form-actions {
   display: flex;
   align-items: center;
@@ -1147,18 +1148,6 @@ body {
   padding: 32px 24px;
 }
 
-.kb-upload-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
-.kb-upload-form .text-input {
-  min-width: 200px;
-  flex: 1 1 200px;
-}
-
 .kb-upload-pick {
   position: relative;
   cursor: pointer;
@@ -1180,10 +1169,102 @@ body {
 .kb-upload-filename {
   font-size: 13px;
   color: var(--shade-50);
-  max-width: 220px;
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.modal--kb-upload {
+  max-width: 520px;
+}
+
+.modal--kb-edit {
+  max-width: 640px;
+}
+
+.kb-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kb-upload-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kb-upload-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kb-chunk-box {
+  border: 1px solid var(--hairline-light);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: color-mix(in srgb, var(--canvas-cream) 55%, transparent);
+}
+
+.kb-chunk-params {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.kb-chunk-params .field {
+  margin: 0;
+}
+
+.kb-chunk-preview {
+  max-width: 520px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--shade-70);
+}
+
+.kb-chunk-editor {
+  width: 100%;
+  min-height: 240px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.kb-back-link {
+  color: var(--shade-50);
+  text-decoration: none;
+}
+
+.kb-back-link:hover {
+  color: var(--ink);
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .kb-chunk-params {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ai-session-delete {

@@ -506,6 +506,22 @@ export type KbDocument = {
   updateTime: string;
 };
 
+export type KbChunk = {
+  id: number;
+  documentId: number;
+  chunkIndex: number;
+  content: string;
+  charCount: number;
+  createTime: string;
+};
+
+export type KbUploadOptions = {
+  title?: string;
+  chunkSize?: number;
+  chunkOverlap?: number;
+  noChunk?: boolean;
+};
+
 export type AiChatSession = {
   id: number;
   title: string;
@@ -534,10 +550,16 @@ export function fetchKbDocuments(page = 1, size = 20) {
   );
 }
 
-export function uploadKbDocument(file: File, title?: string) {
+export function uploadKbDocument(file: File, options: KbUploadOptions = {}) {
   const form = new FormData();
   form.append("file", file);
-  if (title?.trim()) form.append("title", title.trim());
+  if (options.title?.trim()) form.append("title", options.title.trim());
+  if (options.noChunk) {
+    form.append("noChunk", "true");
+  } else {
+    if (options.chunkSize != null) form.append("chunkSize", String(options.chunkSize));
+    if (options.chunkOverlap != null) form.append("chunkOverlap", String(options.chunkOverlap));
+  }
   return apiFetch<KbDocument>("/api/admin/knowledge/documents", {
     method: "POST",
     body: form,
@@ -546,6 +568,21 @@ export function uploadKbDocument(file: File, title?: string) {
 
 export function deleteKbDocument(id: number) {
   return apiFetch<void>(`/api/admin/knowledge/documents/${id}`, { method: "DELETE" });
+}
+
+export function fetchKbChunks(documentId: number) {
+  return apiFetch<KbChunk[]>(`/api/admin/knowledge/documents/${documentId}/chunks`);
+}
+
+export function updateKbChunk(chunkId: number, content: string) {
+  return apiFetch<KbChunk>(`/api/admin/knowledge/chunks/${chunkId}`, {
+    method: "PUT",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function deleteKbChunk(chunkId: number) {
+  return apiFetch<void>(`/api/admin/knowledge/chunks/${chunkId}`, { method: "DELETE" });
 }
 
 export function fetchAdminAiSessions(page = 1, size = 30) {
