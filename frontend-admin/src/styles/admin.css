@@ -776,6 +776,154 @@ body {
   font-size: 18px;
 }
 
+.range-toggle {
+  display: inline-flex;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--canvas-light);
+}
+
+.range-toggle__btn {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--shade-50);
+  cursor: pointer;
+}
+
+.range-toggle__btn.is-active {
+  background: var(--ink);
+  color: var(--on-primary);
+}
+
+.trend-chart {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trend-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.trend-chart__labels {
+  position: relative;
+  height: 16px;
+  margin: 0 4px;
+}
+
+.trend-chart__labels span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--shade-40);
+  white-space: nowrap;
+}
+
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rank-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.rank-row__idx {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--shade-40);
+  text-align: center;
+}
+
+.rank-row__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rank-row__title {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank-row__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--hairline-light);
+  overflow: hidden;
+}
+
+.rank-row__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--link-mint);
+}
+
+.rank-row__count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--shade-60);
+  min-width: 28px;
+  text-align: right;
+}
+
+.ai-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.ai-kpi {
+  background: var(--canvas-cream);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-kpi strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ai-kpi span {
+  font-size: 12px;
+  color: var(--shade-50);
+}
+
+.table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 4px 4px;
+}
+
+@media (max-width: 1024px) {
+  .ai-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);

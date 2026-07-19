@@ -132,7 +132,8 @@ public class AiChatServiceImpl implements IAiChatService {
             Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
         PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
         String answer = generateAnswerSync(prepared.messages());
-        AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer, null);
+        AiChatMessage assistantMsg = saveAssistant(
+                prepared.session(), answer, null, prepared.ragHitCount());
         return AiChatReplyResponse.builder()
                 .userMessage(toMessage(prepared.userMsg()))
                 .assistantMessage(toMessage(assistantMsg))
@@ -268,7 +269,8 @@ public class AiChatServiceImpl implements IAiChatService {
                 return;
             }
             String thinking = thinkingBuf.toString();
-            AiChatMessage assistantMsg = saveAssistant(prepared.session(), full.toString(), thinking);
+            AiChatMessage assistantMsg = saveAssistant(
+                    prepared.session(), full.toString(), thinking, prepared.ragHitCount());
             onDone.accept(new StreamDone(
                     assistantMsg.getId(), toSession(prepared.session()), blankToNull(thinking)));
         } catch (Exception e) {
@@ -302,11 +304,13 @@ public class AiChatServiceImpl implements IAiChatService {
         return new PreparedChat(session, userMsg, messages, ragSnippets.size());
     }
 
-    private AiChatMessage saveAssistant(AiChatSession session, String answer, String thinking) {
+    private AiChatMessage saveAssistant(
+            AiChatSession session, String answer, String thinking, int ragHitCount) {
         AiChatMessage assistantMsg = new AiChatMessage();
         assistantMsg.setSessionId(session.getId());
         assistantMsg.setRole("assistant");
         assistantMsg.setContent(answer);
+        assistantMsg.setRagHitCount(ragHitCount);
         if (StringUtils.hasText(thinking)) {
             assistantMsg.setContextJson(Map.of("thinking", thinking));
         }

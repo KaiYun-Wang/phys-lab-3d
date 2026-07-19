@@ -71,6 +71,7 @@ docker run -d `
 
 1. `phys_lab_3d.sql` — 建表  
 2. `seed_data.sql` — 种子数据  
+3. `dashboard_demo_seed.sql` - 一些用户行为数据
 
 默认管理员：`admin` / `admin123`。
 

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.wky.backend.enums.UserStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -23,6 +24,9 @@ public class User {
     private String nickname;
 
     private String avatarUrl;
+
+    /** ENABLED 正常 / DISABLED 禁用 */
+    private UserStatus status;
 
     /** 插入时由 MybatisMetaObjectHandler 自动填充 */
     @TableField(fill = FieldFill.INSERT)

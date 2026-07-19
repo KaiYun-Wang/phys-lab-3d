@@ -6,6 +6,7 @@ import com.wky.backend.domain.dto.LoginResponse;
 import com.wky.backend.domain.dto.RegisterRequest;
 import com.wky.backend.domain.dto.UserProfileResponse;
 import com.wky.backend.domain.entity.User;
+import com.wky.backend.enums.UserStatus;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.mapper.UserMapper;
 import com.wky.backend.service.IAuthService;
@@ -37,6 +38,7 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getUsername());
+        user.setStatus(UserStatus.ENABLED);
         save(user);
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), AuthPrincipal.TYPE_USER);
@@ -50,6 +52,9 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
                 .one();
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new ApiException(401, "用户名或密码错误");
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new ApiException(403, "账号已被禁用，请联系管理员");
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), AuthPrincipal.TYPE_USER);

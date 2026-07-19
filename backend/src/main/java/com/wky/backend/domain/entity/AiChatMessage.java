@@ -27,6 +27,9 @@ public class AiChatMessage {
     @TableField(typeHandler = JsonbTypeHandler.class)
     private Map<String, Object> contextJson;
 
+    /** assistant 回复时知识库命中条数；user/system 为空 */
+    private Integer ragHitCount;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 }

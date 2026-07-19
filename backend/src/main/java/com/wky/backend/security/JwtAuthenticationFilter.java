@@ -1,5 +1,8 @@
 package com.wky.backend.security;
 
+import com.wky.backend.domain.entity.User;
+import com.wky.backend.enums.UserStatus;
+import com.wky.backend.mapper.UserMapper;
 import com.wky.backend.utils.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,6 +22,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserMapper userMapper;
 
     @Override
     protected void doFilterInternal(
@@ -42,12 +46,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 Long id = jwtUtil.getPrincipalId(token);
+                if (AuthPrincipal.TYPE_USER.equals(principalType) && isDisabledUser(id)) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "账号已被禁用");
+                    return;
+                }
+
                 AuthPrincipal principal = new AuthPrincipal(id, principalType);
                 var auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isDisabledUser(Long userId) {
+        if (userId == null) {
+            return true;
+        }
+        User user = userMapper.selectById(userId);
+        return user == null || user.getStatus() == UserStatus.DISABLED;
     }
 
     private static boolean requiresAdmin(String path) {

@@ -14,6 +14,7 @@ import com.wky.backend.exception.ApiException;
 import com.wky.backend.mapper.ExperimentMapper;
 import com.wky.backend.service.IExperimentFavoriteService;
 import com.wky.backend.service.IExperimentService;
+import com.wky.backend.service.IExperimentViewService;
 import com.wky.backend.service.ISubjectTypeService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -31,12 +32,15 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
 
     private final IExperimentFavoriteService favoriteService;
     private final ISubjectTypeService subjectTypeService;
+    private final IExperimentViewService experimentViewService;
 
     public ExperimentServiceImpl(
             @Lazy IExperimentFavoriteService favoriteService,
-            ISubjectTypeService subjectTypeService) {
+            ISubjectTypeService subjectTypeService,
+            IExperimentViewService experimentViewService) {
         this.favoriteService = favoriteService;
         this.subjectTypeService = subjectTypeService;
+        this.experimentViewService = experimentViewService;
     }
 
     @Override
@@ -55,7 +59,10 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         if (experiment == null) {
             throw new ApiException(404, "实验不存在");
         }
+        experimentViewService.recordView(experiment.getId(), userId);
         Boolean favorited = resolveFavorited(userId, experiment.getId());
+        // view_count 已在 recordView 中 +1，响应里带回最新值
+        experiment.setViewCount((experiment.getViewCount() == null ? 0L : experiment.getViewCount()) + 1);
         return toResponse(experiment, favorited);
     }
 

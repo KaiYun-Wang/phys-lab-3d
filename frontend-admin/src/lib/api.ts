@@ -17,7 +17,34 @@ export type DashboardSummary = {
   userCount: number;
   experimentCount: number;
   todayVisitCount: number;
-  activeExperimentCount: number;
+  aiQuestionCount: number;
+};
+
+export type DashboardTrendPoint = {
+  date: string;
+  count: number;
+};
+
+export type DashboardFavoriteTopItem = {
+  experimentId: number;
+  title: string;
+  favoriteCount: number;
+};
+
+export type DashboardAiStats = {
+  sessionCount: number;
+  questionCount: number;
+  avgSessionDepth: number;
+  ragHitRate: number | null;
+  questionTrend: DashboardTrendPoint[];
+};
+
+export type DashboardAnalytics = {
+  days: number;
+  visitTrend: DashboardTrendPoint[];
+  registerTrend: DashboardTrendPoint[];
+  favoriteTop: DashboardFavoriteTopItem[];
+  ai: DashboardAiStats;
 };
 
 async function parseError(res: Response): Promise<string> {
@@ -74,6 +101,10 @@ export function fetchMe() {
 
 export function fetchDashboardSummary() {
   return apiFetch<DashboardSummary>("/api/admin/dashboard/summary");
+}
+
+export function fetchDashboardAnalytics(days: 7 | 30 = 7) {
+  return apiFetch<DashboardAnalytics>(`/api/admin/dashboard/analytics?days=${days}`);
 }
 
 export type AnnouncementRecord = {
@@ -427,6 +458,40 @@ export function fetchAdminFavorites(params: {
 
 export function deleteAdminFavorite(id: number) {
   return apiFetch<void>(`/api/admin/favorites/${id}`, { method: "DELETE" });
+}
+
+export type UserStatus = "ENABLED" | "DISABLED";
+
+export type AdminUser = {
+  id: number;
+  username: string;
+  nickname: string;
+  avatarUrl?: string | null;
+  status: UserStatus;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export function fetchAdminUsers(params: {
+  q?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+} = {}) {
+  const query = buildQuery({
+    q: params.q,
+    status: params.status && params.status !== "all" ? params.status : undefined,
+    page: String(params.page ?? 1),
+    size: String(params.size ?? 20),
+  });
+  return apiFetch<AdminPageResponse<AdminUser>>(`/api/admin/users${query}`);
+}
+
+export function updateAdminUserStatus(id: number, status: UserStatus) {
+  return apiFetch<AdminUser>(`/api/admin/users/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  });
 }
 
 export function fetchAdminComments(params: {

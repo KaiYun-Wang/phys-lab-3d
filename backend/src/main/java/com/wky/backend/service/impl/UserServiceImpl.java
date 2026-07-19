@@ -1,10 +1,15 @@
 package com.wky.backend.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.wky.backend.domain.dto.AdminUserResponse;
 import com.wky.backend.domain.dto.ChangePasswordRequest;
+import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.domain.dto.UpdateProfileRequest;
 import com.wky.backend.domain.dto.UserProfileResponse;
 import com.wky.backend.domain.entity.User;
+import com.wky.backend.enums.UserStatus;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.mapper.UserMapper;
 import com.wky.backend.service.IUserService;
@@ -13,8 +18,10 @@ import org.dromara.x.file.storage.core.FileStorageService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -113,6 +120,40 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setAvatarUrl(null);
         updateById(user);
         return UserProfileResponse.from(user);
+    }
+
+    @Override
+    public PageResponse<AdminUserResponse> adminPage(String q, String status, long page, long pageSize) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(q)) {
+            String keyword = q.trim();
+            wrapper.and(w -> w
+                    .like(User::getUsername, keyword)
+                    .or()
+                    .like(User::getNickname, keyword));
+        }
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(User::getStatus, UserStatus.fromValue(status));
+        }
+        wrapper.orderByDesc(User::getCreateTime).orderByDesc(User::getId);
+
+        Page<User> result = page(new Page<>(page, pageSize), wrapper);
+        List<AdminUserResponse> records = result.getRecords().stream()
+                .map(AdminUserResponse::from)
+                .toList();
+        return new PageResponse<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+    }
+
+    @Override
+    @Transactional
+    public AdminUserResponse adminUpdateStatus(Long userId, UserStatus status) {
+        if (status == null) {
+            throw new ApiException(400, "状态不能为空");
+        }
+        User user = requireUser(userId);
+        user.setStatus(status);
+        updateById(user);
+        return AdminUserResponse.from(user);
     }
 
     private void deleteAvatarFile(String avatarUrl) {

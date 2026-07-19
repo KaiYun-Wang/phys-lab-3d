@@ -49,7 +49,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "用户",
     items: [
-      { icon: "◉", label: "用户列表", disabled: true },
+      { icon: "◉", label: "用户列表", href: "/users" },
       { icon: "⊞", label: "权限角色", disabled: true },
     ],
   },

@@ -10,5 +10,6 @@ public class DashboardSummaryResponse {
     private long userCount;
     private long experimentCount;
     private long todayVisitCount;
-    private long activeExperimentCount;
+    /** 累计用户提问数 */
+    private long aiQuestionCount;
 }
