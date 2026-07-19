@@ -76,6 +76,47 @@ export function fetchDashboardSummary() {
   return apiFetch<DashboardSummary>("/api/admin/dashboard/summary");
 }
 
+export type AnnouncementRecord = {
+  id: number;
+  title: string;
+  content: string;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type AnnouncementInput = {
+  title: string;
+  content: string;
+};
+
+export function fetchAnnouncements(page = 1, size = 20) {
+  return apiFetch<AdminPageResponse<AnnouncementRecord>>(
+    `/api/admin/announcements?page=${page}&size=${size}`,
+  );
+}
+
+export function fetchAnnouncement(id: number) {
+  return apiFetch<AnnouncementRecord>(`/api/admin/announcements/${id}`);
+}
+
+export function createAnnouncement(input: AnnouncementInput) {
+  return apiFetch<AnnouncementRecord>("/api/admin/announcements", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAnnouncement(id: number, input: AnnouncementInput) {
+  return apiFetch<AnnouncementRecord>(`/api/admin/announcements/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteAnnouncement(id: number) {
+  return apiFetch<void>(`/api/admin/announcements/${id}`, { method: "DELETE" });
+}
+
 export type ExperimentStatus = "PUBLISHED" | "DRAFT";
 
 export const EXPERIMENT_STATUS_OPTIONS: { value: ExperimentStatus; label: string }[] = [

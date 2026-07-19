@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { Star, ArrowRight, Search, Eye } from "lucide-react";
+import AnnouncementMenu from "@/components/AnnouncementMenu";
 
 const PAGE = "page-shell";
 
@@ -23,9 +24,12 @@ function Navbar() {
         <a href="/" className="sx-eyebrow text-white hover:opacity-80 transition-opacity">
           PhysLab 3D
         </a>
-        <a href="/profile" className="sx-eyebrow text-white hover:opacity-80 transition-opacity">
-          个人中心
-        </a>
+        <div className="flex items-center gap-6">
+          <AnnouncementMenu />
+          <a href="/profile" className="sx-eyebrow text-white hover:opacity-80 transition-opacity">
+            个人中心
+          </a>
+        </div>
       </div>
     </header>
   );

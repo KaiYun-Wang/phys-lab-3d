@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { login, register } from "@/lib/api";
-import { setToken } from "@/lib/auth";
+import { markPendingAnnouncement, setToken } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,6 +33,7 @@ export default function LoginPage() {
           ? await login(username, password)
           : await register(username, password);
       setToken(res.token);
+      markPendingAnnouncement();
       router.replace(searchParams.get("redirect") || "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "请求失败");

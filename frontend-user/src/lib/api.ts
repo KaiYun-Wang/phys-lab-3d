@@ -418,4 +418,27 @@ export async function streamAiMessage(
   }
 }
 
+export type Announcement = {
+  id: number;
+  title: string;
+  content: string;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type AnnouncementPage = {
+  records: Announcement[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export function fetchLatestAnnouncement() {
+  return apiFetch<Announcement | undefined>("/api/announcements/latest");
+}
+
+export function fetchAnnouncements(page = 1, size = 10) {
+  return apiFetch<AnnouncementPage>(`/api/announcements?page=${page}&size=${size}`);
+}
+
 

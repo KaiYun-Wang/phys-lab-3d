@@ -40,6 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "运营",
     items: [
+      { icon: "📢", label: "公告管理", href: "/announcements" },
       { icon: "★", label: "收藏管理", href: "/favorites" },
       { icon: "💬", label: "评论管理", href: "/comments" },
       { icon: "♥", label: "评论点赞", href: "/comment-likes" },
@@ -96,28 +97,30 @@ export default function AdminShell({
           <span className="sidebar__badge">Admin</span>
         </div>
 
-        {NAV_GROUPS.map((group) => (
-          <nav key={group.label} className="nav-group">
-            <span className="nav-group__label">{group.label}</span>
-            {group.items.map((item) => {
-              const className = `nav-item${isNavActive(item.href, pathname) ? " is-active" : ""}`;
-              if (item.disabled || !item.href) {
+        <div className="sidebar__nav">
+          {NAV_GROUPS.map((group) => (
+            <nav key={group.label} className="nav-group">
+              <span className="nav-group__label">{group.label}</span>
+              {group.items.map((item) => {
+                const className = `nav-item${isNavActive(item.href, pathname) ? " is-active" : ""}`;
+                if (item.disabled || !item.href) {
+                  return (
+                    <button key={item.label} type="button" className={className} disabled>
+                      <span className="nav-item__icon">{item.icon}</span>
+                      {item.label}
+                    </button>
+                  );
+                }
                 return (
-                  <button key={item.label} type="button" className={className} disabled>
+                  <Link key={item.label} href={item.href} className={className}>
                     <span className="nav-item__icon">{item.icon}</span>
                     {item.label}
-                  </button>
+                  </Link>
                 );
-              }
-              return (
-                <Link key={item.label} href={item.href} className={className}>
-                  <span className="nav-item__icon">{item.icon}</span>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        ))}
+              })}
+            </nav>
+          ))}
+        </div>
 
         <div className="sidebar__foot">
           <button type="button" className="nav-item" onClick={logout}>

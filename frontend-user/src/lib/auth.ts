@@ -13,6 +13,21 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+const PENDING_ANNOUNCEMENT_KEY = "phys_lab_pending_announcement";
+
+/** 登录成功后标记：进入首页后弹出最新公告 */
+export function markPendingAnnouncement() {
+  sessionStorage.setItem(PENDING_ANNOUNCEMENT_KEY, "1");
+}
+
+export function hasPendingAnnouncement(): boolean {
+  return sessionStorage.getItem(PENDING_ANNOUNCEMENT_KEY) === "1";
+}
+
+export function clearPendingAnnouncement() {
+  sessionStorage.removeItem(PENDING_ANNOUNCEMENT_KEY);
+}
+
 export function isTokenExpired(token: string): boolean {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));

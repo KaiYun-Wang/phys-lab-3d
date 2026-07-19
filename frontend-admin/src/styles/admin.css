@@ -457,6 +457,37 @@ body {
   border-radius: var(--radius-pill);
 }
 
+.sidebar__nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  margin-right: -4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--shade-40) var(--canvas-cream);
+}
+
+.sidebar__nav::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar__nav::-webkit-scrollbar-track {
+  background: var(--canvas-cream);
+  border-radius: 999px;
+}
+
+.sidebar__nav::-webkit-scrollbar-thumb {
+  background: var(--shade-40);
+  border-radius: 999px;
+  border: 2px solid var(--canvas-cream);
+}
+
+.sidebar__nav::-webkit-scrollbar-thumb:hover {
+  background: var(--shade-50);
+}
+
 .nav-group {
   display: flex;
   flex-direction: column;
