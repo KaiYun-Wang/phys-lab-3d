@@ -31,7 +31,6 @@ export default function LoginPage() {
     <main className="login-screen">
       <div className="login-wrap">
         <div className="login-brand">
-          <div className="login-brand__logo">P3</div>
           <span className="login-brand__name">PhysLab 3D</span>
           <span className="eyebrow">管理后台</span>
         </div>
@@ -76,13 +75,6 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-
-        <p className="login-footer">
-          返回{" "}
-          <a href="http://localhost:3000" target="_blank" rel="noreferrer">
-            用户端首页
-          </a>
-        </p>
       </div>
     </main>
   );

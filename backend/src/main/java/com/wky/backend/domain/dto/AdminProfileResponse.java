@@ -11,12 +11,14 @@ public class AdminProfileResponse {
     private Long id;
     private String username;
     private String displayName;
+    private String avatarUrl;
 
     public static AdminProfileResponse from(Admin admin) {
         return new AdminProfileResponse(
                 admin.getId(),
                 admin.getUsername(),
-                admin.getDisplayName()
+                admin.getDisplayName(),
+                admin.getAvatarUrl()
         );
     }
 }

@@ -286,6 +286,7 @@ CREATE TABLE "public"."admins" (
   "username" character varying(20) NOT NULL,
   "password_hash" character varying(255) NOT NULL,
   "display_name" character varying(40) NOT NULL,
+  "avatar_url" character varying(512),
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
@@ -296,6 +297,7 @@ COMMENT ON COLUMN "public"."admins"."id" IS '管理员 ID，自增主键';
 COMMENT ON COLUMN "public"."admins"."username" IS '登录用户名，唯一';
 COMMENT ON COLUMN "public"."admins"."password_hash" IS '密码哈希（BCrypt）';
 COMMENT ON COLUMN "public"."admins"."display_name" IS '后台展示名';
+COMMENT ON COLUMN "public"."admins"."avatar_url" IS '头像地址，可选；为空时前端用 display_name 首字展示';
 COMMENT ON COLUMN "public"."admins"."create_time" IS '创建时间，插入时自动填充';
 COMMENT ON COLUMN "public"."admins"."update_time" IS '更新时间，插入/更新时自动填充';
 CREATE UNIQUE INDEX "uk_admins_username" ON "public"."admins" USING btree ("username");
@@ -316,6 +318,36 @@ COMMENT ON COLUMN "public"."announcements"."content" IS '公告正文';
 COMMENT ON COLUMN "public"."announcements"."create_time" IS '创建时间，插入时自动填充';
 COMMENT ON COLUMN "public"."announcements"."update_time" IS '更新时间，插入/更新时自动填充';
 CREATE INDEX "idx_announcements_create_time" ON "public"."announcements" USING btree ("create_time");
+
+CREATE SEQUENCE IF NOT EXISTS "public"."example_questions_id_seq"
+  AS bigint
+  START WITH 1
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 9223372036854775807
+  CACHE 1
+  NO CYCLE;
+
+CREATE TABLE "public"."example_questions" (
+  "id" bigint NOT NULL DEFAULT nextval('example_questions_id_seq'::regclass),
+  "title" character varying(100) NOT NULL,
+  "description" character varying(200),
+  "question" character varying(500) NOT NULL,
+  "sort_order" integer NOT NULL DEFAULT 0,
+  "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY ("id")
+);
+
+COMMENT ON TABLE "public"."example_questions" IS 'AI 对话示例问题（用户端欢迎区可选）';
+COMMENT ON COLUMN "public"."example_questions"."id" IS '示例 ID，自增主键';
+COMMENT ON COLUMN "public"."example_questions"."title" IS '卡片标题';
+COMMENT ON COLUMN "public"."example_questions"."description" IS '简短描述（可选）';
+COMMENT ON COLUMN "public"."example_questions"."question" IS '点击后填入/发送的完整问题文案';
+COMMENT ON COLUMN "public"."example_questions"."sort_order" IS '排序权重，越小越靠前';
+COMMENT ON COLUMN "public"."example_questions"."create_time" IS '创建时间';
+COMMENT ON COLUMN "public"."example_questions"."update_time" IS '更新时间';
+CREATE INDEX "idx_example_questions_sort" ON "public"."example_questions" USING btree ("sort_order", "id");
 
 CREATE SEQUENCE IF NOT EXISTS "public"."experiment_comment_likes_id_seq"
   AS bigint
@@ -399,6 +431,8 @@ COMMENT ON COLUMN "public"."experiment_favorites"."create_time" IS '收藏时间
 CREATE UNIQUE INDEX "uk_experiment_favorites_user_experiment" ON "public"."experiment_favorites" USING btree ("user_id", "experiment_id");
 
 ALTER SEQUENCE "public"."admins_id_seq" OWNED BY "public"."admins"."id";
+
+ALTER SEQUENCE "public"."example_questions_id_seq" OWNED BY "public"."example_questions"."id";
 
 ALTER SEQUENCE "public"."ai_chat_messages_id_seq" OWNED BY "public"."ai_chat_messages"."id";
 

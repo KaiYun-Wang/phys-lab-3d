@@ -2025,6 +2025,59 @@ canvas {
   color: var(--sx-ink-mute);
 }
 
+.ai-examples {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 320px);
+}
+.ai-examples__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--sx-ink-mute);
+}
+.ai-examples__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-example-card {
+  text-align: left;
+  border: 1px solid var(--sx-hairline);
+  background: var(--sx-soft);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--sx-mute);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ai-example-card:hover:not(:disabled) {
+  border-color: var(--sx-hairline-strong);
+  background: var(--sx-elevated);
+}
+.ai-example-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ai-example-card__title {
+  font-size: 12px;
+  font-weight: 700;
+}
+.ai-example-card__desc {
+  font-size: 11px;
+  color: var(--sx-ink-mute);
+}
+.ai-example-card__q {
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
 .ai-thinking {
   width: 100%;
   margin-bottom: 6px;

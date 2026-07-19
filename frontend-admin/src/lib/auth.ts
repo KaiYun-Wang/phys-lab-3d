@@ -31,3 +31,9 @@ export function isAuthenticated(): boolean {
 export function displayInitials(name: string): string {
   return (name || "").slice(0, 1).toUpperCase() || "?";
 }
+
+export function avatarSrc(avatarUrl: string | null | undefined, apiBase: string): string | null {
+  if (!avatarUrl) return null;
+  if (avatarUrl.startsWith("http")) return avatarUrl;
+  return `${apiBase}${avatarUrl}`;
+}

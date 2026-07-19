@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation";
 import {
   createAiSession,
   deleteAiSession,
+  fetchAiExampleQuestions,
   fetchAiMessages,
   fetchAiSessions,
   streamAiMessage,
   type AiChatContext,
   type AiChatMessage,
   type AiChatSession,
+  type AiExampleQuestion,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -118,6 +120,7 @@ export default function AiChatWidget() {
   const [sessions, setSessions] = useState<AiChatSession[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
+  const [examples, setExamples] = useState<AiExampleQuestion[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -180,6 +183,13 @@ export default function AiChatWidget() {
   useEffect(() => {
     if (open && loggedIn) loadSessions();
   }, [open, loggedIn, loadSessions]);
+
+  useEffect(() => {
+    if (!open || examples.length > 0) return;
+    fetchAiExampleQuestions()
+      .then(setExamples)
+      .catch(() => setExamples([]));
+  }, [open, examples.length]);
 
   useEffect(() => {
     scrollBottom();
@@ -541,6 +551,28 @@ export default function AiChatWidget() {
                   <div className="bubble">
                     你好，我是 PhysLab 实验助手。可以问我实验原理、操作建议，或让我根据你当前所在页面解答。
                   </div>
+                  {examples.length > 0 && (
+                    <div className="ai-examples">
+                      <span className="ai-examples__label">试试这些问题</span>
+                      <div className="ai-examples__list">
+                        {examples.map((ex) => (
+                          <button
+                            key={ex.id}
+                            type="button"
+                            className="ai-example-card"
+                            disabled={sending}
+                            onClick={() => send(ex.question)}
+                          >
+                            <span className="ai-example-card__title">{ex.title}</span>
+                            {ex.description ? (
+                              <span className="ai-example-card__desc">{ex.description}</span>
+                            ) : null}
+                            <span className="ai-example-card__q">{ex.question}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {messages.map((m) =>

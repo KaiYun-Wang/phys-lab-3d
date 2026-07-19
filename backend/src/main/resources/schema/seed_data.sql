@@ -84,3 +84,14 @@ FROM (VALUES
 ) AS v(route, title, subject_type, description, cover_url, topics, status)
 JOIN subject_types st ON st.code = v.subject_type
 ON CONFLICT (route) DO NOTHING;
+
+-- AI 示例问题（表需已存在；空表时插入默认推荐问法）
+INSERT INTO example_questions (title, description, question, sort_order)
+SELECT v.title, v.description, v.question, v.sort_order
+FROM (VALUES
+    ('平台入门', '关于助手', '你是谁？能帮我做什么？', 10),
+    ('实验原理', '物理概念', '用通俗的话解释一下当前实验的核心原理。', 20),
+    ('操作建议', '怎么玩', '这个实验我该先调哪些参数？有什么观察技巧？', 30),
+    ('知识库', '资料检索', '知识库里有没有和这个实验相关的资料摘要？', 40)
+) AS v(title, description, question, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM example_questions LIMIT 1);

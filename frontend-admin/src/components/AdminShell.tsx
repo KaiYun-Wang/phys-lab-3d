@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { AdminProfile } from "@/lib/api";
-import { clearToken, displayInitials } from "@/lib/auth";
+import { API_BASE, type AdminProfile } from "@/lib/api";
+import { avatarSrc, clearToken, displayInitials } from "@/lib/auth";
 
 type NavItem = {
   icon: string;
@@ -48,27 +48,21 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "用户",
-    items: [
-      { icon: "◉", label: "用户列表", href: "/users" },
-      { icon: "⊞", label: "权限角色", disabled: true },
-    ],
+    items: [{ icon: "◉", label: "用户列表", href: "/users" }],
   },
   {
     label: "系统",
-    items: [
-      { icon: "⚙", label: "系统设置", disabled: true },
-      { icon: "≡", label: "操作日志", disabled: true },
-    ],
+    items: [{ icon: "?", label: "示例问题", href: "/example-questions" }],
   },
 ];
 
-function formatDate() {
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  }).format(new Date());
+function TopbarAvatar({ admin }: { admin: AdminProfile }) {
+  const src = avatarSrc(admin.avatarUrl, API_BASE);
+  return (
+    <Link href="/profile" className="topbar__avatar" title="编辑资料">
+      {src ? <img src={src} alt="" /> : displayInitials(admin.displayName)}
+    </Link>
+  );
 }
 
 export default function AdminShell({
@@ -92,7 +86,6 @@ export default function AdminShell({
     <div className="dash-layout">
       <aside className="sidebar">
         <div className="sidebar__brand">
-          <div className="sidebar__logo">P3</div>
           <span className="sidebar__name">PhysLab 3D</span>
           <span className="sidebar__badge">Admin</span>
         </div>
@@ -134,15 +127,9 @@ export default function AdminShell({
         <header className="topbar">
           <div className="topbar__left">
             <span className="topbar__title">{title}</span>
-            <span className="micro">{formatDate()}</span>
           </div>
           <div className="topbar__right">
-            <button type="button" className="btn-pill btn-pill--outline btn-pill--sm" disabled>
-              导出报告
-            </button>
-            <div className="topbar__avatar" title={admin.displayName}>
-              {displayInitials(admin.displayName)}
-            </div>
+            <TopbarAvatar admin={admin} />
           </div>
         </header>
         <div className="dash-content">{children}</div>

@@ -96,7 +96,7 @@ docker run -d `
 - 创建 Bucket：`phys-lab`
 
 本地后端配置：复制 `application-example.yml` 为 `application-local.yml` 后按文件内注释填写。
-`knowledge-base/` 下有可测试的知识库文档，管理端「知识库」上传即可。
+`knowledge-base/` 下有知识库文档，管理端「知识库」上传即可。
 
 ## 启动
 

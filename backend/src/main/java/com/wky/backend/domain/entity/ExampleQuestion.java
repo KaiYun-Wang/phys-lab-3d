@@ -10,19 +10,19 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("admins")
-public class Admin {
+@TableName("example_questions")
+public class ExampleQuestion {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private String username;
+    private String title;
 
-    private String passwordHash;
+    private String description;
 
-    private String displayName;
+    private String question;
 
-    private String avatarUrl;
+    private Integer sortOrder;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

@@ -6,6 +6,7 @@ export type AdminProfile = {
   id: number;
   username: string;
   displayName: string;
+  avatarUrl?: string | null;
 };
 
 export type AdminLoginResponse = {
@@ -99,6 +100,23 @@ export function fetchMe() {
   return apiFetch<AdminProfile>("/api/admin/me");
 }
 
+export function updateAdminProfile(displayName: string) {
+  return apiFetch<AdminProfile>("/api/admin/me", {
+    method: "PATCH",
+    body: JSON.stringify({ displayName }),
+  });
+}
+
+export function uploadAdminAvatar(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return apiFetch<AdminProfile>("/api/admin/me/avatar", { method: "POST", body });
+}
+
+export function resetAdminAvatar() {
+  return apiFetch<AdminProfile>("/api/admin/me/avatar", { method: "DELETE" });
+}
+
 export function fetchDashboardSummary() {
   return apiFetch<DashboardSummary>("/api/admin/dashboard/summary");
 }
@@ -146,6 +164,50 @@ export function updateAnnouncement(id: number, input: AnnouncementInput) {
 
 export function deleteAnnouncement(id: number) {
   return apiFetch<void>(`/api/admin/announcements/${id}`, { method: "DELETE" });
+}
+
+export type ExampleQuestionRecord = {
+  id: number;
+  title: string;
+  description?: string | null;
+  question: string;
+  sortOrder: number;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type ExampleQuestionInput = {
+  title: string;
+  description?: string;
+  question: string;
+  sortOrder?: number;
+};
+
+export function fetchExampleQuestions(params: { q?: string; page?: number; size?: number } = {}) {
+  const query = buildQuery({
+    q: params.q,
+    page: String(params.page ?? 1),
+    size: String(params.size ?? 20),
+  });
+  return apiFetch<AdminPageResponse<ExampleQuestionRecord>>(`/api/admin/example-questions${query}`);
+}
+
+export function createExampleQuestion(input: ExampleQuestionInput) {
+  return apiFetch<ExampleQuestionRecord>("/api/admin/example-questions", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateExampleQuestion(id: number, input: ExampleQuestionInput) {
+  return apiFetch<ExampleQuestionRecord>(`/api/admin/example-questions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteExampleQuestion(id: number) {
+  return apiFetch<void>(`/api/admin/example-questions/${id}`, { method: "DELETE" });
 }
 
 export type ExperimentStatus = "PUBLISHED" | "DRAFT";

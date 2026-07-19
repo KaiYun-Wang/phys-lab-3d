@@ -249,6 +249,20 @@ export function unlikeComment(experimentId: number, commentId: number) {
   });
 }
 
+/* ── AI 示例问题 ── */
+
+export type AiExampleQuestion = {
+  id: number;
+  title: string;
+  description?: string | null;
+  question: string;
+  sortOrder: number;
+};
+
+export function fetchAiExampleQuestions() {
+  return apiFetch<AiExampleQuestion[]>("/api/ai/example-questions", {}, false);
+}
+
 /* ── AI 助手 ── */
 
 export type AiChatContext = {
