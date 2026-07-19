@@ -14,6 +14,7 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { Star, ArrowRight, Search, Eye } from "lucide-react";
 import AnnouncementMenu from "@/components/AnnouncementMenu";
+import FavoritesRankCarousel from "@/components/FavoritesRankCarousel";
 
 const PAGE = "page-shell";
 
@@ -158,7 +159,12 @@ export default function Home() {
     return experiments.filter((exp) => exp.favorited);
   }, [experiments, showFavoritesOnly]);
 
-  const preview = experiments[1] ?? experiments[0];
+  const topFavorite = useMemo(() => {
+    if (experiments.length === 0) return null;
+    return [...experiments].sort(
+      (a, b) => (b.favoriteCount ?? 0) - (a.favoriteCount ?? 0),
+    )[0];
+  }, [experiments]);
 
   const promptLogin = () => {
     router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
@@ -212,8 +218,6 @@ export default function Home() {
     setShowFavoritesOnly((v) => !v);
   };
 
-  const previewCover = preview ? experimentCoverSrc(preview.coverUrl) : null;
-
   return (
     <main className="min-h-screen w-full bg-black">
       <Navbar />
@@ -234,8 +238,11 @@ export default function Home() {
               <a href="#experiments" className="btn-ghost">
                 开始探索
               </a>
-              {preview && (
-                <a href={`/experiments/${preview.route}`} className="btn-ghost opacity-70 hover:opacity-100">
+              {topFavorite && (
+                <a
+                  href={`/experiments/${topFavorite.route}`}
+                  className="btn-ghost opacity-70 hover:opacity-100"
+                >
                   试玩
                 </a>
               )}
@@ -247,28 +254,8 @@ export default function Home() {
             </p>
           </div>
 
-          {preview && (
-            <div className="sx-preview">
-              <div className="sx-preview-bar">
-                <p className="sx-eyebrow text-[#8a8a96]">{preview.title}</p>
-              </div>
-              <div className="sx-card-cover border-0 rounded-none">
-                {previewCover ? (
-                  <Image
-                    src={previewCover}
-                    alt=""
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 40vw"
-                    className="object-cover"
-                    unoptimized={previewCover.startsWith("http")}
-                  />
-                ) : (
-                  <div className="sx-card-cover-fallback" aria-hidden>
-                    <span>{preview.title}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+          {!loading && experiments.length > 0 && (
+            <FavoritesRankCarousel experiments={experiments} />
           )}
         </section>
 

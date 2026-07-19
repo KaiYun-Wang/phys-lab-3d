@@ -538,6 +538,295 @@ body {
   box-shadow: var(--sx-shadow-panel);
 }
 
+/* ── 首页收藏榜：悬空立体卡片 ── */
+.sx-rank {
+  position: relative;
+  min-height: 340px;
+  perspective: 1400px;
+  touch-action: pan-y;
+}
+.sx-rank-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+.sx-rank-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--sx-white);
+}
+.sx-rank-hint {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--sx-ink-mute);
+  opacity: 0.75;
+}
+.sx-rank-stage {
+  position: relative;
+  height: 300px;
+  transform-style: preserve-3d;
+  cursor: grab;
+  user-select: none;
+  outline: none;
+}
+.sx-rank-stage.is-dragging {
+  cursor: grabbing;
+}
+.sx-rank-stage:focus-visible {
+  outline: 1px solid var(--sx-white);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.sx-float-card {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(100%, 380px);
+  height: 260px;
+  border-radius: 16px;
+  border: 1px solid var(--sx-hairline);
+  background: var(--sx-elevated);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+  color: inherit;
+  text-decoration: none;
+}
+.sx-float-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.07) 0%, transparent 42%);
+  pointer-events: none;
+  z-index: 2;
+}
+.sx-float-card::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -18px;
+  height: 28px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), transparent 70%);
+  filter: blur(4px);
+  z-index: -1;
+  opacity: 0.9;
+}
+.sx-float-card.is-active {
+  z-index: 5;
+  opacity: 1;
+  filter: none;
+  box-shadow:
+    0 32px 70px rgba(0, 0, 0, 0.7),
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.sx-float-card.is-next {
+  z-index: 4;
+  opacity: 0.85;
+  filter: brightness(0.75);
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.65),
+    0 8px 20px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.sx-float-card.is-prev {
+  z-index: 3;
+  opacity: 0.55;
+  filter: brightness(0.55);
+  box-shadow:
+    0 28px 60px rgba(0, 0, 0, 0.65),
+    0 8px 20px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.sx-float-card.is-far {
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  filter: brightness(0.4);
+}
+
+.sx-float-cover {
+  position: absolute;
+  inset: 0;
+  background: #0a0a10;
+}
+.sx-float-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse at 30% 20%, #2a2a38 0%, transparent 50%),
+    linear-gradient(165deg, #1a1a24, #0a0a10);
+  text-align: center;
+}
+.sx-float-fallback span {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sx-float-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.25) 40%,
+    rgba(0, 0, 0, 0.88) 100%
+  );
+  pointer-events: none;
+}
+.sx-float-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 1.1rem 1.25rem 1.25rem;
+  pointer-events: none;
+}
+.sx-float-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--sx-ink-mute);
+  margin-bottom: 0.45rem;
+}
+.sx-float-rank b {
+  color: var(--sx-white);
+  font-size: 13px;
+}
+.sx-float-body h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  line-height: 1.25;
+  margin-bottom: 0.35rem;
+  color: var(--sx-white);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sx-float-meta {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--sx-ink-mute);
+}
+
+@keyframes sx-idle-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sx-float-card.is-active .sx-float-cover,
+  .sx-float-card.is-active .sx-float-veil,
+  .sx-float-card.is-active .sx-float-body {
+    animation: sx-idle-float 4.5s ease-in-out infinite;
+  }
+}
+
+.sx-rank-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-20%);
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--sx-hairline);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  color: var(--sx-mute);
+  font-size: 20px;
+  line-height: 1;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.sx-rank-nav:hover {
+  color: var(--sx-white);
+  border-color: var(--sx-hairline-strong);
+  background: rgba(20, 20, 28, 0.85);
+}
+.sx-rank-nav.prev {
+  left: -6px;
+}
+.sx-rank-nav.next {
+  right: -6px;
+}
+@media (min-width: 1024px) {
+  .sx-rank-nav.prev {
+    left: -10px;
+  }
+  .sx-rank-nav.next {
+    right: -10px;
+  }
+}
+
+.sx-rank-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.1rem;
+}
+.sx-rank-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--sx-hairline);
+  padding: 0;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s;
+}
+.sx-rank-dot.is-on {
+  width: 22px;
+  background: var(--sx-white);
+}
+
+@media (max-width: 640px) {
+  .sx-rank-stage {
+    height: 280px;
+  }
+  .sx-float-card {
+    height: 240px;
+  }
+}
+
 .canvas-container {
   width: 100%;
   height: 100%;
