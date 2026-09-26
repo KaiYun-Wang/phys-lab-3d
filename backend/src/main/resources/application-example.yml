@@ -36,4 +36,4 @@ phys-lab:
       base-url: https://api.deepseek.com
       # 推荐：deepseek-chat（通用）；需要思考过程可用 deepseek-reasoner / deepseek-v4-pro 等推理型号
       model: deepseek-chat
-    history-limit: 20
+    history-limit: 40

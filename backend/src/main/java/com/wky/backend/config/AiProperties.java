@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 public class AiProperties {
 
     private Chat chat = new Chat();
-    private int historyLimit = 20;
+    /** 入模滑动窗口：最近 N 条消息行（含 thinking/tool_*） */
+    private int historyLimit = 40;
 
     @Data
     public static class Chat {

@@ -387,7 +387,7 @@ public class AiChatServiceImpl implements IAiChatService {
         }
     }
 
-    /** ponytail: hard cap only; dedicated tool-result prompt truncate comes in step ③ */
+    /** ponytail: store cap only; prompt-side tool-result truncate if needed later */
     private static String truncateForStore(String s) {
         if (s == null) return "";
         return s.length() <= 32_000 ? s : s.substring(0, 32_000) + "…";
@@ -406,10 +406,10 @@ public class AiChatServiceImpl implements IAiChatService {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(buildSystemPrompt(context)));
 
+        // 按消息行滑动窗口；thinking/tool_* 占窗口但不入模（还原链留给步骤⑤）
         List<AiChatMessage> history = messageMapper.selectList(
                 new LambdaQueryWrapper<AiChatMessage>()
                         .eq(AiChatMessage::getSessionId, sessionId)
-                        .in(AiChatMessage::getRole, "user", "assistant")
                         .orderByDesc(AiChatMessage::getId)
                         .last("LIMIT " + aiProperties.getHistoryLimit()));
         for (int i = history.size() - 1; i >= 0; i--) {

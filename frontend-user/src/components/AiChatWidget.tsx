@@ -312,6 +312,10 @@ export default function AiChatWidget() {
   const send = async (text: string) => {
     const content = text.trim();
     if (!content || sending) return;
+    if (content.length > 5000) {
+      setError("消息不能超过 5000 字符");
+      return;
+    }
     if (!loggedIn) {
       window.location.href = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
       return;
@@ -673,7 +677,6 @@ export default function AiChatWidget() {
               <textarea
                 rows={1}
                 value={draft}
-                maxLength={4000}
                 placeholder={loggedIn ? "问点什么…" : "登录后开始对话…"}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {

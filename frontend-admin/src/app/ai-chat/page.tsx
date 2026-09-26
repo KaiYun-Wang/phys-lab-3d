@@ -176,6 +176,10 @@ export default function AdminAiChatPage() {
     e.preventDefault();
     const content = draft.trim();
     if (!content || sending) return;
+    if (content.length > 5000) {
+      toast.error("消息不能超过 5000 字符");
+      return;
+    }
     setSending(true);
     setDraft("");
 

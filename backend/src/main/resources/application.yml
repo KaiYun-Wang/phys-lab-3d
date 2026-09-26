@@ -35,7 +35,7 @@ phys-lab:
       api-key: ${PHYS_LAB_AI_CHAT_API_KEY:}
       base-url: ${PHYS_LAB_AI_CHAT_BASE_URL:https://api.deepseek.com}
       model: ${PHYS_LAB_AI_CHAT_MODEL:deepseek-chat}
-    history-limit: 20
+    history-limit: 40
 
 dromara:
   x-file-storage:

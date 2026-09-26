@@ -10,7 +10,7 @@ import java.util.Map;
 public class AiChatMessageRequest {
 
     @NotBlank
-    @Size(min = 1, max = 4000)
+    @Size(min = 1, max = 5000, message = "消息不能超过 5000 字符")
     private String content;
 
     /** 当前页上下文：path / pageType / experimentId / experimentTitle 等 */
