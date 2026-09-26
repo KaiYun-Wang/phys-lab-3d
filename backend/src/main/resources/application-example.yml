@@ -2,6 +2,11 @@
 #   copy application-example.yml application-local.yml
 # application-local.yml 含密钥，已 gitignore，勿提交到仓库。
 
+# 开发需要看 SQL 时打开；关掉则控制台不再刷 SQL
+logging:
+  level:
+    com.wky.backend.mapper: debug
+
 phys-lab:
   server:
     port: 8080
@@ -12,9 +17,6 @@ phys-lab:
     database: phys_lab_3d
     username: postgres
     password: postgres
-  mybatis:
-    # 开发期可看 SQL；生产可改为 org.apache.ibatis.logging.nologging.NoLoggingImpl
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   minio:
     access-key: minioadmin
     secret-key: minioadmin

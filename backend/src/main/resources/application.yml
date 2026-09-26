@@ -23,11 +23,16 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: ${phys-lab.mybatis.log-impl}
   global-config:
     db-config:
       id-type: auto
   mapper-locations: classpath*:/mapper/**/*.xml
+
+# SQL 走 SLF4J；默认不打 SQL。本地要看时在 application-local.yml 开 mapper DEBUG
+logging:
+  level:
+    root: info
+    com.wky.backend: info
 
 phys-lab:
   jwt:
