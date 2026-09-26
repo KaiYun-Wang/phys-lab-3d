@@ -20,7 +20,7 @@
 | 管理端 | Next.js 15 · React 19 · 纯 CSS |
 | 后端 | Spring Boot 3.5 · JDK 17 · MyBatis-Plus · LangChain4j |
 | 数据库 | PostgreSQL 16 |
-| 缓存 / 队列 | Redis 7（AI 会话摘要 Streams） |
+| 缓存 / 队列 | Redis 7（AI 会话摘要 ZSet） |
 | 对象存储 | MinIO（用户头像、实验封面） |
 
 ## 架构
@@ -100,7 +100,7 @@ docker run -d `
 
 ### Redis
 
-AI 会话异步摘要依赖 Redis Streams。本机开发无需数据卷：
+AI 会话异步摘要依赖 Redis ZSet。本机开发无需数据卷：
 
 ```powershell
 docker run -d `

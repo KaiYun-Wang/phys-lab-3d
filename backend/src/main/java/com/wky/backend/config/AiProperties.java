@@ -19,10 +19,6 @@ public class AiProperties {
     private int summarySoftLimit = 30;
     /** 未摘要对话条数 > 此值 → 系统繁忙，请稍后重试 */
     private int summaryHardLimit = 50;
-    /** 摘要互斥锁 TTL（秒） */
-    private int summaryLockTtlSeconds = 120;
-    /** Streams 积压条数上限，达到则视为投递失败 → 繁忙 */
-    private int summaryQueueMax = 100;
 
     @Data
     public static class Chat {

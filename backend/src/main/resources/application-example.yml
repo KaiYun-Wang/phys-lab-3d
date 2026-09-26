@@ -47,7 +47,3 @@ phys-lab:
     summary-soft-limit: 30
     # 大于此条数 -> 助手回复「系统繁忙，请稍后重试」（仍会尝试投递摘要）
     summary-hard-limit: 50
-    # 摘要锁 TTL（秒）
-    summary-lock-ttl-seconds: 120
-    # Streams 积压上限，满则繁忙
-    summary-queue-max: 100

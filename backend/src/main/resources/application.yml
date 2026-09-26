@@ -45,10 +45,6 @@ phys-lab:
     summary-soft-limit: 30
     # 未摘要对话条数大于此值 -> 助手回复繁忙文案（仍会尝试投递摘要）
     summary-hard-limit: 50
-    # 摘要会话锁 TTL（秒），防 Worker 挂死占锁
-    summary-lock-ttl-seconds: 120
-    # Redis Streams 积压上限，满则助手回复繁忙
-    summary-queue-max: 100
 
 dromara:
   x-file-storage:

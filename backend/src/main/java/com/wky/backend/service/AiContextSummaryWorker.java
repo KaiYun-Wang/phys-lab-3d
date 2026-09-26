@@ -6,31 +6,25 @@ import com.wky.backend.domain.entity.AiChatSession;
 import com.wky.backend.mapper.AiChatMessageMapper;
 import com.wky.backend.mapper.AiChatSessionMapper;
 import dev.langchain4j.data.message.UserMessage;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.connection.stream.Consumer;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.ReadOffset;
-import org.springframework.data.redis.connection.stream.StreamOffset;
-import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Redis Streams 消费者：生成滚动摘要，until 单调推进。
+ * ZSet 消费者：独立线程轮询，按首次入队时间取 session，再查库算右边界并生成滚动摘要。
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AiContextSummaryWorker {
 
-    private static final String CONSUMER_NAME = "backend-1";
+    private static final long IDLE_SLEEP_MS = 5_000L;
 
     private final StringRedisTemplate redis;
     private final AiChatSessionMapper sessionMapper;
@@ -38,55 +32,51 @@ public class AiContextSummaryWorker {
     private final AiModelFactory aiModelFactory;
     private final AiContextSummaryService summaryService;
 
-    @Scheduled(fixedDelay = 2000)
-    public void poll() {
-        try {
-            @SuppressWarnings("unchecked")
-            List<MapRecord<String, Object, Object>> records =
-                    (List<MapRecord<String, Object, Object>>) (List<?>) redis.opsForStream().read(
-                    Consumer.from(AiContextSummaryService.GROUP, CONSUMER_NAME),
-                    StreamReadOptions.empty().count(1).block(Duration.ofMillis(200)),
-                    StreamOffset.create(AiContextSummaryService.QUEUE_KEY, ReadOffset.lastConsumed()));
-            if (records == null || records.isEmpty()) {
-                return;
-            }
-            for (MapRecord<String, Object, Object> record : records) {
-                long sessionId = 0;
+    @PostConstruct
+    void start() {
+        Thread t = new Thread(this::loop, "ai-summary-worker");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void loop() {
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                ZSetOperations.TypedTuple<String> item =
+                        redis.opsForZSet().popMin(AiContextSummaryService.QUEUE_KEY);
+                if (item == null || item.getValue() == null) {
+                    Thread.sleep(IDLE_SLEEP_MS);
+                    continue;
+                }
+                long sessionId = Long.parseLong(item.getValue());
                 try {
-                    Map<Object, Object> v = record.getValue();
-                    sessionId = Long.parseLong(String.valueOf(v.get("sessionId")));
-                    long rightMsgId = Long.parseLong(String.valueOf(v.get("rightMsgId")));
-                    process(sessionId, rightMsgId);
+                    process(sessionId);
                 } catch (Exception e) {
-                    log.warn("summary job failed: {}", e.getMessage());
-                } finally {
-                    if (sessionId > 0) {
-                        summaryService.unlock(sessionId);
-                    }
-                    try {
-                        redis.opsForStream().acknowledge(
-                                AiContextSummaryService.QUEUE_KEY,
-                                AiContextSummaryService.GROUP,
-                                record.getId());
-                    } catch (Exception ignored) {
-                        // ignore
-                    }
+                    log.warn("summary job failed sessionId={}: {}", sessionId, e.getMessage());
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                log.debug("summary poll: {}", e.getMessage());
+                try {
+                    Thread.sleep(IDLE_SLEEP_MS);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
                 }
             }
-        } catch (Exception e) {
-            // 无 group / 无 stream 时下次投递后会 createGroup
-            log.debug("summary poll: {}", e.getMessage());
-            summaryService.ensureConsumerGroup();
         }
     }
 
-    private void process(long sessionId, long rightMsgId) {
+    private void process(long sessionId) {
         AiChatSession session = sessionMapper.selectById(sessionId);
         if (session == null) {
             return;
         }
         long until = AiContextSummaryService.untilOf(session);
-        if (rightMsgId <= until) {
+        Long rightMsgId = summaryService.resolveRightMsgId(sessionId, until);
+        if (rightMsgId == null || rightMsgId <= until) {
             return;
         }
         List<AiChatMessage> chunk = messageMapper.listDialogueBetween(sessionId, until, rightMsgId);
