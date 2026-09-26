@@ -42,6 +42,8 @@ phys-lab-3d/
 
 ## 环境准备
 
+> 本文档中的 Docker 命令均为 Windows PowerShell 格式，使用反引号 `` ` `` 作为续行符。Linux/macOS 环境执行时，请将续行符替换为 `\`。
+
 ### 前置依赖
 
 - **JDK 17**、**Maven 3.9+**
@@ -51,19 +53,17 @@ phys-lab-3d/
 ### PostgreSQL
 
 ```powershell
-mkdir data -ErrorAction SilentlyContinue
-
 docker run -d `
   --name postgresql-16 `
   -e POSTGRES_USER=postgres `
   -e POSTGRES_PASSWORD=postgres `
   -p 5432:5432 `
-  -v ${PWD}/data:/var/lib/postgresql/data `
+  -v pgvector_data:/var/lib/postgresql/data `
   --restart unless-stopped `
   pgvector/pgvector:pg16
 ```
 
-连接：`localhost:5432`，用户/密码 `postgres` / `postgres`。库名与本地配置一致即可（默认 `phys_lab_3d`）。
+连接：`localhost:5432`，用户/密码 `postgres` / `postgres`。新建数据库，库名与本地配置一致即可（默认 `phys_lab_3d`）。
 
 ### 数据库脚本
 
@@ -78,16 +78,13 @@ docker run -d `
 ### MinIO
 
 ```powershell
-cd D:\docker-home\minio-2025-09-07
-mkdir data -ErrorAction SilentlyContinue
-
 docker run -d `
   --name minio-2025-09-07 `
   -e MINIO_ROOT_USER=minioadmin `
   -e MINIO_ROOT_PASSWORD=minioadmin `
   -p 9000:9000 `
   -p 9001:9001 `
-  -v ${PWD}/data:/data `
+  -v minio-data-20250907:/data `
   --restart unless-stopped `
   minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address ":9001"
 ```
