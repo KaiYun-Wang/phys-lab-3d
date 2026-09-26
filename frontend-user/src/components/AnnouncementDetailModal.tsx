@@ -2,6 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import type { Announcement } from "@/lib/api";
 
 function formatTime(value?: string) {
@@ -48,7 +49,11 @@ export default function AnnouncementDetailModal({
             <p className="announcement-modal-time">{formatTime(announcement.createTime)}</p>
           ) : null}
         </div>
-        <div className="announcement-modal-body">{announcement.content}</div>
+        <div className="announcement-modal-body">
+          {announcement.content.trim() ? (
+            <ReactMarkdown>{announcement.content}</ReactMarkdown>
+          ) : null}
+        </div>
         <div className="announcement-modal-foot">
           <button type="button" className="btn-ghost btn-ghost-sm" onClick={onClose}>
             知道了

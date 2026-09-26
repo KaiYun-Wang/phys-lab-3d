@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import KnowledgeMarkdownEditor from "@/components/KnowledgeMarkdownEditor";
+import { useToast } from "@/components/Toast";
 import type { AnnouncementInput } from "@/lib/api";
 
 export type AnnouncementFormValues = AnnouncementInput;
@@ -20,8 +22,28 @@ export default function AnnouncementForm({
   onSubmit,
   onCancel,
 }: AnnouncementFormProps) {
+  const toast = useToast();
   const [title, setTitle] = useState(initial.title);
   const [content, setContent] = useState(initial.content);
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  function onFile(file: File) {
+    const lower = file.name.toLowerCase();
+    if (!(lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".txt"))) {
+      toast.error("仅支持 .md / .txt");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result ?? "");
+      setFileName(file.name);
+      setContent(text);
+      setTitle((t) => t.trim() || file.name.replace(/\.(md|markdown|txt)$/i, ""));
+      toast.success("已读入文件");
+    };
+    reader.onerror = () => toast.error("读取文件失败");
+    reader.readAsText(file, "UTF-8");
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -45,14 +67,13 @@ export default function AnnouncementForm({
         </div>
 
         <div className="field field--full">
-          <label htmlFor="content">正文</label>
-          <textarea
-            className="text-input text-input--textarea"
-            id="content"
+          <label>正文（Markdown）</label>
+          <KnowledgeMarkdownEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={10}
-            placeholder="公告内容"
+            onChange={setContent}
+            onFile={onFile}
+            fileName={fileName}
+            rows={14}
             required
           />
         </div>
