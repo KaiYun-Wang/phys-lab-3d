@@ -24,7 +24,7 @@ public interface IAiChatService {
 
     /**
      * 流式对话。
-     * onStatus：步骤提示（知识库/工具），前端单独气泡展示，不落库；
+     * onStatus：步骤提示（知识库/工具），前端实时气泡；tool_call/tool_result/thinking 同时落库；
      * onClear：工具轮开始时清空当前回答气泡，便于下一轮继续流式；
      * onThinking / onDelta：可多次；思考内容仅推理模型会推送。
      */

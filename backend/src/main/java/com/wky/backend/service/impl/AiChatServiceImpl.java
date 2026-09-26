@@ -40,6 +40,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -131,8 +132,8 @@ public class AiChatServiceImpl implements IAiChatService {
     public AiChatReplyResponse chat(
             Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
         PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
-        String answer = generateAnswerSync(prepared.messages());
-        AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer, null);
+        String answer = generateAnswerSync(prepared.session(), prepared.messages());
+        AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer);
         return AiChatReplyResponse.builder()
                 .userMessage(toMessage(prepared.userMsg()))
                 .assistantMessage(toMessage(assistantMsg))
@@ -156,9 +157,10 @@ public class AiChatServiceImpl implements IAiChatService {
         try {
             onStatus.accept("正在准备回答…");
             PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
+            AiChatSession session = prepared.session();
             onMeta.accept(new StreamMeta(
-                    prepared.session().getId(),
-                    prepared.session().getTitle(),
+                    session.getId(),
+                    session.getTitle(),
                     prepared.userMsg().getId()));
 
             List<ChatMessage> working = new ArrayList<>(prepared.messages());
@@ -229,6 +231,7 @@ public class AiChatServiceImpl implements IAiChatService {
                 if (aiMessage != null
                         && roundThinking.length() == 0
                         && StringUtils.hasText(aiMessage.thinking())) {
+                    roundThinking.append(aiMessage.thinking());
                     thinkingBuf.append(aiMessage.thinking());
                     onThinking.accept(aiMessage.thinking());
                 }
@@ -237,9 +240,10 @@ public class AiChatServiceImpl implements IAiChatService {
                     // 本轮是工具调用：清空回答气泡，用 status 气泡展示步骤，再继续流式
                     onClear.run();
                     full.setLength(0);
+                    saveThinking(session, roundThinking.toString());
                     thinkingBuf.setLength(0);
                     working.add(aiMessage);
-                    appendToolResults(working, aiMessage.toolExecutionRequests(), onStatus);
+                    appendToolResults(session, working, aiMessage.toolExecutionRequests(), onStatus);
                     onStatus.accept("继续生成回答…");
                     continue;
                 }
@@ -263,9 +267,10 @@ public class AiChatServiceImpl implements IAiChatService {
                 return;
             }
             String thinking = thinkingBuf.toString();
-            AiChatMessage assistantMsg = saveAssistant(prepared.session(), full.toString(), thinking);
+            saveThinking(session, thinking);
+            AiChatMessage assistantMsg = saveAssistant(session, full.toString());
             onDone.accept(new StreamDone(
-                    assistantMsg.getId(), toSession(prepared.session()), blankToNull(thinking)));
+                    assistantMsg.getId(), toSession(session), blankToNull(thinking)));
         } catch (Exception e) {
             onError.accept(e instanceof ApiException
                     ? e
@@ -296,21 +301,32 @@ public class AiChatServiceImpl implements IAiChatService {
         return new PreparedChat(session, userMsg, messages);
     }
 
-    private AiChatMessage saveAssistant(AiChatSession session, String answer, String thinking) {
-        AiChatMessage assistantMsg = new AiChatMessage();
-        assistantMsg.setSessionId(session.getId());
-        assistantMsg.setRole("assistant");
-        assistantMsg.setContent(answer);
-        if (StringUtils.hasText(thinking)) {
-            assistantMsg.setContextJson(Map.of("thinking", thinking));
-        }
-        messageMapper.insert(assistantMsg);
+    private AiChatMessage saveAssistant(AiChatSession session, String answer) {
+        AiChatMessage assistantMsg = insertMessage(session.getId(), "assistant", answer, null);
         session.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(session);
         return assistantMsg;
     }
 
-    private String generateAnswerSync(List<ChatMessage> messages) {
+    private void saveThinking(AiChatSession session, String thinking) {
+        if (!StringUtils.hasText(thinking)) {
+            return;
+        }
+        insertMessage(session.getId(), "thinking", thinking, null);
+    }
+
+    private AiChatMessage insertMessage(
+            Long sessionId, String role, String content, Map<String, Object> contextJson) {
+        AiChatMessage msg = new AiChatMessage();
+        msg.setSessionId(sessionId);
+        msg.setRole(role);
+        msg.setContent(content);
+        msg.setContextJson(contextJson);
+        messageMapper.insert(msg);
+        return msg;
+    }
+
+    private String generateAnswerSync(AiChatSession session, List<ChatMessage> messages) {
         try {
             List<ChatMessage> working = new ArrayList<>(messages);
             for (int i = 0; i < MAX_TOOL_ROUNDS; i++) {
@@ -323,10 +339,12 @@ public class AiChatServiceImpl implements IAiChatService {
                     return "（模型未返回内容）";
                 }
                 if (aiMessage.hasToolExecutionRequests()) {
+                    saveThinking(session, aiMessage.thinking());
                     working.add(aiMessage);
-                    appendToolResults(working, aiMessage.toolExecutionRequests(), status -> {});
+                    appendToolResults(session, working, aiMessage.toolExecutionRequests(), status -> {});
                     continue;
                 }
+                saveThinking(session, aiMessage.thinking());
                 return StringUtils.hasText(aiMessage.text()) ? aiMessage.text() : "（模型未返回内容）";
             }
             throw new ApiException(502, "工具调用轮次过多");
@@ -338,11 +356,19 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     private void appendToolResults(
+            AiChatSession session,
             List<ChatMessage> working,
             List<ToolExecutionRequest> requests,
             Consumer<String> onStatus) {
         for (ToolExecutionRequest request : requests) {
-            onStatus.accept("调用工具：" + toolLabel(request.name()) + "…");
+            String label = toolLabel(request.name());
+            onStatus.accept("调用工具：" + label + "…");
+            Map<String, Object> callCtx = new LinkedHashMap<>();
+            callCtx.put("name", request.name());
+            callCtx.put("arguments", request.arguments());
+            callCtx.put("toolCallId", request.id());
+            insertMessage(session.getId(), "tool_call", "调用工具：" + label, callCtx);
+
             ToolExecutor executor = toolExecutors.get(request.name());
             String result;
             try {
@@ -352,9 +378,19 @@ public class AiChatServiceImpl implements IAiChatService {
             } catch (Exception e) {
                 result = "工具执行失败：" + e.getMessage();
             }
-            onStatus.accept("工具完成：" + toolLabel(request.name()));
+            onStatus.accept("工具完成：" + label);
+            Map<String, Object> resultCtx = new LinkedHashMap<>();
+            resultCtx.put("toolCallId", request.id());
+            resultCtx.put("name", request.name());
+            insertMessage(session.getId(), "tool_result", truncateForStore(result), resultCtx);
             working.add(ToolExecutionResultMessage.from(request, result));
         }
+    }
+
+    /** ponytail: hard cap only; dedicated tool-result prompt truncate comes in step ③ */
+    private static String truncateForStore(String s) {
+        if (s == null) return "";
+        return s.length() <= 32_000 ? s : s.substring(0, 32_000) + "…";
     }
 
     private static String toolLabel(String name) {
@@ -448,12 +484,19 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     private AiChatMessageResponse toMessage(AiChatMessage m) {
+        String thinking = null;
+        if ("thinking".equals(m.getRole())) {
+            thinking = m.getContent();
+        } else if ("assistant".equals(m.getRole())) {
+            // 旧数据：thinking 曾塞在 assistant.context_json
+            thinking = extractThinking(m.getContextJson());
+        }
         return AiChatMessageResponse.builder()
                 .id(m.getId())
                 .sessionId(m.getSessionId())
                 .role(m.getRole())
                 .content(m.getContent())
-                .thinking(extractThinking(m.getContextJson()))
+                .thinking(thinking)
                 .context(m.getContextJson())
                 .createTime(m.getCreateTime())
                 .build();

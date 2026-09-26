@@ -646,9 +646,10 @@ export type AiChatSession = {
 export type AiChatMessage = {
   id: number;
   sessionId: number;
-  role: "user" | "assistant" | "system" | "status";
+  role: "user" | "assistant" | "system" | "status" | "thinking" | "tool_call" | "tool_result";
   content: string;
   thinking?: string | null;
+  context?: Record<string, unknown> | null;
   createTime: string;
 };
 

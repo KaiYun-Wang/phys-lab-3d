@@ -2523,6 +2523,51 @@ canvas {
   margin-top: 2px;
 }
 
+.ai-step {
+  width: 100%;
+  margin-bottom: 4px;
+}
+.ai-step-toggle {
+  border: none;
+  background: transparent;
+  color: var(--sx-ink-mute);
+  font-size: 11px;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.2px;
+  text-align: left;
+  max-width: 100%;
+}
+.ai-step-toggle:hover:not(:disabled) {
+  color: var(--sx-mute);
+}
+.ai-step-toggle:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.ai-step-chevron {
+  font-size: 10px;
+  width: 10px;
+  flex-shrink: 0;
+}
+.ai-step-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--sx-hairline);
+  background: rgba(0, 0, 0, 0.35);
+  color: #8a8a96;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 .ai-thinking {
   width: 100%;
   margin-bottom: 6px;

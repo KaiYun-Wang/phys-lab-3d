@@ -54,25 +54,63 @@ function pageContext(pathname: string): { label: string; context: AiChatContext 
   return { label: pathname, context: { path: pathname, pageType: "other" } };
 }
 
-function ThinkingBlock({ text, streaming }: { text: string; streaming?: boolean }) {
-  const [open, setOpen] = useState(streaming ?? false);
-  useEffect(() => {
-    if (streaming) setOpen(true);
-  }, [streaming]);
-  if (!text && !streaming) return null;
+/** 思考 / 工具：默认折叠，点开才看详情 */
+function CollapsibleStep({
+  label,
+  detail,
+  streaming,
+}: {
+  label: string;
+  detail?: string;
+  streaming?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const body = (detail ?? "").trim();
+  const canOpen = body.length > 0;
+  if (!label && !streaming && !canOpen) return null;
   return (
-    <div className="ai-thinking">
-      <button type="button" className="ai-thinking-toggle" onClick={() => setOpen((v) => !v)}>
-        <span className="ai-thinking-chevron">{open ? "▾" : "▸"}</span>
-        {streaming && !text ? "思考中…" : open ? "收起思考过程" : "展开思考过程"}
+    <div className="ai-step">
+      <button
+        type="button"
+        className="ai-step-toggle"
+        onClick={() => canOpen && setOpen((v) => !v)}
+        aria-expanded={open}
+        disabled={!canOpen}
+      >
+        <span className="ai-step-chevron">{canOpen ? (open ? "▾" : "▸") : "·"}</span>
+        {streaming && !body ? "思考中…" : label}
       </button>
-      {open && (
-        <div className="ai-thinking-body">
-          {text || (streaming ? "…" : "")}
-        </div>
-      )}
+      {open && canOpen && <div className="ai-step-body">{body}</div>}
     </div>
   );
+}
+
+function toolStepLabel(role: "tool_call" | "tool_result", content: string, context?: Record<string, unknown> | null) {
+  if (role === "tool_call") return content || "调用工具";
+  const name = context?.name;
+  if (typeof name === "string" && name) {
+    const map: Record<string, string> = {
+      listPublishedExperiments: "查询已发布实验",
+      listKnowledgePages: "查询知识页目录",
+      getKnowledgePageContents: "读取知识页正文",
+    };
+    return `工具结果：${map[name] ?? name}`;
+  }
+  return "工具结果";
+}
+
+function toolStepDetail(role: "tool_call" | "tool_result", content: string, context?: Record<string, unknown> | null) {
+  if (role === "tool_result") return content;
+  const args = context?.arguments;
+  if (typeof args === "string" && args.trim()) return args;
+  if (args != null) {
+    try {
+      return JSON.stringify(args, null, 2);
+    } catch {
+      return String(args);
+    }
+  }
+  return content;
 }
 
 function timeLabel(iso: string) {
@@ -581,10 +619,25 @@ export default function AiChatWidget() {
                   <div key={m.id} className="msg status">
                     <div className="status-line">{m.content}</div>
                   </div>
+                ) : m.role === "tool_call" || m.role === "tool_result" ? (
+                  <div key={m.id} className="msg status">
+                    <CollapsibleStep
+                      label={toolStepLabel(m.role, m.content, m.context)}
+                      detail={toolStepDetail(m.role, m.content, m.context)}
+                    />
+                  </div>
+                ) : m.role === "thinking" ? (
+                  <div key={m.id} className="msg status">
+                    <CollapsibleStep label="思考过程" detail={m.content || m.thinking || ""} />
+                  </div>
                 ) : (
                   <div key={m.id} className={`msg ${m.role}`}>
                     {m.role === "assistant" && (m.thinking || (sending && m.id < 0)) && (
-                      <ThinkingBlock text={m.thinking || ""} streaming={sending && m.id < 0 && !m.content} />
+                      <CollapsibleStep
+                        label="思考过程"
+                        detail={m.thinking || ""}
+                        streaming={sending && m.id < 0 && !m.content}
+                      />
                     )}
                     <div className={`bubble${m.role === "assistant" ? " bubble--md" : ""}`}>
                       {m.role === "assistant" ? (

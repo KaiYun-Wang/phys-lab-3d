@@ -282,10 +282,11 @@ export type AiChatSession = {
 export type AiChatMessage = {
   id: number;
   sessionId: number;
-  role: "user" | "assistant" | "system" | "status";
+  role: "user" | "assistant" | "system" | "status" | "thinking" | "tool_call" | "tool_result";
   content: string;
   thinking?: string | null;
-  context?: AiChatContext | null;
+  /** 页面上下文，或 tool_call/tool_result 的 name/arguments/toolCallId */
+  context?: (AiChatContext & Record<string, unknown>) | Record<string, unknown> | null;
   createTime: string;
 };
 
