@@ -9,7 +9,7 @@
 | 应用 | 目录 | 端口 | 角色 |
 | --- | --- | --- | --- |
 | 用户端 | `frontend-user` | 3000 | 浏览与操作 3D 物理实验；注册/登录、个人资料、收藏、评论、AI 助手 |
-| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；知识库上传；AI 试聊 |
+| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；知识页维护；AI 试聊 |
 | 后端 | `backend` | 8080 | 用户端与管理端共用 API 服务 |
 
 **技术栈**
@@ -19,7 +19,7 @@
 | 用户端 | Next.js 15 · React 19 · Three.js |
 | 管理端 | Next.js 15 · React 19 · 纯 CSS |
 | 后端 | Spring Boot 3.5 · JDK 17 · MyBatis-Plus · LangChain4j |
-| 数据库 | PostgreSQL 16 + pgvector |
+| 数据库 | PostgreSQL 16 |
 | 对象存储 | MinIO（用户头像、实验封面） |
 
 ## 架构
@@ -34,7 +34,6 @@ phys-lab-3d/
 │       └── schema/                 # 建表 / 种子 SQL
 ├── frontend-user/           # 3D 实验 + 用户中心
 ├── frontend-admin/          # 管理后台
-├── knowledge-base/          # 知识库测试文档（可管理端上传）
 ├── admin-design.html        # 管理端 UI 设计稿
 ├── comment-design.html      # 实验侧栏 / 评论设计稿
 └── DESIGN-*.md              # 设计说明（可选参考）
@@ -52,15 +51,18 @@ phys-lab-3d/
 
 ### PostgreSQL
 
+普通 PostgreSQL 即可，**不需要** pgvector / 向量扩展。
+本地没有镜像时，`docker run` 会自动拉取 `postgres:16`（也可先执行 `docker pull postgres:16`）。
+
 ```powershell
 docker run -d `
   --name postgresql-16 `
   -e POSTGRES_USER=postgres `
   -e POSTGRES_PASSWORD=postgres `
   -p 5432:5432 `
-  -v pgvector_data:/var/lib/postgresql/data `
+  -v postgres_data:/var/lib/postgresql/data `
   --restart unless-stopped `
-  pgvector/pgvector:pg16
+  postgres:16
 ```
 
 连接：`localhost:5432`，用户/密码 `postgres` / `postgres`。新建数据库，库名与本地配置一致即可（默认 `phys_lab_3d`）。
@@ -93,7 +95,7 @@ docker run -d `
 - 创建 Bucket：`phys-lab`
 
 本地后端配置：复制 `application-example.yml` 为 `application-local.yml` 后按文件内注释填写。
-`knowledge-base/` 下有知识库文档，管理端「知识库」上传即可。
+知识页正文在 `seed_data.sql` 中预置，也可在管理端「知识页」编辑。
 
 ## 启动
 

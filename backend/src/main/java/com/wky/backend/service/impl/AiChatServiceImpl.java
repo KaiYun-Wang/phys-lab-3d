@@ -3,6 +3,7 @@ package com.wky.backend.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wky.backend.ai.ExperimentAiTools;
+import com.wky.backend.ai.KnowledgeAiTools;
 import com.wky.backend.config.AiModelFactory;
 import com.wky.backend.config.AiProperties;
 import com.wky.backend.domain.dto.AiChatMessageRequest;
@@ -19,7 +20,6 @@ import com.wky.backend.mapper.AiChatMessageMapper;
 import com.wky.backend.mapper.AiChatSessionMapper;
 import com.wky.backend.service.IAiChatService;
 import com.wky.backend.service.IExperimentService;
-import com.wky.backend.service.IKnowledgeService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -57,9 +57,9 @@ public class AiChatServiceImpl implements IAiChatService {
     private final AiChatMessageMapper messageMapper;
     private final AiModelFactory aiModelFactory;
     private final AiProperties aiProperties;
-    private final IKnowledgeService knowledgeService;
     private final IExperimentService experimentService;
     private final ExperimentAiTools experimentAiTools;
+    private final KnowledgeAiTools knowledgeAiTools;
 
     private List<ToolSpecification> toolSpecifications;
     private Map<String, ToolExecutor> toolExecutors;
@@ -67,7 +67,7 @@ public class AiChatServiceImpl implements IAiChatService {
     @PostConstruct
     void initTools() {
         ToolService toolService = new ToolService();
-        toolService.tools(List.of(experimentAiTools));
+        toolService.tools(List.of(experimentAiTools, knowledgeAiTools));
         toolService.maxSequentialToolsInvocations(MAX_TOOL_ROUNDS);
         this.toolSpecifications = toolService.toolSpecifications();
         this.toolExecutors = toolService.toolExecutors();
@@ -132,8 +132,7 @@ public class AiChatServiceImpl implements IAiChatService {
             Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
         PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
         String answer = generateAnswerSync(prepared.messages());
-        AiChatMessage assistantMsg = saveAssistant(
-                prepared.session(), answer, null, prepared.ragHitCount());
+        AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer, null);
         return AiChatReplyResponse.builder()
                 .userMessage(toMessage(prepared.userMsg()))
                 .assistantMessage(toMessage(assistantMsg))
@@ -155,13 +154,8 @@ public class AiChatServiceImpl implements IAiChatService {
             Consumer<StreamDone> onDone,
             Consumer<Throwable> onError) {
         try {
-            onStatus.accept("正在检索知识库…");
+            onStatus.accept("正在准备回答…");
             PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
-            if (prepared.ragHitCount() > 0) {
-                onStatus.accept("知识库命中 " + prepared.ragHitCount() + " 条相关片段");
-            } else {
-                onStatus.accept("知识库未命中相关片段");
-            }
             onMeta.accept(new StreamMeta(
                     prepared.session().getId(),
                     prepared.session().getTitle(),
@@ -269,8 +263,7 @@ public class AiChatServiceImpl implements IAiChatService {
                 return;
             }
             String thinking = thinkingBuf.toString();
-            AiChatMessage assistantMsg = saveAssistant(
-                    prepared.session(), full.toString(), thinking, prepared.ragHitCount());
+            AiChatMessage assistantMsg = saveAssistant(prepared.session(), full.toString(), thinking);
             onDone.accept(new StreamDone(
                     assistantMsg.getId(), toSession(prepared.session()), blankToNull(thinking)));
         } catch (Exception e) {
@@ -299,18 +292,15 @@ public class AiChatServiceImpl implements IAiChatService {
         session.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(session);
 
-        List<String> ragSnippets = knowledgeService.retrieve(content, aiProperties.getRagTopK());
-        List<ChatMessage> messages = buildChatMessages(session.getId(), context, ragSnippets);
-        return new PreparedChat(session, userMsg, messages, ragSnippets.size());
+        List<ChatMessage> messages = buildChatMessages(session.getId(), context);
+        return new PreparedChat(session, userMsg, messages);
     }
 
-    private AiChatMessage saveAssistant(
-            AiChatSession session, String answer, String thinking, int ragHitCount) {
+    private AiChatMessage saveAssistant(AiChatSession session, String answer, String thinking) {
         AiChatMessage assistantMsg = new AiChatMessage();
         assistantMsg.setSessionId(session.getId());
         assistantMsg.setRole("assistant");
         assistantMsg.setContent(answer);
-        assistantMsg.setRagHitCount(ragHitCount);
         if (StringUtils.hasText(thinking)) {
             assistantMsg.setContextJson(Map.of("thinking", thinking));
         }
@@ -368,16 +358,17 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     private static String toolLabel(String name) {
-        if ("listPublishedExperiments".equals(name)) {
-            return "查询已发布实验";
-        }
-        return name;
+        return switch (name) {
+            case "listPublishedExperiments" -> "查询已发布实验";
+            case "listKnowledgePages" -> "查询知识页目录";
+            case "getKnowledgePageContents" -> "读取知识页正文";
+            default -> name;
+        };
     }
 
-    private List<ChatMessage> buildChatMessages(
-            Long sessionId, Map<String, Object> context, List<String> ragSnippets) {
+    private List<ChatMessage> buildChatMessages(Long sessionId, Map<String, Object> context) {
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(buildSystemPrompt(context, ragSnippets)));
+        messages.add(SystemMessage.from(buildSystemPrompt(context)));
 
         List<AiChatMessage> history = messageMapper.selectList(
                 new LambdaQueryWrapper<AiChatMessage>()
@@ -396,16 +387,17 @@ public class AiChatServiceImpl implements IAiChatService {
         return messages;
     }
 
-    private String buildSystemPrompt(Map<String, Object> context, List<String> ragSnippets) {
+    private String buildSystemPrompt(Map<String, Object> context) {
         StringBuilder sb = new StringBuilder();
         sb.append("你是 PhysLab 3D 交互物理实验平台的实验助手。用简洁中文回答。\n")
                 .append("回答规则：\n")
                 .append("1. 涉及本平台有哪些实验、某实验是否存在、实验简介/入口（route）时：")
                 .append("必须先调用工具 listPublishedExperiments 查询，再根据工具结果回答；不要凭记忆编造平台实验。\n")
-                .append("2. 若问题与操作说明、知识库文档相关：优先使用下方「当前页面」「知识库检索片段」；")
-                .append("知识库有相关内容时必须依据知识库回答，并可说明来自知识库。\n")
+                .append("2. 涉及实验原理、操作说明、平台知识文档时：先调用 listKnowledgePages（可带关键词或留空看全目录），")
+                .append("根据返回的 description 判断相关文档，再调用 getKnowledgePageContents 拉取必要正文；")
+                .append("不要一次拉取全部正文；知识页有相关内容时必须依据正文回答，并可说明来自知识页。\n")
                 .append("3. 一般性问题（如自我介绍、问候、通用物理概念解释等）：可用你自身可靠知识回答，")
-                .append("但不要假装来自本平台知识库。\n")
+                .append("但不要假装来自本平台知识页。\n")
                 .append("4. 禁止编造：不要虚构本平台不存在的实验名称/功能；不要捏造未给出的实验参数或文档内容。\n")
                 .append("5. 确实不知道或资料不足时，直接说不知道，不要猜测凑答。\n");
 
@@ -430,16 +422,6 @@ public class AiChatServiceImpl implements IAiChatService {
                     // ignore
                 }
             }
-        }
-
-        if (ragSnippets != null && !ragSnippets.isEmpty()) {
-            sb.append("\n【知识库检索片段】\n");
-            for (int i = 0; i < ragSnippets.size(); i++) {
-                sb.append(i + 1).append(". ").append(ragSnippets.get(i)).append("\n\n");
-            }
-            sb.append("与问题相关时优先依据上述片段回答。\n");
-        } else {
-            sb.append("\n【知识库检索片段】\n（本次无命中；勿假装引用知识库。）\n");
         }
 
         return sb.toString();
@@ -498,5 +480,5 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     private record PreparedChat(
-            AiChatSession session, AiChatMessage userMsg, List<ChatMessage> messages, int ragHitCount) {}
+            AiChatSession session, AiChatMessage userMsg, List<ChatMessage> messages) {}
 }

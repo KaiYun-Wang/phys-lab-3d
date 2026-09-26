@@ -1615,6 +1615,63 @@ canvas {
   text-transform: uppercase;
   color: var(--sx-mute);
 }
+.exp-scene-hud {
+  position: absolute;
+  /* 避开左上角「控制」chip（top:72px + chip 高约 36px + 间距） */
+  top: 124px;
+  left: 16px;
+  z-index: 12;
+  max-width: min(240px, 40vw);
+  max-height: min(58vh, 520px);
+  overflow: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+  scrollbar-width: thin;
+}
+
+.exp-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: "Segoe UI", "DIN Alternate", "Helvetica Neue", sans-serif;
+}
+
+.exp-hud__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+
+.exp-hud__label {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(186, 220, 255, 0.55);
+  text-shadow:
+    0 0 10px rgba(80, 180, 255, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.exp-hud__value {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: rgba(210, 240, 255, 0.92);
+  text-shadow:
+    0 0 14px rgba(100, 210, 255, 0.45),
+    0 0 2px rgba(140, 220, 255, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
 .exp-data-dot {
   width: 7px;
   height: 7px;

@@ -3,176 +3,160 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useToast } from "@/components/Toast";
 import {
-  deleteKbDocument,
-  fetchKbDocuments,
+  deleteKnowledgePage,
+  fetchKnowledgePages,
   fetchMe,
-  uploadKbDocument,
   type AdminProfile,
-  type KbDocument,
+  type KnowledgePage,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { useToast } from "@/components/Toast";
 
-const DEFAULT_CHUNK_SIZE = 512;
-const DEFAULT_CHUNK_OVERLAP = 128;
-
-export default function KnowledgePage() {
+export default function KnowledgeListPage() {
   const toast = useToast();
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
-  const [items, setItems] = useState<KbDocument[]>([]);
+  const [items, setItems] = useState<KnowledgePage[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showUpload, setShowUpload] = useState(false);
-  const [title, setTitle] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [chunkSize, setChunkSize] = useState(DEFAULT_CHUNK_SIZE);
-  const [chunkOverlap, setChunkOverlap] = useState(DEFAULT_CHUNK_OVERLAP);
-  const [noChunk, setNoChunk] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<KbDocument | null>(null);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<KnowledgePage | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchMe()
-      .then(setAdmin)
-      .catch(() => setAdmin(null));
-  }, []);
-
-  const load = useCallback(async () => {
+  const loadList = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const page = await fetchKbDocuments(1, 50);
-      setItems(page.records ?? []);
-      setTotal(page.total ?? 0);
-    } catch (e) {
+      const data = await fetchKnowledgePages(1, 100, query || undefined);
+      setItems(data.records ?? []);
+      setTotal(data.total ?? 0);
+    } catch (err) {
       setItems([]);
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
+  }, [query]);
+
+  useEffect(() => {
+    fetchMe().then(setAdmin).catch(() => setAdmin(null));
   }, []);
 
   useEffect(() => {
-    if (admin) load();
-  }, [admin, load]);
+    if (admin) loadList();
+  }, [admin, loadList]);
 
-  const resetUploadForm = () => {
-    setTitle("");
-    setFile(null);
-    setChunkSize(DEFAULT_CHUNK_SIZE);
-    setChunkOverlap(DEFAULT_CHUNK_OVERLAP);
-    setNoChunk(false);
-  };
-
-  const closeUpload = () => {
-    if (uploading) return;
-    setShowUpload(false);
-    resetUploadForm();
-  };
-
-  const onUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) {
-      toast.error("请选择 .txt 或 .md 文件");
-      return;
-    }
-    if (!noChunk && chunkOverlap >= chunkSize) {
-      toast.error("重叠大小须小于块大小");
-      return;
-    }
-    setUploading(true);
-    try {
-      await uploadKbDocument(file, {
-        title,
-        chunkSize: noChunk ? undefined : chunkSize,
-        chunkOverlap: noChunk ? undefined : chunkOverlap,
-        noChunk,
-      });
-      toast.success("上传并向量化成功");
-      setShowUpload(false);
-      resetUploadForm();
-      await load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "上传失败");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const onDelete = async () => {
+  async function confirmDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteKbDocument(deleteTarget.id);
-      toast.success("已删除");
+      await deleteKnowledgePage(deleteTarget.id);
       setDeleteTarget(null);
-      await load();
+      toast.success("已删除");
+      await loadList();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "删除失败");
     } finally {
       setDeleting(false);
     }
-  };
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
+  if (!admin) return <div className="auth-loading">加载中…</div>;
+
   return (
-    <AdminShell admin={admin} title="知识库">
-      <div className="page-toolbar">
-        <div>
-          <h2 className="page-title">知识库文档</h2>
-          <p className="page-caption">支持 UTF-8 的 .txt / .md 文件，上传时可配置分块参数。</p>
+    <AdminShell admin={admin} title="知识页">
+      <section className="page-toolbar">
+        <div className="page-toolbar__left">
+          <h2 className="page-title">知识页</h2>
+          <p className="caption">
+            AI 先查目录（标题+描述），再按需拉正文 · 共 {total} 篇
+          </p>
         </div>
-        <button type="button" className="btn-pill btn-pill--primary" onClick={() => setShowUpload(true)}>
-          上传文档
-        </button>
-      </div>
+        <Link href="/knowledge/new" className="btn-pill btn-pill--primary btn-pill--sm">
+          + 新增知识页
+        </Link>
+      </section>
 
       <section className="card card--elevated">
-        {error && <p className="form-error">{error}</p>}
+        <div className="table-toolbar">
+          <form
+            className="search-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setQuery(search.trim());
+            }}
+          >
+            <input
+              className="text-input search-form__input"
+              type="search"
+              placeholder="按文档名搜索…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
+              搜索
+            </button>
+            <button
+              type="button"
+              className="btn-pill btn-pill--ghost btn-pill--sm"
+              onClick={() => {
+                setSearch("");
+                setQuery("");
+              }}
+            >
+              清空
+            </button>
+          </form>
+        </div>
+
+        {error ? <p className="form-error table-message">{error}</p> : null}
+
         {loading ? (
-          <p className="empty-block">加载中…</p>
+          <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
-          <p className="empty-block">暂无文档。上传后即可在 AI 试聊 / 用户端助手中检索。</p>
+          <div className="empty-block empty-block--compact">
+            <div className="empty-block__icon">📄</div>
+            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+              {query ? "无匹配知识页" : "暂无知识页"}
+            </span>
+            {!query ? (
+              <Link href="/knowledge/new" className="btn-pill btn-pill--primary btn-pill--sm">
+                新增第一篇
+              </Link>
+            ) : null}
+          </div>
         ) : (
-          <div className="table-scroll">
+          <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>标题</th>
-                  <th>文件名</th>
-                  <th>状态</th>
-                  <th>切片数</th>
+                  <th>描述</th>
                   <th>更新时间</th>
-                  <th />
+                  <th aria-label="操作" />
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
                   <tr key={row.id}>
-                    <td>{row.title}</td>
-                    <td>{row.filename}</td>
                     <td>
-                      <span className="pill-tag">{row.status}</span>
+                      <span className="data-table__title">{row.title}</span>
                     </td>
-                    <td>{row.chunkCount}</td>
-                    <td>{formatDateTime(row.updateTime)}</td>
+                    <td className="data-table__desc">{row.description || "—"}</td>
+                    <td className="data-table__time">{formatDateTime(row.updateTime)}</td>
                     <td>
-                      <div className="table-actions">
+                      <div className="row-actions">
                         <Link
                           href={`/knowledge/${row.id}`}
                           className="btn-pill btn-pill--ghost btn-pill--sm"
                         >
-                          分块
+                          编辑
                         </Link>
                         <button
                           type="button"
-                          className="btn-pill btn-pill--ghost btn-pill--sm"
+                          className="btn-pill btn-pill--ghost btn-pill--sm row-actions__danger"
                           onClick={() => setDeleteTarget(row)}
                         >
                           删除
@@ -185,134 +169,36 @@ export default function KnowledgePage() {
             </table>
           </div>
         )}
-        <p className="page-caption" style={{ marginTop: 12 }}>
-          共 {total} 篇
-        </p>
       </section>
 
-      {showUpload && (
-        <div className="modal-overlay" role="presentation" onClick={closeUpload}>
-          <div
-            className="modal modal--kb-upload card card--elevated"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="kb-upload-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="kb-modal-head">
-              <div>
-                <h3 className="heading-sm" id="kb-upload-title">
-                  上传文档
-                </h3>
-                <p className="page-caption">选择本地文件并配置分块策略</p>
-              </div>
-              <button type="button" className="btn-pill btn-pill--ghost btn-pill--sm" onClick={closeUpload}>
-                关闭
-              </button>
-            </div>
-
-            <form className="kb-upload-modal-form" onSubmit={onUpload}>
-              <label className="field">
-                <span className="field-label">文档标题（可选）</span>
-                <input
-                  className="text-input"
-                  placeholder="默认使用文件名"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </label>
-
-              <label className="field">
-                <span className="field-label">本地文件</span>
-                <div className="kb-upload-file-row">
-                  <label className="btn-pill btn-pill--outline kb-upload-pick">
-                    选择文件
-                    <input
-                      type="file"
-                      className="kb-upload-pick__input"
-                      accept=".txt,.md,.markdown,text/plain,text/markdown"
-                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                  <span className="kb-upload-filename">{file ? file.name : "未选择任何文件"}</span>
-                </div>
-              </label>
-
-              <div className="kb-chunk-box">
-                <label className="field">
-                  <span className="field-label">分块策略</span>
-                  <select className="text-input" value="fixed_size" disabled>
-                    <option value="fixed_size">fixed_size</option>
-                  </select>
-                </label>
-
-                <div className="kb-chunk-params">
-                  <label className="field">
-                    <span className="field-label">块大小</span>
-                    <input
-                      className="text-input"
-                      type="number"
-                      min={1}
-                      max={100000}
-                      value={chunkSize}
-                      disabled={noChunk}
-                      onChange={(e) => setChunkSize(Number(e.target.value) || 1)}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className={`btn-pill btn-pill--sm ${noChunk ? "btn-pill--primary" : "btn-pill--outline"}`}
-                    onClick={() => setNoChunk((v) => !v)}
-                  >
-                    {noChunk ? "已不分块" : "不分块"}
-                  </button>
-                  <label className="field">
-                    <span className="field-label">重叠大小</span>
-                    <input
-                      className="text-input"
-                      type="number"
-                      min={0}
-                      max={99999}
-                      value={chunkOverlap}
-                      disabled={noChunk}
-                      onChange={(e) => setChunkOverlap(Number(e.target.value) || 0)}
-                    />
-                  </label>
-                </div>
-                <p className="field-hint">
-                  按字符数切分；选择「不分块」时整篇作为一块写入。
-                </p>
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn-pill btn-pill--ghost" onClick={closeUpload} disabled={uploading}>
-                  取消
-                </button>
-                <button type="submit" className="btn-pill btn-pill--primary" disabled={uploading}>
-                  {uploading ? "上传中…" : "上传"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {deleteTarget && (
+      {deleteTarget ? (
         <div className="modal-overlay" role="dialog">
           <div className="modal card card--elevated">
-            <h3>删除文档</h3>
-            <p>确定删除「{deleteTarget.title}」及其全部向量切片？</p>
+            <h3 className="heading-sm">删除知识页</h3>
+            <p className="caption" style={{ marginTop: 8 }}>
+              确定删除「{deleteTarget.title}」？
+            </p>
             <div className="modal-actions">
-              <button type="button" className="btn-pill btn-pill--ghost" onClick={() => setDeleteTarget(null)}>
+              <button
+                type="button"
+                className="btn-pill btn-pill--ghost"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+              >
                 取消
               </button>
-              <button type="button" className="btn-pill" disabled={deleting} onClick={onDelete}>
+              <button
+                type="button"
+                className="btn-pill btn-pill--primary"
+                disabled={deleting}
+                onClick={confirmDelete}
+              >
                 {deleting ? "删除中…" : "删除"}
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </AdminShell>
   );
 }

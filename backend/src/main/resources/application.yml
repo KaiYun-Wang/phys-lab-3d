@@ -30,17 +30,11 @@ phys-lab:
     secret: phys-lab-3d
     expiration-ms: 86400000
   ai:
-    # 对话与向量可分开配置（例如 DeepSeek 对话 + 其它厂商 Embedding）
+    # 对话模型（OpenAI 兼容）
     chat:
       api-key: ${PHYS_LAB_AI_CHAT_API_KEY:}
       base-url: ${PHYS_LAB_AI_CHAT_BASE_URL:https://api.deepseek.com}
       model: ${PHYS_LAB_AI_CHAT_MODEL:deepseek-chat}
-    embedding:
-      api-key: ${PHYS_LAB_AI_EMBEDDING_API_KEY:}
-      base-url: ${PHYS_LAB_AI_EMBEDDING_BASE_URL:https://api.openai.com/v1}
-      model: ${PHYS_LAB_AI_EMBEDDING_MODEL:Qwen/Qwen3-Embedding-0.6B}
-      dimensions: 1024
-    rag-top-k: 4
     history-limit: 20
 
 dromara:

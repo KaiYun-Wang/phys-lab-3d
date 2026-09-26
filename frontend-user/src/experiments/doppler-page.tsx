@@ -9,7 +9,7 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  DataGrid,
+  HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -150,60 +150,70 @@ export default function DopplerPage() {
         </label>
       </ControlGroup>
 
+      <ControlGroup title="原理说明">
+        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+          {data ? (
+            <>
+              <p>
+                <strong className="text-[#e8e8f0]">频移类型：</strong>
+                <span
+                  className={
+                    data.shiftType === "blueshift"
+                      ? "text-blue-400"
+                      : data.shiftType === "redshift"
+                        ? "text-red-400"
+                        : "text-green-400"
+                  }
+                >
+                  {data.shiftType === "blueshift"
+                    ? "蓝移（靠近）"
+                    : data.shiftType === "redshift"
+                      ? "红移（远离）"
+                      : "无频移（静止）"}
+                </span>
+              </p>
+              {data.machNumber >= 1 ? (
+                <p className="text-purple-400">超音速，马赫数 {data.machNumber.toFixed(2)}</p>
+              ) : null}
+              {data.dopplerShiftRatio !== 1 ? (
+                <p>
+                  {data.dopplerShiftRatio > 1
+                    ? `频率升高 ${((data.dopplerShiftRatio - 1) * 100).toFixed(0)}%`
+                    : `频率降低 ${((1 - data.dopplerShiftRatio) * 100).toFixed(0)}%`}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p>声源靠近观察者时频率升高（蓝移），远离时降低（红移）。</p>
+          )}
+        </div>
+      </ControlGroup>
+
       <DetailsLinkButton href="/experiments/doppler/details" />
     </div>
   );
 
-  const dataPanelContent = data ? (
-    <>
-      <DataGrid
-        data={{
-          "源频率": { value: data.sourceFrequency, unit: "Hz", color: "#f59e0b", decimals: 1 },
-          "观测频率": { value: data.observedFrequency, unit: "Hz", color: data.shiftType === "blueshift" ? "#3b82f6" : data.shiftType === "redshift" ? "#ef4444" : "#22c55e", decimals: 1 },
-          "多普勒比": { value: data.dopplerShiftRatio, unit: "×", color: "#ec4899", decimals: 2 },
-          "马赫数": { value: data.machNumber, unit: "", color: "#a855f7", decimals: 2 },
-          "波速": { value: data.waveSpeed, unit: "m/s", color: "#22c55e", decimals: 0 },
-        }}
-        columns={1}
-      />
-      <div className="mt-3 p-3 bg-gray-800/50 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-400 text-sm">频移类型：</span>
-          <span
-            className={`font-bold ${
-              data.shiftType === "blueshift"
-                ? "text-blue-400"
-                : data.shiftType === "redshift"
-                ? "text-red-400"
-                : "text-green-400"
-            }`}
-          >
-            {data.shiftType === "blueshift"
-              ? "🔵 蓝移（靠近）"
+  const hud = data ? (
+    <HudReadings
+      data={{
+        源频率: { value: data.sourceFrequency, unit: "Hz", color: "#fbbf24", decimals: 1 },
+        观测频率: {
+          value: data.observedFrequency,
+          unit: "Hz",
+          color:
+            data.shiftType === "blueshift"
+              ? "#7dd3fc"
               : data.shiftType === "redshift"
-              ? "🔴 红移（远离）"
-              : "🟢 无频移（静止）"}
-          </span>
-        </div>
-        {data.machNumber >= 1 && (
-          <div className="mt-2 text-xs text-purple-400 font-medium">
-            ⚠️ 超音速！马赫数 {data.machNumber.toFixed(2)}
-          </div>
-        )}
-        {data.dopplerShiftRatio !== 1 && (
-          <div className="mt-2 text-xs text-gray-400">
-            {data.dopplerShiftRatio > 1
-              ? `频率升高 ${((data.dopplerShiftRatio - 1) * 100).toFixed(0)}%`
-              : `频率降低 ${((1 - data.dopplerShiftRatio) * 100).toFixed(0)}%`}
-          </div>
-        )}
-      </div>
-    </>
-  ) : (
-    <div className="text-center text-gray-500 text-sm py-8">
-      等待模拟数据…
-    </div>
-  );
+                ? "#fca5a5"
+                : "#86efac",
+          decimals: 1,
+        },
+        多普勒比: { value: data.dopplerShiftRatio, unit: "×", color: "#f9a8d4", decimals: 2 },
+        马赫数: { value: data.machNumber, unit: "", color: "#c4b5fd", decimals: 2 },
+        波速: { value: data.waveSpeed, unit: "m/s", color: "#86efac", decimals: 0 },
+      }}
+    />
+  ) : null;
 
   return (
     <>
@@ -214,7 +224,7 @@ export default function DopplerPage() {
         cameraPosition={[0, 30, 40]}
         backgroundColor="#000000"
         controls={parameterControls}
-        dataPanel={dataPanelContent}
+        dataPanel={hud}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,

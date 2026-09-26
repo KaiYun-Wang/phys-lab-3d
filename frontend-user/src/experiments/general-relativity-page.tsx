@@ -18,17 +18,9 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
+  HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
-
-function DataRow({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 px-2 bg-gray-100/10 rounded-lg border border-gray-600/30">
-      <span className="text-xs text-gray-300">{label}</span>
-      <span className="text-xs font-mono font-medium" style={{ color }}>{value}</span>
-    </div>
-  );
-}
 
 export default function GeneralRelativityPage() {
   const [data, setData] = useState<GeneralRelativityData | null>(null);
@@ -201,27 +193,40 @@ export default function GeneralRelativityPage() {
         ))}
       </ControlGroup>
 
+      <ControlGroup title="读数提示">
+        <p className="text-xs text-[#8a8a96] leading-relaxed">
+          左上角为实时轨道与红移读数。r &lt; 3rs（ISCO）时有质量轨道不稳定；光子路径偏折体现引力透镜。
+        </p>
+      </ControlGroup>
+
       <DetailsLinkButton href="/experiments/general-relativity/details">查看原理说明</DetailsLinkButton>
     </div>
   );
 
-  const dataPanelContent = data ? (
-    <>
-      <div className="mb-3 p-3 bg-gray-800/80 rounded-lg border border-gray-700">
-        <div className="text-xs text-gray-400">轨道类型</div>
-        <div className="text-lg font-bold text-green-400">{data.orbitType}</div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <DataRow label="史瓦西半径 rs" value={data.rs.toFixed(2)} color="#ff6600" />
-        <DataRow label="r / rs" value={data.rOverRs.toFixed(2)} color="#88ccff" />
-        <DataRow label="引力红移 z" value={data.redshift.toFixed(3)} color="#ff6666" />
-        <DataRow label="光子偏折角" value={`${((data.deflectionAngle * 180) / Math.PI).toFixed(2)}°`} color="#ffffff" />
-        <DataRow label="近日点进动" value={`${((data.precessionRate * 180) / Math.PI).toFixed(4)}°/圈`} color="#aabbff" />
-        <DataRow label="ISCO (3rs)" value={data.isco.toFixed(1)} color="#6688ff" />
-        <DataRow label="光子球 (1.5rs)" value={data.photonSphere.toFixed(1)} color="#ccbbaa" />
-        <DataRow label="活跃粒子数" value={String(data.activeParticles)} color="#88ccff" />
-      </div>
-    </>
+  const hud = data ? (
+    <HudReadings
+      data={{
+        轨道: { value: data.orbitType, color: "#86efac" },
+        "rs": { value: data.rs, unit: "", color: "#fb923c", decimals: 2 },
+        "r/rs": { value: data.rOverRs, unit: "", color: "#7dd3fc", decimals: 2 },
+        红移z: { value: data.redshift, unit: "", color: "#fca5a5", decimals: 3 },
+        偏折角: {
+          value: (data.deflectionAngle * 180) / Math.PI,
+          unit: "°",
+          color: "#e8e8f0",
+          decimals: 2,
+        },
+        进动: {
+          value: (data.precessionRate * 180) / Math.PI,
+          unit: "°/圈",
+          color: "#c4b5fd",
+          decimals: 4,
+        },
+        ISCO: { value: data.isco, unit: "", color: "#93c5fd", decimals: 1 },
+        光子球: { value: data.photonSphere, unit: "", color: "#d6d3d1", decimals: 1 },
+        粒子数: { value: data.activeParticles, unit: "", color: "#7dd3fc", decimals: 0 },
+      }}
+    />
   ) : null;
 
   return (
@@ -231,7 +236,7 @@ export default function GeneralRelativityPage() {
         description="观察时空弯曲、测地线轨道、引力透镜与引力红移。拖动旋转视角，滚轮缩放。"
         experimentRoute="general-relativity"
         controls={parameterControls}
-        dataPanel={dataPanelContent}
+        dataPanel={hud}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,

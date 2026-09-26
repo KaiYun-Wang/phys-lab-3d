@@ -33,7 +33,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { icon: "⚗", label: "实验管理", href: "/experiments" },
       { icon: "◎", label: "学科分类", href: "/subject-types" },
-      { icon: "📚", label: "知识库", href: "/knowledge" },
+      { icon: "📚", label: "知识页", href: "/knowledge" },
       { icon: "✦", label: "AI 试聊", href: "/ai-chat" },
     ],
   },

@@ -119,6 +119,40 @@ export function DataGrid({ data, columns = 1 }: DataGridProps) {
   );
 }
 
+export type HudReading = {
+  value: number | string;
+  unit?: string;
+  color?: string;
+  decimals?: number;
+};
+
+export interface HudReadingsProps {
+  data: Record<string, HudReading>;
+}
+
+/** 场景左上角玻璃风实时读数（无卡片）。 */
+export function HudReadings({ data }: HudReadingsProps) {
+  return (
+    <div className="exp-hud">
+      {Object.entries(data).map(([key, item]) => {
+        const label = key.replace(/([A-Z])/g, " $1").trim();
+        const text =
+          typeof item.value === "number"
+            ? `${item.value.toFixed(item.decimals ?? 2)}${item.unit ? ` ${item.unit}` : ""}`
+            : `${item.value}${item.unit ? ` ${item.unit}` : ""}`;
+        return (
+          <div key={key} className="exp-hud__row">
+            <span className="exp-hud__label">{label}</span>
+            <span className="exp-hud__value" style={{ color: item.color || undefined }}>
+              {text}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export interface EnergyBarProps {
   kinetic: number;
   potential: number;

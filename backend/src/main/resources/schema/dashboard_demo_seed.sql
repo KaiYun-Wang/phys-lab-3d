@@ -235,29 +235,28 @@ ins_sessions AS (
     FROM session_plan
     RETURNING id, owner_id, create_time, title
 )
-INSERT INTO ai_chat_messages (session_id, role, content, context_json, create_time, rag_hit_count)
+INSERT INTO ai_chat_messages (session_id, role, content, context_json, create_time)
 SELECT s.id, 'user',
        '这个实验的核心物理原理是什么？',
        jsonb_build_object('pageType', 'experiment', 'experimentTitle', s.title),
-       s.create_time + INTERVAL '5 seconds', NULL
+       s.create_time + INTERVAL '5 seconds'
 FROM ins_sessions s
 UNION ALL
 SELECT s.id, 'assistant',
        '根据知识库与实验上下文：该现象可用对应物理模型解释。调节参数时请观察关键观测量的变化趋势。',
-       NULL, s.create_time + INTERVAL '20 seconds',
-       CASE WHEN s.owner_id % 4 = 0 THEN 0 ELSE 1 + (s.owner_id % 3)::int END
+       NULL, s.create_time + INTERVAL '20 seconds'
 FROM ins_sessions s
 UNION ALL
 SELECT s.id, 'user',
        '能再举一个和生活相关的例子吗？',
        jsonb_build_object('pageType', 'experiment'),
-       s.create_time + INTERVAL '90 seconds', NULL
+       s.create_time + INTERVAL '90 seconds'
 FROM ins_sessions s
 WHERE s.owner_id % 2 = 0
 UNION ALL
 SELECT s.id, 'assistant',
        '可以。把课堂公式和实验旋钮一一对应，会更容易记住。',
-       NULL, s.create_time + INTERVAL '110 seconds', 2
+       NULL, s.create_time + INTERVAL '110 seconds'
 FROM ins_sessions s
 WHERE s.owner_id % 2 = 0;
 

@@ -7,13 +7,12 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class KbDocumentResponse {
+public class KnowledgePageResponse {
     private Long id;
     private String title;
-    private String filename;
-    private String contentType;
-    private String status;
-    private Integer chunkCount;
+    private String description;
+    /** 列表接口可为 null，详情接口有正文 */
+    private String content;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

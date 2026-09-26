@@ -37,8 +37,6 @@ public class DashboardAnalyticsResponse {
         private long questionCount;
         /** 提问数 / 会话数；无会话时为 0 */
         private double avgSessionDepth;
-        /** 0~1；无带 rag 记录的回复时为 null */
-        private Double ragHitRate;
         private List<TrendPoint> questionTrend;
     }
 }

@@ -17,11 +17,6 @@ function formatStat(value: number | null) {
   return value === null ? "—" : String(value);
 }
 
-function formatRate(rate: number | null | undefined) {
-  if (rate == null) return "—";
-  return `${Math.round(rate * 100)}%`;
-}
-
 export default function DashboardPage() {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -75,7 +70,7 @@ export default function DashboardPage() {
         <div className="hero-band__text">
           <span className="eyebrow">欢迎回来，{admin.displayName}</span>
           <h2>管理控制台</h2>
-          <p>查看平台访问与 AI 辅导概况，管理物理实验内容与知识库。</p>
+          <p>查看平台访问与 AI 辅导概况，管理物理实验内容与知识页。</p>
         </div>
         <div className="quick-actions">
           <div className="range-toggle" role="group" aria-label="统计周期">
@@ -202,10 +197,6 @@ export default function DashboardPage() {
                   <strong>{analytics.ai.avgSessionDepth}</strong>
                   <span>会话深度</span>
                 </div>
-                <div className="ai-kpi">
-                  <strong>{formatRate(analytics.ai.ragHitRate)}</strong>
-                  <span>知识库命中</span>
-                </div>
               </div>
               <TrendChart data={analytics.ai.questionTrend} color="#3f3f46" height={140} />
             </>
@@ -222,7 +213,7 @@ export default function DashboardPage() {
             {[
               { title: "实验管理", href: "/experiments" },
               { title: "用户列表", href: "/users" },
-              { title: "知识库", href: "/knowledge" },
+              { title: "知识页", href: "/knowledge" },
               { title: "公告管理", href: "/announcements" },
             ].map((item) => (
               <div key={item.title} className="placeholder-row">

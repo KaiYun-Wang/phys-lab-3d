@@ -9,7 +9,7 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  DataGrid,
+  HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -287,46 +287,46 @@ export default function WaveMechanicsPage() {
         </ControlGroup>
       )}
 
+      <ControlGroup title="原理说明">
+        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+          <p className="font-mono text-[11px]">横波：y = A sin(kx − ωt)</p>
+          <p className="font-mono text-[11px]">纵波：Δx = A sin(kx − ωt)</p>
+          {selectedSide && particleHistory.length > 1 ? (
+            <div>
+              <p className="mb-1 text-[#c4c4ce]">
+                {selectedSide === "transverse" ? "质点位移 y(t)" : "质点压缩度 ρ(t)"}
+              </p>
+              <Sparkline
+                values={particleHistory}
+                color={selectedSide === "transverse" ? "#4f8fff" : "#ff6b35"}
+              />
+            </div>
+          ) : (
+            <p>点击场景中的质点可查看位移/压缩度时序。</p>
+          )}
+        </div>
+      </ControlGroup>
+
       <DetailsLinkButton href="/experiments/wave-mechanics/details">进入实验原理</DetailsLinkButton>
     </div>
   );
 
-  const dataPanelContent = data ? (
-    <div className="space-y-3">
-      <DataGrid
-        data={{
-          时间: { value: data.time, unit: "s", color: "#06d6a0", decimals: 2 },
-          频率: { value: data.frequency, unit: "Hz", color: "#4f8fff", decimals: 1 },
-          波长: { value: data.wavelength, unit: "m", color: "#06d6a0", decimals: 2 },
-          波速: { value: data.waveSpeed, unit: "m/s", color: "#06d6a0", decimals: 1 },
-          波数k: { value: data.k, unit: "rad/m", color: "#8b5cf6", decimals: 2 },
-          角频率ω: { value: data.omega, unit: "rad/s", color: "#8b5cf6", decimals: 2 },
-          横波ymax: { value: data.transverseYMax, unit: "m", color: "#4f8fff", decimals: 2 },
-          横波ymin: { value: data.transverseYMin, unit: "m", color: "#8b5cf6", decimals: 2 },
-          纵波ρmax: { value: data.longitudinalRhoMax, unit: "", color: "#ff6b35", decimals: 2 },
-          纵波ρmin: { value: data.longitudinalRhoMin, unit: "", color: "#ec4899", decimals: 2 },
-        }}
-        columns={2}
-      />
-      <div className="text-xs font-mono text-gray-400 border-t border-gray-700 pt-2 space-y-1">
-        <p>横波：y = A sin(kx − ωt)</p>
-        <p>纵波：Δx = A sin(kx − ωt)</p>
-      </div>
-      {selectedSide && particleHistory.length > 1 && (
-        <div>
-          <p className="text-xs text-gray-400 mb-1">
-            {selectedSide === "transverse" ? "质点位移 y(t)" : "质点压缩度 ρ(t)"}
-          </p>
-          <Sparkline
-            values={particleHistory}
-            color={selectedSide === "transverse" ? "#4f8fff" : "#ff6b35"}
-          />
-        </div>
-      )}
-    </div>
-  ) : (
-    <div className="text-center text-gray-500 text-sm py-8">正在初始化模拟…</div>
-  );
+  const hud = data ? (
+    <HudReadings
+      data={{
+        时间: { value: data.time, unit: "s", color: "#6ee7b7", decimals: 2 },
+        频率: { value: data.frequency, unit: "Hz", color: "#93c5fd", decimals: 1 },
+        波长: { value: data.wavelength, unit: "m", color: "#6ee7b7", decimals: 2 },
+        波速: { value: data.waveSpeed, unit: "m/s", color: "#6ee7b7", decimals: 1 },
+        波数k: { value: data.k, unit: "rad/m", color: "#c4b5fd", decimals: 2 },
+        角频率ω: { value: data.omega, unit: "rad/s", color: "#c4b5fd", decimals: 2 },
+        横波ymax: { value: data.transverseYMax, unit: "m", color: "#93c5fd", decimals: 2 },
+        横波ymin: { value: data.transverseYMin, unit: "m", color: "#c4b5fd", decimals: 2 },
+        纵波ρmax: { value: data.longitudinalRhoMax, unit: "", color: "#fb923c", decimals: 2 },
+        纵波ρmin: { value: data.longitudinalRhoMin, unit: "", color: "#f9a8d4", decimals: 2 },
+      }}
+    />
+  ) : null;
 
   return (
     <>
@@ -338,7 +338,7 @@ export default function WaveMechanicsPage() {
         backgroundColor="#000000"
         enableFog={false}
         controls={parameterControls}
-        dataPanel={dataPanelContent}
+        dataPanel={hud}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,

@@ -83,7 +83,7 @@ export interface ExperimentContainerProps {
   simulationBar?: SimulationBarProps;
 }
 
-type RightPanel = "data" | "comments" | null;
+type RightPanel = "comments" | null;
 
 export function ExperimentContainer({
   children,
@@ -98,8 +98,9 @@ export function ExperimentContainer({
   toneMappingExposure = 1.2,
   simulationBar,
 }: ExperimentContainerProps) {
-  const [leftOpen, setLeftOpen] = useState(!!controls);
-  const [rightPanel, setRightPanel] = useState<RightPanel>(dataPanel ? "data" : null);
+  const hasLeft = !!controls;
+  const [leftOpen, setLeftOpen] = useState(hasLeft);
+  const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [leftWidth, setLeftWidth] = useState(DEFAULT_W);
   const [rightWidth, setRightWidth] = useState(DEFAULT_W);
   const [commentCount, setCommentCount] = useState(0);
@@ -231,8 +232,8 @@ export function ExperimentContainer({
     };
   }, [resizing, persistWidth]);
 
-  const toggleRight = (panel: "data" | "comments") => {
-    setRightPanel((cur) => (cur === panel ? null : panel));
+  const toggleRight = () => {
+    setRightPanel((cur) => (cur === "comments" ? null : "comments"));
   };
 
   if (!canRender) return null;
@@ -354,7 +355,9 @@ export function ExperimentContainer({
           </div>
         </header>
 
-        {controls && (
+        {dataPanel ? <div className="exp-scene-hud">{dataPanel}</div> : null}
+
+        {hasLeft && (
           <div className="exp-float-stack left">
             <button
               type="button"
@@ -367,20 +370,11 @@ export function ExperimentContainer({
         )}
 
         <div className="exp-float-stack right">
-          {dataPanel && (
-            <button
-              type="button"
-              className={`exp-chip${rightPanel === "data" ? " active" : ""}`}
-              onClick={() => toggleRight("data")}
-            >
-              数据
-            </button>
-          )}
           {experimentRoute && (
             <button
               type="button"
               className={`exp-chip${rightPanel === "comments" ? " active" : ""}`}
-              onClick={() => toggleRight("comments")}
+              onClick={toggleRight}
             >
               评论
               {commentCount > 0 && <span className="exp-badge">{commentCount}</span>}
@@ -430,11 +424,9 @@ export function ExperimentContainer({
         <div className="exp-rail-inner">
           <div className="exp-rail-header">
             <div>
-              <h2>{rightPanel === "comments" ? "评论" : "数据"}</h2>
+              <h2>评论</h2>
               <div className="exp-rail-meta">
-                {rightPanel === "comments"
-                  ? `${commentCount} 条讨论 · ${title}`
-                  : `实时读数 · ${title}`}
+                {`${commentCount} 条讨论 · ${title}`}
               </div>
             </div>
             <button
@@ -446,16 +438,6 @@ export function ExperimentContainer({
               ✕
             </button>
           </div>
-
-          {rightPanel === "data" && dataPanel && (
-            <div className="exp-panel-scroll">
-              <div className="exp-data-live">
-                <span className="exp-data-dot" />
-                实时数据
-              </div>
-              {dataPanel}
-            </div>
-          )}
 
           {rightPanel === "comments" && experimentId != null && (
             <CommentsPanel

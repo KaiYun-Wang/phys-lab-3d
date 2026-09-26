@@ -32,17 +32,4 @@ public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
             SELECT COUNT(*) FROM ai_chat_messages WHERE role = 'user'
             """)
     long countAllUserQuestions();
-
-    @Select("""
-            SELECT COUNT(*) FROM ai_chat_messages
-            WHERE role = 'assistant' AND rag_hit_count IS NOT NULL AND create_time >= #{from}
-            """)
-    long countAssistantWithRagSince(@Param("from") LocalDateTime from);
-
-    @Select("""
-            SELECT COUNT(*) FROM ai_chat_messages
-            WHERE role = 'assistant' AND rag_hit_count IS NOT NULL
-              AND rag_hit_count > 0 AND create_time >= #{from}
-            """)
-    long countAssistantRagHitSince(@Param("from") LocalDateTime from);
 }

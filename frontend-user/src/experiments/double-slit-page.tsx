@@ -9,7 +9,7 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  DataGrid,
+  HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -110,38 +110,34 @@ export default function DoubleSlitPage() {
         </label>
       </ControlGroup>
 
+      <ControlGroup title="原理说明">
+        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+          <p>
+            <strong className="text-[#e8e8f0]">波粒二象性：</strong>
+            {observerMode
+              ? "开启观测时，粒子逐个通过狭缝——波函数坍缩为粒子行为。"
+              : "无观测时，每个粒子同时处于通过两缝的叠加态——形成波干涉条纹。"}
+          </p>
+          <p className="font-mono text-[11px] text-[#62626e]">
+            I(y) = cos²(π·d·y/λ·L) · sinc²(π·a·y/λ·L)
+          </p>
+        </div>
+      </ControlGroup>
+
       <DetailsLinkButton href="/experiments/double-slit/details" />
     </div>
   );
 
-  const dataPanelContent = data ? (
-    <>
-      <DataGrid
-        data={{
-          "波长": { value: data.wavelength, unit: "nm", color: wavelengthColor, decimals: 0 },
-          "条纹间距": { value: data.fringeSpacing, unit: "mm", color: "#a855f7", decimals: 3 },
-          "缝间距": { value: data.slitSeparation, unit: "mm", color: "#ec4899", decimals: 2 },
-          "粒子数": { value: data.particleCount, unit: "", color: "#22c55e", decimals: 0 },
-        }}
-        columns={2}
-      />
-      <div className="mt-3 sx-note-box">
-        <p className="text-xs text-[#e8e8f0]/80 leading-relaxed">
-          <strong className="text-white">波粒二象性：</strong>
-          {observerMode
-            ? "开启观测时，粒子逐个通过狭缝——波函数坍缩为粒子行为。"
-            : "无观测时，每个粒子同时处于通过两缝的叠加态——形成波干涉条纹。"}
-        </p>
-        <p className="text-xs text-[#8a8a96] mt-2 font-mono">
-          I(y) = cos²(π·d·y/λ·L) · sinc²(π·a·y/λ·L)
-        </p>
-      </div>
-    </>
-  ) : (
-    <div className="text-center text-[#8a8a96] text-sm py-8">
-      正在启动模拟…
-    </div>
-  );
+  const hud = data ? (
+    <HudReadings
+      data={{
+        波长: { value: data.wavelength, unit: "nm", color: wavelengthColor, decimals: 0 },
+        条纹间距: { value: data.fringeSpacing, unit: "mm", color: "#c4b5fd", decimals: 3 },
+        缝间距: { value: data.slitSeparation, unit: "mm", color: "#f9a8d4", decimals: 2 },
+        粒子数: { value: data.particleCount, unit: "", color: "#86efac", decimals: 0 },
+      }}
+    />
+  ) : null;
 
   return (
     <>
@@ -152,7 +148,7 @@ export default function DoubleSlitPage() {
         cameraPosition={[25, 15, 25]}
         backgroundColor="#000000"
         controls={parameterControls}
-        dataPanel={dataPanelContent}
+        dataPanel={hud}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,

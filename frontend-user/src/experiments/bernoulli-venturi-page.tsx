@@ -12,7 +12,7 @@ import {
   ControlGroup,
   ControlSlider,
   ControlPresetButtons,
-  DataGrid,
+  HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -46,6 +46,14 @@ export default function BernoulliVenturiPage() {
     () => fluidPresets.find((p) => p.value === fluid)?.label || fluid,
     [fluid]
   );
+
+  const statusLine = !data
+    ? null
+    : data.deltaP > 0
+      ? "收缩管：A₂/A₁ < 1，v₂ > v₁，P₂ < P₁，右管液面低于左管"
+      : data.deltaP < 0
+        ? "扩张管：A₂/A₁ > 1，v₂ < v₁，P₂ > P₁，右管液面高于左管"
+        : "等径管：A₂/A₁ = 1，v₂ = v₁，P₂ = P₁，两侧液面齐平";
 
   const parameterControls = (
     <div className="space-y-4">
@@ -90,83 +98,70 @@ export default function BernoulliVenturiPage() {
         </div>
       </ControlGroup>
 
+      <ControlGroup title="原理说明">
+        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+          <p>
+            <strong className="text-[#e8e8f0]">连续性方程：</strong>
+            A₁v₁ = A₂v₂ → v₂ = v₁ / (A₂/A₁)
+          </p>
+          <p>
+            <strong className="text-[#e8e8f0]">伯努利方程：</strong>
+            P₁ + ½ρv₁² = P₂ + ½ρv₂²
+          </p>
+          <p>
+            <strong className="text-[#e8e8f0]">压强差：</strong>
+            ΔP = ½ρ(v₂² − v₁²)
+            {data ? ` = ${data.deltaP.toFixed(2)} Pa` : ""}
+          </p>
+          <p>
+            <strong className="text-[#e8e8f0]">测压说明：</strong>
+            左管固定为参考液面，右管液面随 ΔP 升降；两侧液面高度差正比于压强差。
+          </p>
+          {statusLine ? <p className="text-[#c4c4ce]">{statusLine}</p> : null}
+        </div>
+      </ControlGroup>
+
       <DetailsLinkButton href="/experiments/bernoulli-venturi/details" />
     </div>
   );
 
-  const dataPanelContent = data ? (
-    <>
-      <DataGrid
-        data={{
-          v1: { value: data.v1, unit: "m/s", color: "#3b82f6", decimals: 2 },
-          v2: { value: data.v2, unit: "m/s", color: "#8b5cf6", decimals: 2 },
-          rho: { value: data.rho, unit: "kg/m³", color: "#06d6a0", decimals: 1 },
-          deltaP: { value: data.deltaP, unit: "Pa", color: "#ec4899", decimals: 2 },
-        }}
-        columns={2}
-      />
-      <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700 space-y-2">
-        <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-blue-400">连续性方程：</strong>
-          A₁v₁ = A₂v₂ → v₂ = v₁ / (A₂/A₁)
-        </p>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-purple-400">伯努利方程：</strong>
-          P₁ + ½ρv₁² = P₂ + ½ρv₂²
-        </p>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-pink-400">压强差：</strong>
-          ΔP = ½ρ(v₂² − v₁²) = {data.deltaP.toFixed(2)} Pa
-        </p>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-emerald-400">测压说明：</strong>
-          左管固定为参考液面，右管液面随 ΔP 升降；两侧液面高度差正比于压强差。
-        </p>
-        <p
-          className={`text-xs font-medium leading-relaxed ${
-            data.deltaP > 0 ? "text-blue-400" : data.deltaP < 0 ? "text-purple-400" : "text-gray-400"
-          }`}
-        >
-          {data.deltaP > 0
-            ? "收缩管：A₂/A₁ < 1，v₂ > v₁，P₂ < P₁，右管液面低于左管"
-            : data.deltaP < 0
-            ? "扩张管：A₂/A₁ > 1，v₂ < v₁，P₂ > P₁，右管液面高于左管"
-            : "等径管：A₂/A₁ = 1，v₂ = v₁，P₂ = P₁，两侧液面齐平"}
-        </p>
-      </div>
-    </>
-  ) : (
-    <div className="text-center text-gray-500 text-sm py-8">正在加载仿真数据...</div>
-  );
+  const hud = data ? (
+    <HudReadings
+      data={{
+        v1: { value: data.v1, unit: "m/s", color: "#7dd3fc", decimals: 2 },
+        v2: { value: data.v2, unit: "m/s", color: "#c4b5fd", decimals: 2 },
+        rho: { value: data.rho, unit: "kg/m³", color: "#6ee7b7", decimals: 1 },
+        deltaP: { value: data.deltaP, unit: "Pa", color: "#f9a8d4", decimals: 2 },
+      }}
+    />
+  ) : null;
 
   return (
-    <>
-      <ExperimentContainer
-        title="伯努利原理（文丘里管）"
-        description="调节流速、截面积与流体介质，观察流速与压强的反比关系"
-        experimentRoute="bernoulli-venturi"
-        cameraPosition={[22, 12, 22]}
-        backgroundColor="#000000"
-        controls={parameterControls}
-        dataPanel={dataPanelContent}
-        simulationBar={{
-          isPlaying,
-          onPlayPause: handlePlayPause,
-          onReset: handleReset,
-          speed: simulationSpeed,
-          onSpeedChange: setSimulationSpeed,
-        }}
-      >
-        <BernoulliVenturiSceneComponent
-          v1={v1}
-          areaRatio={areaRatio}
-          fluid={fluid}
-          isPlaying={isPlaying}
-          simulationSpeed={simulationSpeed}
-          resetTrigger={resetTrigger}
-          onDataChange={setData}
-        />
-      </ExperimentContainer>
-    </>
+    <ExperimentContainer
+      title="伯努利原理（文丘里管）"
+      description="调节流速、截面积与流体介质，观察流速与压强的反比关系"
+      experimentRoute="bernoulli-venturi"
+      cameraPosition={[22, 12, 22]}
+      backgroundColor="#000000"
+      controls={parameterControls}
+      dataPanel={hud}
+      simulationBar={{
+        isPlaying,
+        onPlayPause: handlePlayPause,
+        onReset: handleReset,
+        speed: simulationSpeed,
+        onSpeedChange: setSimulationSpeed,
+      }}
+    >
+      <BernoulliVenturiSceneComponent
+        v1={v1}
+        areaRatio={areaRatio}
+        fluid={fluid}
+        isPlaying={isPlaying}
+        simulationSpeed={simulationSpeed}
+        resetTrigger={resetTrigger}
+        onDataChange={setData}
+      />
+    </ExperimentContainer>
   );
 }

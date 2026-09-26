@@ -5,15 +5,14 @@ import com.wky.backend.domain.dto.AiChatMessageRequest;
 import com.wky.backend.domain.dto.AiChatMessageResponse;
 import com.wky.backend.domain.dto.AiChatReplyResponse;
 import com.wky.backend.domain.dto.AiChatSessionResponse;
-import com.wky.backend.domain.dto.KbChunkResponse;
-import com.wky.backend.domain.dto.KbDocumentResponse;
+import com.wky.backend.domain.dto.KnowledgePageRequest;
+import com.wky.backend.domain.dto.KnowledgePageResponse;
 import com.wky.backend.domain.dto.PageResponse;
-import com.wky.backend.domain.dto.UpdateKbChunkRequest;
 import com.wky.backend.enums.CommentOwnerType;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.security.AuthPrincipal;
 import com.wky.backend.service.IAiChatService;
-import com.wky.backend.service.IKnowledgeService;
+import com.wky.backend.service.IKnowledgePageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
@@ -43,49 +41,38 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class AdminAiController {
 
-    private final IKnowledgeService knowledgeService;
+    private final IKnowledgePageService knowledgePageService;
     private final IAiChatService aiChatService;
 
-    @GetMapping("/knowledge/documents")
-    public PageResponse<KbDocumentResponse> listDocuments(
+    @GetMapping("/knowledge/pages")
+    public PageResponse<KnowledgePageResponse> listPages(
             @RequestParam(defaultValue = "1") long page,
-            @RequestParam(defaultValue = "20") long size) {
-        return knowledgeService.listDocuments(page, size);
+            @RequestParam(defaultValue = "50") long size,
+            @RequestParam(required = false) String q) {
+        return knowledgePageService.list(page, size, q);
     }
 
-    @PostMapping("/knowledge/documents")
+    @GetMapping("/knowledge/pages/{id}")
+    public KnowledgePageResponse getPage(@PathVariable Long id) {
+        return knowledgePageService.get(id);
+    }
+
+    @PostMapping("/knowledge/pages")
     @ResponseStatus(HttpStatus.CREATED)
-    public KbDocumentResponse upload(
-            @RequestParam(required = false) String title,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) Integer chunkSize,
-            @RequestParam(required = false) Integer chunkOverlap,
-            @RequestParam(defaultValue = "false") boolean noChunk) {
-        return knowledgeService.upload(title, file, chunkSize, chunkOverlap, noChunk);
+    public KnowledgePageResponse createPage(@Valid @RequestBody KnowledgePageRequest request) {
+        return knowledgePageService.create(request);
     }
 
-    @DeleteMapping("/knowledge/documents/{id}")
+    @PutMapping("/knowledge/pages/{id}")
+    public KnowledgePageResponse updatePage(
+            @PathVariable Long id, @Valid @RequestBody KnowledgePageRequest request) {
+        return knowledgePageService.update(id, request);
+    }
+
+    @DeleteMapping("/knowledge/pages/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        knowledgeService.delete(id);
-    }
-
-    @GetMapping("/knowledge/documents/{id}/chunks")
-    public List<KbChunkResponse> listChunks(@PathVariable Long id) {
-        return knowledgeService.listChunks(id);
-    }
-
-    @PutMapping("/knowledge/chunks/{chunkId}")
-    public KbChunkResponse updateChunk(
-            @PathVariable Long chunkId,
-            @Valid @RequestBody UpdateKbChunkRequest request) {
-        return knowledgeService.updateChunk(chunkId, request.getContent());
-    }
-
-    @DeleteMapping("/knowledge/chunks/{chunkId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteChunk(@PathVariable Long chunkId) {
-        knowledgeService.deleteChunk(chunkId);
+    public void deletePage(@PathVariable Long id) {
+        knowledgePageService.delete(id);
     }
 
     @GetMapping("/ai/sessions")

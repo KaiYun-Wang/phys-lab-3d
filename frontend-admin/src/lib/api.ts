@@ -36,7 +36,6 @@ export type DashboardAiStats = {
   sessionCount: number;
   questionCount: number;
   avgSessionDepth: number;
-  ragHitRate: number | null;
   questionTrend: DashboardTrendPoint[];
 };
 
@@ -620,33 +619,21 @@ export function deleteAdminCommentLike(id: number) {
   return apiFetch<void>(`/api/admin/comment-likes/${id}`, { method: "DELETE" });
 }
 
-/* ── 知识库 / AI 试聊 ── */
+/* ── 知识页 / AI 试聊 ── */
 
-export type KbDocument = {
+export type KnowledgePage = {
   id: number;
   title: string;
-  filename: string;
-  contentType: string | null;
-  status: string;
-  chunkCount: number;
+  description: string | null;
+  content?: string | null;
   createTime: string;
   updateTime: string;
 };
 
-export type KbChunk = {
-  id: number;
-  documentId: number;
-  chunkIndex: number;
+export type KnowledgePageInput = {
+  title: string;
+  description?: string;
   content: string;
-  charCount: number;
-  createTime: string;
-};
-
-export type KbUploadOptions = {
-  title?: string;
-  chunkSize?: number;
-  chunkOverlap?: number;
-  noChunk?: boolean;
 };
 
 export type AiChatSession = {
@@ -671,45 +658,34 @@ export type AiChatReply = {
   session: AiChatSession;
 };
 
-export function fetchKbDocuments(page = 1, size = 20) {
-  return apiFetch<AdminPageResponse<KbDocument>>(
-    `/api/admin/knowledge/documents?page=${page}&size=${size}`,
+export function fetchKnowledgePages(page = 1, size = 50, q?: string) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (q?.trim()) params.set("q", q.trim());
+  return apiFetch<AdminPageResponse<KnowledgePage>>(
+    `/api/admin/knowledge/pages?${params.toString()}`,
   );
 }
 
-export function uploadKbDocument(file: File, options: KbUploadOptions = {}) {
-  const form = new FormData();
-  form.append("file", file);
-  if (options.title?.trim()) form.append("title", options.title.trim());
-  if (options.noChunk) {
-    form.append("noChunk", "true");
-  } else {
-    if (options.chunkSize != null) form.append("chunkSize", String(options.chunkSize));
-    if (options.chunkOverlap != null) form.append("chunkOverlap", String(options.chunkOverlap));
-  }
-  return apiFetch<KbDocument>("/api/admin/knowledge/documents", {
+export function fetchKnowledgePage(id: number) {
+  return apiFetch<KnowledgePage>(`/api/admin/knowledge/pages/${id}`);
+}
+
+export function createKnowledgePage(body: KnowledgePageInput) {
+  return apiFetch<KnowledgePage>("/api/admin/knowledge/pages", {
     method: "POST",
-    body: form,
+    body: JSON.stringify(body),
   });
 }
 
-export function deleteKbDocument(id: number) {
-  return apiFetch<void>(`/api/admin/knowledge/documents/${id}`, { method: "DELETE" });
-}
-
-export function fetchKbChunks(documentId: number) {
-  return apiFetch<KbChunk[]>(`/api/admin/knowledge/documents/${documentId}/chunks`);
-}
-
-export function updateKbChunk(chunkId: number, content: string) {
-  return apiFetch<KbChunk>(`/api/admin/knowledge/chunks/${chunkId}`, {
+export function updateKnowledgePage(id: number, body: KnowledgePageInput) {
+  return apiFetch<KnowledgePage>(`/api/admin/knowledge/pages/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   });
 }
 
-export function deleteKbChunk(chunkId: number) {
-  return apiFetch<void>(`/api/admin/knowledge/chunks/${chunkId}`, { method: "DELETE" });
+export function deleteKnowledgePage(id: number) {
+  return apiFetch<void>(`/api/admin/knowledge/pages/${id}`, { method: "DELETE" });
 }
 
 export function fetchAdminAiSessions(page = 1, size = 30) {

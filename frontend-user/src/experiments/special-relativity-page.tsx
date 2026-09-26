@@ -9,7 +9,7 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  DataGrid,
+  HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 
@@ -30,7 +30,6 @@ export default function SpecialRelativityPage() {
     setVelocity(0);
   };
 
-  const gamma = data?.gamma ?? 1;
   const velocityPercent = velocity * 100;
 
   const parameterControls = (
@@ -74,52 +73,46 @@ export default function SpecialRelativityPage() {
         </div>
       </ControlGroup>
 
+      <ControlGroup title="原理说明">
+        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+          <p>
+            <strong className="text-[#e8e8f0]">时间膨胀</strong>
+            <span className="font-mono text-[#a855f7]"> Δt′ = γ Δt₀</span>
+            {data ? ` · ${data.gamma.toFixed(2)}× 变慢` : ""}
+            <br />
+            飞船上 1 秒 ≈ 地球上 γ 秒
+          </p>
+          <p>
+            <strong className="text-[#e8e8f0]">长度收缩</strong>
+            <span className="font-mono text-[#06d6a0]"> L′ = L₀ / γ</span>
+            {data ? ` · ${data.lengthPercent.toFixed(1)}% 原长` : ""}
+            <br />
+            运动方向长度按 1/γ 收缩
+          </p>
+          <p>
+            <strong className="text-[#e8e8f0]">相对论质量</strong>
+            <span className="font-mono text-[#f59e0b]"> m = γ m₀</span>
+            {data ? ` · ${data.relativisticMass.toFixed(2)}× 增重` : ""}
+            <br />
+            速度趋近光速，质量趋于无穷
+          </p>
+        </div>
+      </ControlGroup>
+
       <DetailsLinkButton href="/experiments/special-relativity/details" />
     </div>
   );
 
-  const dataPanelContent = data ? (
-    <>
-      <DataGrid
-        data={{
-          velocity: { value: velocityPercent, unit: "% c", color: "#22d3ee", decimals: 1 },
-          gamma: { value: data.gamma, unit: "", color: "#8b5cf6", decimals: 3 },
-          length: { value: data.lengthPercent, unit: "%", color: "#06d6a0", decimals: 1 },
-          mass: { value: data.relativisticMass, unit: "×", color: "#f59e0b", decimals: 2 },
-        }}
-        columns={2}
-      />
-
-      <div className="mt-3 space-y-2">
-        <EffectCard
-          icon="🕐"
-          title="时间膨胀"
-          formula="Δt' = γ Δt₀"
-          value={`${data.gamma.toFixed(2)}× 变慢`}
-          color="#a855f7"
-          desc="飞船上 1 秒 ≈ 地球上 γ 秒"
-        />
-        <EffectCard
-          icon="↔️"
-          title="长度收缩"
-          formula="L' = L₀ / γ"
-          value={`${data.lengthPercent.toFixed(1)}% 原长`}
-          color="#06d6a0"
-          desc="运动方向长度按 1/γ 收缩"
-        />
-        <EffectCard
-          icon="⚖️"
-          title="相对论质量"
-          formula="m = γ m₀"
-          value={`${data.relativisticMass.toFixed(2)}× 增重`}
-          color="#f59e0b"
-          desc="速度趋近光速，质量趋于无穷"
-        />
-      </div>
-    </>
-  ) : (
-    <div className="text-center text-gray-500 text-sm py-8">正在加载相对论数据...</div>
-  );
+  const hud = data ? (
+    <HudReadings
+      data={{
+        velocity: { value: velocityPercent, unit: "% c", color: "#67e8f9", decimals: 1 },
+        gamma: { value: data.gamma, unit: "", color: "#c4b5fd", decimals: 3 },
+        length: { value: data.lengthPercent, unit: "%", color: "#6ee7b7", decimals: 1 },
+        mass: { value: data.relativisticMass, unit: "×", color: "#fbbf24", decimals: 2 },
+      }}
+    />
+  ) : null;
 
   return (
     <>
@@ -130,7 +123,7 @@ export default function SpecialRelativityPage() {
         cameraPosition={[18, 8, 18]}
         backgroundColor="#000000"
         controls={parameterControls}
-        dataPanel={dataPanelContent}
+        dataPanel={hud}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,
@@ -148,45 +141,5 @@ export default function SpecialRelativityPage() {
         />
       </ExperimentContainer>
     </>
-  );
-}
-
-function EffectCard({
-  icon,
-  title,
-  formula,
-  value,
-  color,
-  desc,
-}: {
-  icon: string;
-  title: string;
-  formula: string;
-  value: string;
-  color: string;
-  desc: string;
-}) {
-  return (
-    <div
-      className="p-3 rounded-lg border transition-all"
-      style={{
-        borderColor: `${color}40`,
-        backgroundColor: `${color}10`,
-      }}
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <span>{icon}</span>
-        <span className="text-sm font-semibold" style={{ color }}>
-          {title}
-        </span>
-      </div>
-      <div className="flex items-center justify-between">
-        <code className="text-xs font-mono text-gray-300">{formula}</code>
-        <span className="text-xs font-mono font-bold" style={{ color }}>
-          {value}
-        </span>
-      </div>
-      <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{desc}</p>
-    </div>
   );
 }

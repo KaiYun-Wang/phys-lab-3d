@@ -3,9 +3,7 @@ package com.wky.backend.config;
 import com.wky.backend.exception.ApiException;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,7 +11,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 
-/** 按需创建模型；chat / embedding 可走不同厂商。 */
+/** 按需创建聊天模型。 */
 @Component
 @RequiredArgsConstructor
 public class AiModelFactory {
@@ -22,7 +20,6 @@ public class AiModelFactory {
 
     private volatile ChatModel chatModel;
     private volatile StreamingChatModel streamingChatModel;
-    private volatile EmbeddingModel embeddingModel;
 
     public ChatModel chatModel() {
         ChatModel local = chatModel;
@@ -57,27 +54,6 @@ public class AiModelFactory {
                             .baseUrl(normalizeBaseUrl(cfg.getBaseUrl(), "https://api.deepseek.com"))
                             .modelName(cfg.getModel())
                             .timeout(Duration.ofSeconds(180))
-                            .build();
-                }
-            }
-        }
-        return local;
-    }
-
-    public EmbeddingModel embeddingModel() {
-        EmbeddingModel local = embeddingModel;
-        if (local == null) {
-            synchronized (this) {
-                local = embeddingModel;
-                if (local == null) {
-                    AiProperties.Embedding cfg = aiProperties.getEmbedding();
-                    requireApiKey(cfg.getApiKey(), "phys-lab.ai.embedding.api-key");
-                    embeddingModel = local = OpenAiEmbeddingModel.builder()
-                            .apiKey(cfg.getApiKey())
-                            .baseUrl(normalizeBaseUrl(cfg.getBaseUrl(), "https://api.openai.com/v1"))
-                            .modelName(cfg.getModel())
-                            .dimensions(cfg.getDimensions())
-                            .timeout(Duration.ofSeconds(120))
                             .build();
                 }
             }

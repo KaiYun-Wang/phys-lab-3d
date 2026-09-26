@@ -69,15 +69,10 @@ public class DashboardServiceImpl implements IDashboardService {
         long questions = aiChatMessageMapper.countUserQuestionsSince(from);
         double depth = sessions == 0 ? 0 : (double) questions / sessions;
 
-        long ragTotal = aiChatMessageMapper.countAssistantWithRagSince(from);
-        long ragHits = aiChatMessageMapper.countAssistantRagHitSince(from);
-        Double hitRate = ragTotal == 0 ? null : (double) ragHits / ragTotal;
-
         return AiStats.builder()
                 .sessionCount(sessions)
                 .questionCount(questions)
                 .avgSessionDepth(Math.round(depth * 100.0) / 100.0)
-                .ragHitRate(hitRate == null ? null : Math.round(hitRate * 1000.0) / 1000.0)
                 .questionTrend(fillTrend(fromDate, today, aiChatMessageMapper.countUserQuestionsByDay(from)))
                 .build();
     }

@@ -10,21 +10,20 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("kb_documents")
-public class KbDocument {
+@TableName("knowledge_pages")
+public class KnowledgePage {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
     private String title;
 
-    private String filename;
+    /** 摘要：列表工具返回，供模型选型 */
+    private String description;
 
-    private String contentType;
+    private String content;
 
-    private String status;
-
-    private Integer chunkCount;
+    private Integer sortOrder;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
