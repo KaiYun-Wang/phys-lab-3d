@@ -33,11 +33,12 @@ public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
             """)
     long countAllUserQuestions();
 
+    /** 入模 / 阈值 / 摘要：user、assistant、tool_*（不含 thinking） */
     @Select("""
             SELECT COUNT(*) FROM ai_chat_messages
             WHERE session_id = #{sessionId}
               AND id > #{afterId}
-              AND role IN ('user', 'assistant')
+              AND role IN ('user', 'assistant', 'tool_call', 'tool_result')
             """)
     long countDialogueAfter(@Param("sessionId") Long sessionId, @Param("afterId") long afterId);
 
@@ -45,7 +46,7 @@ public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
             SELECT * FROM ai_chat_messages
             WHERE session_id = #{sessionId}
               AND id > #{afterId}
-              AND role IN ('user', 'assistant')
+              AND role IN ('user', 'assistant', 'tool_call', 'tool_result')
             ORDER BY id ASC
             """)
     List<AiChatMessage> listDialogueAfterAsc(
@@ -56,7 +57,7 @@ public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
             WHERE session_id = #{sessionId}
               AND id > #{afterId}
               AND id <= #{rightMsgId}
-              AND role IN ('user', 'assistant')
+              AND role IN ('user', 'assistant', 'tool_call', 'tool_result')
             ORDER BY id ASC
             """)
     List<AiChatMessage> listDialogueBetween(
@@ -68,7 +69,7 @@ public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
             SELECT * FROM ai_chat_messages
             WHERE session_id = #{sessionId}
               AND id <= #{untilId}
-              AND role IN ('user', 'assistant')
+              AND role IN ('user', 'assistant', 'tool_call', 'tool_result')
             ORDER BY id DESC
             LIMIT #{limit}
             """)

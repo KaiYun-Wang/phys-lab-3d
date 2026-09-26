@@ -2622,6 +2622,26 @@ canvas {
   background: rgba(20, 20, 28, 0.9);
   flex-shrink: 0;
 }
+.ai-think-toggle {
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--sx-hairline);
+  background: transparent;
+  color: var(--sx-muted, #9ca3af);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ai-think-toggle.is-on {
+  border-color: var(--sx-hairline-strong);
+  color: var(--sx-white);
+  background: var(--sx-elevated-hover);
+}
+.ai-think-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .ai-composer textarea {
   flex: 1;
   resize: none;

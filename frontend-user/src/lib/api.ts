@@ -327,6 +327,7 @@ export function fetchAiMessages(sessionId: number, opts: { beforeId?: number; li
 export type AiStreamHandlers = {
   onMeta?: (meta: { sessionId: number; sessionTitle: string; userMessageId: number }) => void;
   onStatus?: (content: string) => void;
+  onMessage?: (msg: AiChatMessage) => void;
   onClear?: () => void;
   onThinking?: (content: string) => void;
   onDelta?: (content: string) => void;
@@ -344,6 +345,7 @@ export async function streamAiMessage(
   content: string,
   context: AiChatContext | undefined,
   handlers: AiStreamHandlers = {},
+  opts: { enableThinking?: boolean } = {},
 ) {
   const token = getToken();
   const res = await fetch(`${API_BASE}/api/users/me/ai/sessions/${sessionId}/messages/stream`, {
@@ -352,7 +354,11 @@ export async function streamAiMessage(
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ content, context }),
+    body: JSON.stringify({
+      content,
+      context,
+      enableThinking: !!opts.enableThinking,
+    }),
   });
 
   if (res.status === 401) {
@@ -401,12 +407,26 @@ export async function streamAiMessage(
           sessionTitle?: string;
           userMessageId?: number;
           assistantMessageId?: number;
+          id?: number;
+          role?: AiChatMessage["role"];
+          context?: Record<string, unknown>;
+          createTime?: string;
         };
         if (evt.type === "meta" && evt.sessionId != null && evt.userMessageId != null) {
           handlers.onMeta?.({
             sessionId: evt.sessionId,
             sessionTitle: evt.sessionTitle ?? "新对话",
             userMessageId: evt.userMessageId,
+          });
+        } else if (evt.type === "message" && evt.id != null && evt.role) {
+          handlers.onMessage?.({
+            id: evt.id,
+            sessionId: evt.sessionId ?? sessionId,
+            role: evt.role,
+            content: evt.content ?? "",
+            thinking: evt.thinking,
+            context: evt.context,
+            createTime: evt.createTime ?? new Date().toISOString(),
           });
         } else if (evt.type === "status" && evt.content) {
           handlers.onStatus?.(evt.content);

@@ -54,7 +54,7 @@ function pageContext(pathname: string): { label: string; context: AiChatContext 
   return { label: pathname, context: { path: pathname, pageType: "other" } };
 }
 
-/** 思考 / 工具：默认折叠，点开才看详情 */
+/** 思考 / 工具：默认折叠；流式思考时自动展开正文 */
 function CollapsibleStep({
   label,
   detail,
@@ -67,6 +67,7 @@ function CollapsibleStep({
   const [open, setOpen] = useState(false);
   const body = (detail ?? "").trim();
   const canOpen = body.length > 0;
+  const showBody = canOpen && (open || !!streaming);
   if (!label && !streaming && !canOpen) return null;
   return (
     <div className="ai-step">
@@ -74,13 +75,13 @@ function CollapsibleStep({
         type="button"
         className="ai-step-toggle"
         onClick={() => canOpen && setOpen((v) => !v)}
-        aria-expanded={open}
+        aria-expanded={showBody}
         disabled={!canOpen}
       >
-        <span className="ai-step-chevron">{canOpen ? (open ? "▾" : "▸") : "·"}</span>
+        <span className="ai-step-chevron">{canOpen ? (showBody ? "▾" : "▸") : "·"}</span>
         {streaming && !body ? "思考中…" : label}
       </button>
-      {open && canOpen && <div className="ai-step-body">{body}</div>}
+      {showBody && <div className="ai-step-body">{body}</div>}
     </div>
   );
 }
@@ -161,6 +162,7 @@ export default function AiChatWidget() {
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [examples, setExamples] = useState<AiExampleQuestion[]>([]);
   const [draft, setDraft] = useState("");
+  const [enableThinking, setEnableThinking] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -347,7 +349,11 @@ export default function AiChatWidget() {
 
     try {
       const id = await ensureSession();
-      await streamAiMessage(id, content, context, {
+      await streamAiMessage(
+        id,
+        content,
+        context,
+        {
         onMeta: (meta) => {
           setSessionId(meta.sessionId);
           setMessages((m) =>
@@ -388,6 +394,22 @@ export default function AiChatWidget() {
             return next;
           });
         },
+        onMessage: (msg) => {
+          setMessages((m) => {
+            let next = [...m];
+            if (msg.role === "thinking") {
+              next = next.map((row) =>
+                row.id === tempAssistantId ? { ...row, thinking: "" } : row,
+              );
+            }
+            // 避免重复插入（重放/重连）
+            if (next.some((row) => row.id === msg.id)) return next;
+            const assistantIdx = next.findIndex((row) => row.id === tempAssistantId);
+            if (assistantIdx < 0) return [...next, msg];
+            next.splice(assistantIdx, 0, msg);
+            return next;
+          });
+        },
         onClear: () => {
           setMessages((m) =>
             m.map((row) =>
@@ -419,7 +441,7 @@ export default function AiChatWidget() {
                     ...row,
                     id: done.assistantMessageId,
                     sessionId: done.sessionId,
-                    thinking: done.thinking ?? row.thinking,
+                    thinking: "",
                   }
                 : row,
             ),
@@ -440,7 +462,9 @@ export default function AiChatWidget() {
         onError: (message) => {
           setError(message);
         },
-      });
+      },
+        { enableThinking },
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "发送失败");
       setMessages((m) => m.filter((row) => row.id !== tempUserId && row.id !== tempAssistantId));
@@ -636,11 +660,11 @@ export default function AiChatWidget() {
                   </div>
                 ) : (
                   <div key={m.id} className={`msg ${m.role}`}>
-                    {m.role === "assistant" && (m.thinking || (sending && m.id < 0)) && (
+                    {m.role === "assistant" && (m.thinking || (enableThinking && sending && m.id < 0)) && (
                       <CollapsibleStep
                         label="思考过程"
                         detail={m.thinking || ""}
-                        streaming={sending && m.id < 0 && !m.content}
+                        streaming={enableThinking && sending && m.id < 0 && !m.content}
                       />
                     )}
                     <div className={`bubble${m.role === "assistant" ? " bubble--md" : ""}`}>
@@ -674,6 +698,16 @@ export default function AiChatWidget() {
                 send(draft);
               }}
             >
+              <button
+                type="button"
+                className={`ai-think-toggle${enableThinking ? " is-on" : ""}`}
+                aria-pressed={enableThinking}
+                title={enableThinking ? "已开启思考过程" : "点击开启思考过程"}
+                disabled={sending}
+                onClick={() => setEnableThinking((v) => !v)}
+              >
+                思考
+              </button>
               <textarea
                 rows={1}
                 value={draft}

@@ -15,4 +15,7 @@ public class AiChatMessageRequest {
 
     /** 当前页上下文：path / pageType / experimentId / experimentTitle 等 */
     private Map<String, Object> context;
+
+    /** 是否开启模型思考过程（前端开关；默认 false） */
+    private Boolean enableThinking;
 }

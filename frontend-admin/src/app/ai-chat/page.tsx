@@ -28,13 +28,14 @@ function CollapsibleStep({
   const [open, setOpen] = useState(false);
   const body = (detail ?? "").trim();
   const canOpen = body.length > 0;
+  const showBody = canOpen && (open || !!streaming);
   if (!label && !streaming && !canOpen) return null;
   return (
     <div style={{ marginBottom: 6 }}>
       <button
         type="button"
         onClick={() => canOpen && setOpen((v) => !v)}
-        aria-expanded={open}
+        aria-expanded={showBody}
         disabled={!canOpen}
         style={{
           border: "none",
@@ -49,10 +50,10 @@ function CollapsibleStep({
           textAlign: "left",
         }}
       >
-        <span style={{ width: 10, fontSize: 10 }}>{canOpen ? (open ? "▾" : "▸") : "·"}</span>
+        <span style={{ width: 10, fontSize: 10 }}>{canOpen ? (showBody ? "▾" : "▸") : "·"}</span>
         {streaming && !body ? "思考中…" : label}
       </button>
-      {open && canOpen && (
+      {showBody && (
         <div
           style={{
             marginTop: 6,
@@ -110,6 +111,7 @@ export default function AdminAiChatPage() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [enableThinking, setEnableThinking] = useState(false);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -213,7 +215,10 @@ export default function AdminAiChatPage() {
         setSessions((prev) => [s, ...prev]);
       }
 
-      await streamAdminAiMessage(id, content, {
+      await streamAdminAiMessage(
+        id,
+        content,
+        {
         onMeta: (meta) => {
           setSessionId(meta.sessionId);
           setMessages((m) =>
@@ -254,6 +259,21 @@ export default function AdminAiChatPage() {
             return next;
           });
         },
+        onMessage: (msg) => {
+          setMessages((m) => {
+            let next = [...m];
+            if (msg.role === "thinking") {
+              next = next.map((row) =>
+                row.id === tempAssistantId ? { ...row, thinking: "" } : row,
+              );
+            }
+            if (next.some((row) => row.id === msg.id)) return next;
+            const assistantIdx = next.findIndex((row) => row.id === tempAssistantId);
+            if (assistantIdx < 0) return [...next, msg];
+            next.splice(assistantIdx, 0, msg);
+            return next;
+          });
+        },
         onClear: () => {
           setMessages((m) =>
             m.map((row) =>
@@ -285,7 +305,7 @@ export default function AdminAiChatPage() {
                     ...row,
                     id: done.assistantMessageId,
                     sessionId: done.sessionId,
-                    thinking: done.thinking ?? row.thinking,
+                    thinking: "",
                   }
                 : row,
             ),
@@ -313,7 +333,9 @@ export default function AdminAiChatPage() {
             ),
           );
         },
-      });
+      },
+        { enableThinking },
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "发送失败");
       setMessages((m) => m.filter((row) => row.id !== tempUserId && row.id !== tempAssistantId));
@@ -431,11 +453,11 @@ export default function AdminAiChatPage() {
                         minHeight: m.role === "assistant" && !m.content && sending ? 24 : undefined,
                       }}
                     >
-                      {m.role === "assistant" && (m.thinking || (sending && m.id < 0)) && (
+                      {m.role === "assistant" && (m.thinking || (enableThinking && sending && m.id < 0)) && (
                         <CollapsibleStep
                           label="思考过程"
                           detail={m.thinking || ""}
-                          streaming={sending && m.id < 0 && !m.content}
+                          streaming={enableThinking && sending && m.id < 0 && !m.content}
                         />
                       )}
                       {m.role === "assistant" ? (
@@ -461,8 +483,23 @@ export default function AdminAiChatPage() {
               gap: 8,
               padding: 12,
               borderTop: "1px solid var(--hairline-light)",
+              alignItems: "center",
             }}
           >
+            <button
+              type="button"
+              className="btn-pill"
+              aria-pressed={enableThinking}
+              title={enableThinking ? "已开启思考过程" : "点击开启思考过程"}
+              disabled={sending}
+              onClick={() => setEnableThinking((v) => !v)}
+              style={{
+                opacity: enableThinking ? 1 : 0.55,
+                flexShrink: 0,
+              }}
+            >
+              思考
+            </button>
             <input
               className="text-input"
               style={{ flex: 1 }}

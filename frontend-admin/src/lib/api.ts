@@ -712,6 +712,7 @@ export function deleteAdminAiSession(sessionId: number) {
 export type AdminAiStreamHandlers = {
   onMeta?: (meta: { sessionId: number; sessionTitle: string; userMessageId: number }) => void;
   onStatus?: (content: string) => void;
+  onMessage?: (msg: AiChatMessage) => void;
   onClear?: () => void;
   onThinking?: (content: string) => void;
   onDelta?: (content: string) => void;
@@ -729,6 +730,7 @@ export async function streamAdminAiMessage(
   sessionId: number,
   content: string,
   handlers: AdminAiStreamHandlers = {},
+  opts: { enableThinking?: boolean } = {},
 ) {
   const token = getToken();
   const res = await fetch(`${API_BASE}/api/admin/ai/sessions/${sessionId}/messages/stream`, {
@@ -740,6 +742,7 @@ export async function streamAdminAiMessage(
     body: JSON.stringify({
       content,
       context: { path: "/admin/ai-chat", pageType: "admin_test" },
+      enableThinking: !!opts.enableThinking,
     }),
   });
 
@@ -789,12 +792,26 @@ export async function streamAdminAiMessage(
           sessionTitle?: string;
           userMessageId?: number;
           assistantMessageId?: number;
+          id?: number;
+          role?: AiChatMessage["role"];
+          context?: Record<string, unknown>;
+          createTime?: string;
         };
         if (evt.type === "meta" && evt.sessionId != null && evt.userMessageId != null) {
           handlers.onMeta?.({
             sessionId: evt.sessionId,
             sessionTitle: evt.sessionTitle ?? "新对话",
             userMessageId: evt.userMessageId,
+          });
+        } else if (evt.type === "message" && evt.id != null && evt.role) {
+          handlers.onMessage?.({
+            id: evt.id,
+            sessionId: evt.sessionId ?? sessionId,
+            role: evt.role,
+            content: evt.content ?? "",
+            thinking: evt.thinking,
+            context: evt.context,
+            createTime: evt.createTime ?? new Date().toISOString(),
           });
         } else if (evt.type === "status" && evt.content) {
           handlers.onStatus?.(evt.content);

@@ -101,17 +101,27 @@ public class AiContextSummaryWorker {
 
     private static String buildSummarizePrompt(String oldSummary, List<AiChatMessage> chunk) {
         StringBuilder sb = new StringBuilder();
-        sb.append("请将以下对话压缩成一段简洁的中文摘要，保留关键事实、实验名、结论与未解决问题。")
+        sb.append("请将以下对话压缩成一段简洁的中文摘要，保留关键事实、实验名、工具结论与未解决问题。")
                 .append("只输出摘要正文，不要开场白。\n\n");
         if (StringUtils.hasText(oldSummary)) {
             sb.append("【已有摘要】\n").append(oldSummary.trim()).append("\n\n");
         }
         sb.append("【新增对话】\n");
         for (AiChatMessage m : chunk) {
-            sb.append("user".equals(m.getRole()) ? "用户: " : "助手: ")
+            sb.append(roleLabel(m.getRole()))
                     .append(m.getContent() == null ? "" : m.getContent())
                     .append('\n');
         }
         return sb.toString();
+    }
+
+    private static String roleLabel(String role) {
+        return switch (role) {
+            case "user" -> "用户: ";
+            case "assistant" -> "助手: ";
+            case "tool_call" -> "工具调用: ";
+            case "tool_result" -> "工具结果: ";
+            default -> role + ": ";
+        };
     }
 }

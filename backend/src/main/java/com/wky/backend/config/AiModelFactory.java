@@ -34,6 +34,9 @@ public class AiModelFactory {
                             .baseUrl(normalizeBaseUrl(cfg.getBaseUrl(), "https://api.deepseek.com"))
                             .modelName(cfg.getModel())
                             .timeout(Duration.ofSeconds(120))
+                            // 解析/回传 reasoning_content；是否真正开启由请求参数 thinking.type 控制
+                            .returnThinking(true)
+                            .sendThinking(true)
                             .build();
                 }
             }
@@ -54,6 +57,8 @@ public class AiModelFactory {
                             .baseUrl(normalizeBaseUrl(cfg.getBaseUrl(), "https://api.deepseek.com"))
                             .modelName(cfg.getModel())
                             .timeout(Duration.ofSeconds(180))
+                            .returnThinking(true)
+                            .sendThinking(true)
                             .build();
                 }
             }

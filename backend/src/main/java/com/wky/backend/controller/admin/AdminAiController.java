@@ -139,6 +139,7 @@ public class AdminAiController {
                                 "sessionTitle", meta.sessionTitle(),
                                 "userMessageId", meta.userMessageId())),
                         status -> sendEvent(emitter, mapper, Map.of("type", "status", "content", status)),
+                        msg -> sendEvent(emitter, mapper, messagePayload(msg)),
                         () -> sendEvent(emitter, mapper, Map.of("type", "clear")),
                         thinking -> sendEvent(emitter, mapper, Map.of("type", "thinking", "content", thinking)),
                         delta -> sendEvent(emitter, mapper, Map.of("type", "delta", "content", delta)),
@@ -148,9 +149,6 @@ public class AdminAiController {
                             payload.put("assistantMessageId", done.assistantMessageId());
                             payload.put("sessionId", done.session().getId());
                             payload.put("sessionTitle", done.session().getTitle());
-                            if (done.thinking() != null) {
-                                payload.put("thinking", done.thinking());
-                            }
                             sendEvent(emitter, mapper, payload);
                             emitter.complete();
                         },
@@ -166,6 +164,25 @@ public class AdminAiController {
 
         emitter.onTimeout(emitter::complete);
         return emitter;
+    }
+
+    private static Map<String, Object> messagePayload(AiChatMessageResponse msg) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("type", "message");
+        payload.put("id", msg.getId());
+        payload.put("sessionId", msg.getSessionId());
+        payload.put("role", msg.getRole());
+        payload.put("content", msg.getContent() != null ? msg.getContent() : "");
+        if (msg.getThinking() != null) {
+            payload.put("thinking", msg.getThinking());
+        }
+        if (msg.getContext() != null) {
+            payload.put("context", msg.getContext());
+        }
+        if (msg.getCreateTime() != null) {
+            payload.put("createTime", msg.getCreateTime().toString());
+        }
+        return payload;
     }
 
     private static void sendEvent(SseEmitter emitter, ObjectMapper mapper, Map<String, ?> payload) {

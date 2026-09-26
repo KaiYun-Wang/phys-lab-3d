@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 摘要触发：对话条数软/硬阈值 + Redis ZSet 投递（member=sessionId，score=首次入队时间）。
+ * 摘要触发：上下文条数（user/assistant/tool_*）软/硬阈值 + Redis ZSet 投递。
  */
 @Slf4j
 @Service
@@ -56,7 +56,7 @@ public class AiContextSummaryService {
         }
     }
 
-    /** 保留最近 historyMin 条对话不进本次摘要；不足则无可摘要。 */
+    /** 保留最近 historyMin 条上下文不进本次摘要；不足则无可摘要。 */
     public Long resolveRightMsgId(long sessionId, long until) {
         List<AiChatMessage> after = messageMapper.listDialogueAfterAsc(sessionId, until);
         int keep = Math.max(1, aiProperties.getHistoryMin());
