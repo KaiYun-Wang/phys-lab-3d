@@ -23,8 +23,12 @@ phys-lab:
     # 后端对外拼文件 URL 的前缀（经 Spring 代理 /api/avatars、/api/covers）
     domain: http://127.0.0.1:8080/api/
 
+  redis:
+    host: localhost
+    port: 6379
+
   # ---------- AI（LangChain4j OpenAI 兼容协议）----------
-  # base-url 须为 OpenAI 兼容接口（…/v1/chat/completions）。
+  # base-url 须为 OpenAI 兼容接口（.../v1/chat/completions）。
   # DeepSeek、硅基流动、多数国内中转可用；原生 Anthropic / Gemini 专用 API 暂不支持。
   ai:
     chat:
@@ -36,4 +40,14 @@ phys-lab:
       base-url: https://api.deepseek.com
       # 推荐：deepseek-chat（通用）；需要思考过程可用 deepseek-reasoner / deepseek-v4-pro 等推理型号
       model: deepseek-chat
-    history-limit: 40
+    # ----- 会话上下文（只数 user/assistant）-----
+    # 入模至少条数；摘要后不足则从截止点往前补；摘要任务也留最近这么多条不压缩
+    history-min: 10
+    # 大于等于此条数 -> 异步生成摘要
+    summary-soft-limit: 30
+    # 大于此条数 -> 助手回复「系统繁忙，请稍后重试」（仍会尝试投递摘要）
+    summary-hard-limit: 50
+    # 摘要锁 TTL（秒）
+    summary-lock-ttl-seconds: 120
+    # Streams 积压上限，满则繁忙
+    summary-queue-max: 100

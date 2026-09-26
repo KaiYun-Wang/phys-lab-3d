@@ -20,6 +20,7 @@
 | 管理端 | Next.js 15 · React 19 · 纯 CSS |
 | 后端 | Spring Boot 3.5 · JDK 17 · MyBatis-Plus · LangChain4j |
 | 数据库 | PostgreSQL 16 |
+| 缓存 / 队列 | Redis 7（AI 会话摘要 Streams） |
 | 对象存储 | MinIO（用户头像、实验封面） |
 
 ## 架构
@@ -47,7 +48,7 @@ phys-lab-3d/
 
 - **JDK 17**、**Maven 3.9+**
 - **Node.js 20+**、npm
-- **Docker**（推荐，用于 PostgreSQL 与 MinIO）
+- **Docker**（推荐，用于 PostgreSQL、MinIO、Redis）
 
 ### PostgreSQL
 
@@ -97,9 +98,20 @@ docker run -d `
 本地后端配置：复制 `application-example.yml` 为 `application-local.yml` 后按文件内注释填写。
 知识页正文在 `seed_data.sql` 中预置，也可在管理端「知识页」编辑。
 
+### Redis
+
+AI 会话异步摘要依赖 Redis Streams。本机开发无需数据卷：
+
+```powershell
+docker run -d `
+  --name redis-7.4.11 `
+  -p 6379:6379 `
+  redis:7.4.11-alpine
+```
+
 ## 启动
 
-确保 PostgreSQL、MinIO 已运行，且已按上面顺序执行 SQL。
+确保 PostgreSQL、MinIO、Redis 已运行，且已按上面顺序执行 SQL。
 
 ```powershell
 # 1. 后端 → http://localhost:8080

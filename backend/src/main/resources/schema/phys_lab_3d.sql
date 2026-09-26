@@ -104,7 +104,7 @@ CREATE TABLE "public"."ai_chat_messages" (
 COMMENT ON TABLE "public"."ai_chat_messages" IS 'AI 辅导会话消息（用户提问 / 助手回复）';
 COMMENT ON COLUMN "public"."ai_chat_messages"."id" IS '消息 ID，自增主键';
 COMMENT ON COLUMN "public"."ai_chat_messages"."session_id" IS '会话 ID，逻辑关联 ai_chat_sessions(id)';
-COMMENT ON COLUMN "public"."ai_chat_messages"."role" IS '角色：user / assistant / system';
+COMMENT ON COLUMN "public"."ai_chat_messages"."role" IS '角色：user / assistant / thinking / tool_call / tool_result';
 COMMENT ON COLUMN "public"."ai_chat_messages"."content" IS '消息正文';
 COMMENT ON COLUMN "public"."ai_chat_messages"."context_json" IS '发消息时的页面上下文（可选 JSONB）';
 COMMENT ON COLUMN "public"."ai_chat_messages"."create_time" IS '创建时间，插入时自动填充';
@@ -228,6 +228,8 @@ CREATE TABLE "public"."ai_chat_sessions" (
   "title" character varying(200) NOT NULL DEFAULT '新对话'::character varying,
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "context_summary" text,
+  "summary_until_msg_id" bigint,
   PRIMARY KEY ("id")
 );
 
@@ -238,6 +240,8 @@ COMMENT ON COLUMN "public"."ai_chat_sessions"."owner_type" IS '所有者类型�
 COMMENT ON COLUMN "public"."ai_chat_sessions"."title" IS '会话标题（可用首条用户消息截断）';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."create_time" IS '创建时间，插入时自动填充';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."update_time" IS '最近消息时间，插入/更新时自动填充';
+COMMENT ON COLUMN "public"."ai_chat_sessions"."context_summary" IS '滚动会话摘要正文';
+COMMENT ON COLUMN "public"."ai_chat_sessions"."summary_until_msg_id" IS '摘要已覆盖到的消息 id（含），之后的对话原文仍可入模';
 CREATE INDEX "idx_ai_chat_sessions_owner_updated" ON "public"."ai_chat_sessions" USING btree ("owner_type", "owner_id", "update_time");
 
 CREATE SEQUENCE IF NOT EXISTS "public"."admins_id_seq"

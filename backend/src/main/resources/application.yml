@@ -15,6 +15,10 @@ spring:
     url: jdbc:postgresql://${phys-lab.datasource.host}:${phys-lab.datasource.port}/${phys-lab.datasource.database}
     username: ${phys-lab.datasource.username}
     password: ${phys-lab.datasource.password}
+  data:
+    redis:
+      host: ${phys-lab.redis.host:localhost}
+      port: ${phys-lab.redis.port:6379}
 
 mybatis-plus:
   configuration:
@@ -35,7 +39,16 @@ phys-lab:
       api-key: ${PHYS_LAB_AI_CHAT_API_KEY:}
       base-url: ${PHYS_LAB_AI_CHAT_BASE_URL:https://api.deepseek.com}
       model: ${PHYS_LAB_AI_CHAT_MODEL:deepseek-chat}
-    history-limit: 40
+    # 仅统计 user/assistant。入模至少条数；不足则从摘要截止点往前补；摘要时也保留最近这么多条不压缩
+    history-min: 10
+    # 未摘要对话条数大于等于此值 -> 投递异步摘要任务
+    summary-soft-limit: 30
+    # 未摘要对话条数大于此值 -> 助手回复繁忙文案（仍会尝试投递摘要）
+    summary-hard-limit: 50
+    # 摘要会话锁 TTL（秒），防 Worker 挂死占锁
+    summary-lock-ttl-seconds: 120
+    # Redis Streams 积压上限，满则助手回复繁忙
+    summary-queue-max: 100
 
 dromara:
   x-file-storage:

@@ -32,4 +32,48 @@ public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
             SELECT COUNT(*) FROM ai_chat_messages WHERE role = 'user'
             """)
     long countAllUserQuestions();
+
+    @Select("""
+            SELECT COUNT(*) FROM ai_chat_messages
+            WHERE session_id = #{sessionId}
+              AND id > #{afterId}
+              AND role IN ('user', 'assistant')
+            """)
+    long countDialogueAfter(@Param("sessionId") Long sessionId, @Param("afterId") long afterId);
+
+    @Select("""
+            SELECT * FROM ai_chat_messages
+            WHERE session_id = #{sessionId}
+              AND id > #{afterId}
+              AND role IN ('user', 'assistant')
+            ORDER BY id ASC
+            """)
+    List<AiChatMessage> listDialogueAfterAsc(
+            @Param("sessionId") Long sessionId, @Param("afterId") long afterId);
+
+    @Select("""
+            SELECT * FROM ai_chat_messages
+            WHERE session_id = #{sessionId}
+              AND id > #{afterId}
+              AND id <= #{rightMsgId}
+              AND role IN ('user', 'assistant')
+            ORDER BY id ASC
+            """)
+    List<AiChatMessage> listDialogueBetween(
+            @Param("sessionId") Long sessionId,
+            @Param("afterId") long afterId,
+            @Param("rightMsgId") long rightMsgId);
+
+    @Select("""
+            SELECT * FROM ai_chat_messages
+            WHERE session_id = #{sessionId}
+              AND id <= #{untilId}
+              AND role IN ('user', 'assistant')
+            ORDER BY id DESC
+            LIMIT #{limit}
+            """)
+    List<AiChatMessage> listDialogueBeforeDesc(
+            @Param("sessionId") Long sessionId,
+            @Param("untilId") long untilId,
+            @Param("limit") int limit);
 }

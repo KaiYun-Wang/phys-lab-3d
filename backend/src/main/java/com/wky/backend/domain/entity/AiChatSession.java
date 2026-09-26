@@ -23,6 +23,12 @@ public class AiChatSession {
 
     private String title;
 
+    /** 滚动会话摘要 */
+    private String contextSummary;
+
+    /** 摘要已覆盖到的消息 id（含） */
+    private Long summaryUntilMsgId;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

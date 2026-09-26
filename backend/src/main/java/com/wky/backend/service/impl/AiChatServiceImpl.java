@@ -18,6 +18,7 @@ import com.wky.backend.enums.CommentOwnerType;
 import com.wky.backend.exception.ApiException;
 import com.wky.backend.mapper.AiChatMessageMapper;
 import com.wky.backend.mapper.AiChatSessionMapper;
+import com.wky.backend.service.AiContextSummaryService;
 import com.wky.backend.service.IAiChatService;
 import com.wky.backend.service.IExperimentService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -58,6 +59,7 @@ public class AiChatServiceImpl implements IAiChatService {
     private final AiChatMessageMapper messageMapper;
     private final AiModelFactory aiModelFactory;
     private final AiProperties aiProperties;
+    private final AiContextSummaryService summaryService;
     private final IExperimentService experimentService;
     private final ExperimentAiTools experimentAiTools;
     private final KnowledgeAiTools knowledgeAiTools;
@@ -132,7 +134,9 @@ public class AiChatServiceImpl implements IAiChatService {
     public AiChatReplyResponse chat(
             Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
         PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
-        String answer = generateAnswerSync(prepared.session(), prepared.messages());
+        String answer = prepared.busy()
+                ? AiContextSummaryService.BUSY_MSG
+                : generateAnswerSync(prepared.session(), prepared.messages());
         AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer);
         return AiChatReplyResponse.builder()
                 .userMessage(toMessage(prepared.userMsg()))
@@ -155,7 +159,6 @@ public class AiChatServiceImpl implements IAiChatService {
             Consumer<StreamDone> onDone,
             Consumer<Throwable> onError) {
         try {
-            onStatus.accept("正在准备回答…");
             PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
             AiChatSession session = prepared.session();
             onMeta.accept(new StreamMeta(
@@ -163,6 +166,14 @@ public class AiChatServiceImpl implements IAiChatService {
                     session.getTitle(),
                     prepared.userMsg().getId()));
 
+            if (prepared.busy()) {
+                onDelta.accept(AiContextSummaryService.BUSY_MSG);
+                AiChatMessage assistantMsg = saveAssistant(session, AiContextSummaryService.BUSY_MSG);
+                onDone.accept(new StreamDone(assistantMsg.getId(), toSession(session), null));
+                return;
+            }
+
+            onStatus.accept("正在准备回答…");
             List<ChatMessage> working = new ArrayList<>(prepared.messages());
             StringBuilder full = new StringBuilder();
             StringBuilder thinkingBuf = new StringBuilder();
@@ -297,8 +308,12 @@ public class AiChatServiceImpl implements IAiChatService {
         session.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(session);
 
-        List<ChatMessage> messages = buildChatMessages(session.getId(), context);
-        return new PreparedChat(session, userMsg, messages);
+        session = sessionMapper.selectById(session.getId());
+        boolean busy = summaryService.checkAndMaybeEnqueue(session);
+        if (busy) {
+            return new PreparedChat(session, userMsg, List.of(), true);
+        }
+        return new PreparedChat(session, userMsg, buildChatMessages(session, context), false);
     }
 
     private AiChatMessage saveAssistant(AiChatSession session, String answer) {
@@ -402,18 +417,13 @@ public class AiChatServiceImpl implements IAiChatService {
         };
     }
 
-    private List<ChatMessage> buildChatMessages(Long sessionId, Map<String, Object> context) {
+    private List<ChatMessage> buildChatMessages(AiChatSession session, Map<String, Object> context) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(buildSystemPrompt(context)));
-
-        // 按消息行滑动窗口；thinking/tool_* 占窗口但不入模（还原链留给步骤⑤）
-        List<AiChatMessage> history = messageMapper.selectList(
-                new LambdaQueryWrapper<AiChatMessage>()
-                        .eq(AiChatMessage::getSessionId, sessionId)
-                        .orderByDesc(AiChatMessage::getId)
-                        .last("LIMIT " + aiProperties.getHistoryLimit()));
-        for (int i = history.size() - 1; i >= 0; i--) {
-            AiChatMessage m = history.get(i);
+        if (StringUtils.hasText(session.getContextSummary())) {
+            messages.add(SystemMessage.from("此前对话摘要：\n" + session.getContextSummary().trim()));
+        }
+        for (AiChatMessage m : loadDialogueWindow(session)) {
             if ("user".equals(m.getRole())) {
                 messages.add(UserMessage.from(m.getContent()));
             } else if ("assistant".equals(m.getRole())) {
@@ -421,6 +431,25 @@ public class AiChatServiceImpl implements IAiChatService {
             }
         }
         return messages;
+    }
+
+    /** 摘要截止后的对话；不足 historyMin 则从 until 往前补。 */
+    private List<AiChatMessage> loadDialogueWindow(AiChatSession session) {
+        long until = AiContextSummaryService.untilOf(session);
+        int min = Math.max(0, aiProperties.getHistoryMin());
+        List<AiChatMessage> after = messageMapper.listDialogueAfterAsc(session.getId(), until);
+        List<AiChatMessage> window = new ArrayList<>();
+        if (after.size() < min && until > 0) {
+            int need = min - after.size();
+            if (need > 0) {
+                List<AiChatMessage> before = messageMapper.listDialogueBeforeDesc(session.getId(), until, need);
+                for (int i = before.size() - 1; i >= 0; i--) {
+                    window.add(before.get(i));
+                }
+            }
+        }
+        window.addAll(after);
+        return window;
     }
 
     private String buildSystemPrompt(Map<String, Object> context) {
@@ -523,5 +552,8 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     private record PreparedChat(
-            AiChatSession session, AiChatMessage userMsg, List<ChatMessage> messages) {}
+            AiChatSession session,
+            AiChatMessage userMsg,
+            List<ChatMessage> messages,
+            boolean busy) {}
 }
