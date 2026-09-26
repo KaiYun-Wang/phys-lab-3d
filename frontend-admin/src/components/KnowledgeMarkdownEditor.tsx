@@ -1,6 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import ReactMarkdown from "react-markdown";
 
 type Props = {
@@ -12,6 +19,16 @@ type Props = {
   required?: boolean;
 };
 
+function scrollRatio(el: HTMLElement) {
+  const max = el.scrollHeight - el.clientHeight;
+  return max > 0 ? el.scrollTop / max : 0;
+}
+
+function applyScrollRatio(el: HTMLElement, ratio: number) {
+  const max = el.scrollHeight - el.clientHeight;
+  el.scrollTop = max > 0 ? ratio * max : 0;
+}
+
 export default function KnowledgeMarkdownEditor({
   value,
   onChange,
@@ -20,32 +37,66 @@ export default function KnowledgeMarkdownEditor({
   rows = 20,
   required,
 }: Props) {
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
   const fileId = useId();
+  const [showPreview, setShowPreview] = useState(true);
+  const [editPct, setEditPct] = useState(50);
+  const editRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const syncing = useRef(false);
+  const dragRef = useRef<{ startX: number; startPct: number; width: number } | null>(null);
+
+  const syncScroll = useCallback((from: "edit" | "preview") => {
+    if (syncing.current || !showPreview) return;
+    const src = from === "edit" ? editRef.current : previewRef.current;
+    const dst = from === "edit" ? previewRef.current : editRef.current;
+    if (!src || !dst) return;
+    syncing.current = true;
+    applyScrollRatio(dst, scrollRatio(src));
+    requestAnimationFrame(() => {
+      syncing.current = false;
+    });
+  }, [showPreview]);
+
+  function onGutterPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const split = e.currentTarget.parentElement;
+    if (!split) return;
+    dragRef.current = {
+      startX: e.clientX,
+      startPct: editPct,
+      width: split.getBoundingClientRect().width,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onGutterPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.width <= 0) return;
+    const next = drag.startPct + ((e.clientX - drag.startX) / drag.width) * 100;
+    setEditPct(Math.min(80, Math.max(20, next)));
+  }
+
+  function onGutterPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+    dragRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }
+
+  const splitStyle = showPreview
+    ? ({ ["--edit-pct"]: `${editPct}%` } as CSSProperties)
+    : undefined;
 
   return (
     <div className="kp-md">
       <div className="kp-md__toolbar">
-        <div className="kp-md__tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "edit"}
-            className={`btn-pill btn-pill--sm ${mode === "edit" ? "btn-pill--primary" : "btn-pill--ghost"}`}
-            onClick={() => setMode("edit")}
-          >
-            编辑
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "preview"}
-            className={`btn-pill btn-pill--sm ${mode === "preview" ? "btn-pill--primary" : "btn-pill--ghost"}`}
-            onClick={() => setMode("preview")}
-          >
-            预览
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`btn-pill btn-pill--sm ${showPreview ? "btn-pill--primary" : "btn-pill--ghost"}`}
+          onClick={() => setShowPreview((v) => !v)}
+        >
+          {showPreview ? "关闭预览" : "显示预览"}
+        </button>
         {onFile ? (
           <div className="kb-upload-file-row">
             <label htmlFor={fileId} className="btn-pill btn-pill--outline btn-pill--sm kb-upload-pick">
@@ -67,24 +118,44 @@ export default function KnowledgeMarkdownEditor({
         ) : null}
       </div>
 
-      {mode === "edit" ? (
+      <div className={`kp-md__split${showPreview ? "" : " kp-md__split--solo"}`} style={splitStyle}>
         <textarea
+          ref={editRef}
           className="text-input text-input--textarea kp-md__editor"
           rows={rows}
           required={required}
           value={value}
           placeholder="Markdown / 纯文本"
           onChange={(e) => onChange(e.target.value)}
+          onScroll={() => syncScroll("edit")}
         />
-      ) : (
-        <div className="kp-md__preview">
-          {value.trim() ? (
-            <ReactMarkdown>{value}</ReactMarkdown>
-          ) : (
-            <p className="caption">暂无内容</p>
-          )}
-        </div>
-      )}
+        {showPreview ? (
+          <>
+            <div
+              className="kp-md__gutter"
+              role="separator"
+              aria-orientation="vertical"
+              aria-valuenow={Math.round(editPct)}
+              aria-label="拖动调整编辑与预览宽度"
+              onPointerDown={onGutterPointerDown}
+              onPointerMove={onGutterPointerMove}
+              onPointerUp={onGutterPointerUp}
+              onPointerCancel={onGutterPointerUp}
+            />
+            <div
+              ref={previewRef}
+              className="kp-md__preview"
+              onScroll={() => syncScroll("preview")}
+            >
+              {value.trim() ? (
+                <ReactMarkdown>{value}</ReactMarkdown>
+              ) : (
+                <p className="caption">暂无内容</p>
+              )}
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

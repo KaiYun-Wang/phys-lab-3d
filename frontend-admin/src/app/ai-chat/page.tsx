@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import AdminShell from "@/components/AdminShell";
 import {
   createAdminAiSession,
@@ -355,6 +356,7 @@ export default function AdminAiChatPage() {
                     }}
                   >
                     <div
+                      className={m.role === "assistant" ? "ai-md" : undefined}
                       style={{
                         display: "inline-block",
                         maxWidth: "85%",
@@ -362,7 +364,7 @@ export default function AdminAiChatPage() {
                         borderRadius: 12,
                         background: m.role === "user" ? "var(--shade-200)" : "var(--canvas-cream)",
                         border: "1px solid var(--hairline-light)",
-                        whiteSpace: "pre-wrap",
+                        whiteSpace: m.role === "assistant" ? "normal" : "pre-wrap",
                         textAlign: "left",
                         fontSize: 14,
                         lineHeight: 1.5,
@@ -375,7 +377,15 @@ export default function AdminAiChatPage() {
                           streaming={sending && m.id < 0 && !m.content}
                         />
                       )}
-                      {m.content || (m.role === "assistant" && sending ? "…" : "")}
+                      {m.role === "assistant" ? (
+                        m.content ? (
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        ) : sending ? (
+                          "…"
+                        ) : null
+                      ) : (
+                        m.content
+                      )}
                     </div>
                   </div>
                 ),

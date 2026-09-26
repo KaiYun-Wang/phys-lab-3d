@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePathname } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 import {
   createAiSession,
   deleteAiSession,
@@ -585,8 +586,16 @@ export default function AiChatWidget() {
                     {m.role === "assistant" && (m.thinking || (sending && m.id < 0)) && (
                       <ThinkingBlock text={m.thinking || ""} streaming={sending && m.id < 0 && !m.content} />
                     )}
-                    <div className="bubble">
-                      {m.content || (m.role === "assistant" && sending && m.id < 0 ? "…" : "")}
+                    <div className={`bubble${m.role === "assistant" ? " bubble--md" : ""}`}>
+                      {m.role === "assistant" ? (
+                        m.content ? (
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        ) : sending && m.id < 0 ? (
+                          "…"
+                        ) : null
+                      ) : (
+                        m.content
+                      )}
                     </div>
                     <span className="time">{timeLabel(m.createTime)}</span>
                   </div>
