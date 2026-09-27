@@ -402,6 +402,62 @@ COMMENT ON COLUMN "public"."experiment_favorites"."experiment_id" IS '实验 ID�
 COMMENT ON COLUMN "public"."experiment_favorites"."create_time" IS '收藏时间，插入时自动填充';
 CREATE UNIQUE INDEX "uk_experiment_favorites_user_experiment" ON "public"."experiment_favorites" USING btree ("user_id", "experiment_id");
 
+CREATE SEQUENCE IF NOT EXISTS "public"."demo_sessions_id_seq"
+  AS bigint
+  START WITH 1
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 9223372036854775807
+  CACHE 1
+  NO CYCLE;
+
+CREATE TABLE "public"."demo_sessions" (
+  "id" bigint NOT NULL DEFAULT nextval('demo_sessions_id_seq'::regclass),
+  "user_id" bigint NOT NULL,
+  "experiment_id" bigint NOT NULL,
+  "goal" text,
+  "title" character varying(200),
+  "status" character varying(20) NOT NULL DEFAULT 'ready',
+  "plan_json" jsonb NOT NULL,
+  "current_step" integer NOT NULL DEFAULT 0,
+  "quiz_answer_index" integer,
+  "quiz_correct" boolean,
+  "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY ("id")
+);
+
+COMMENT ON TABLE "public"."demo_sessions" IS 'AI 演示会话：剧本 plan_json + 大步骤进度 + 答题';
+COMMENT ON COLUMN "public"."demo_sessions"."experiment_id" IS '关联 experiments.id';
+COMMENT ON COLUMN "public"."demo_sessions"."status" IS 'ready | playing | done | aborted';
+COMMENT ON COLUMN "public"."demo_sessions"."plan_json" IS '演示计划（steps / quiz / summary）';
+COMMENT ON COLUMN "public"."demo_sessions"."current_step" IS '已完成的大步骤数（0..N）';
+COMMENT ON COLUMN "public"."demo_sessions"."quiz_answer_index" IS '用户选项下标；未答为 null';
+COMMENT ON COLUMN "public"."demo_sessions"."quiz_correct" IS '答题是否正确；未答为 null';
+CREATE INDEX "idx_demo_sessions_user_exp" ON "public"."demo_sessions" USING btree ("user_id", "experiment_id", "update_time");
+
+CREATE SEQUENCE IF NOT EXISTS "public"."demo_step_events_id_seq"
+  AS bigint
+  START WITH 1
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 9223372036854775807
+  CACHE 1
+  NO CYCLE;
+
+CREATE TABLE "public"."demo_step_events" (
+  "id" bigint NOT NULL DEFAULT nextval('demo_step_events_id_seq'::regclass),
+  "session_id" bigint NOT NULL,
+  "step_index" integer NOT NULL,
+  "params_json" jsonb,
+  "readings_json" jsonb,
+  "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY ("id")
+);
+
+COMMENT ON TABLE "public"."demo_step_events" IS '大步骤核验回执（幂等）；不可用来改演示剧本';
+CREATE UNIQUE INDEX "uk_demo_step_events_session_step" ON "public"."demo_step_events" USING btree ("session_id", "step_index");
+
 ALTER SEQUENCE "public"."admins_id_seq" OWNED BY "public"."admins"."id";
 
 ALTER SEQUENCE "public"."example_questions_id_seq" OWNED BY "public"."example_questions"."id";
@@ -423,6 +479,10 @@ ALTER SEQUENCE "public"."knowledge_pages_id_seq" OWNED BY "public"."knowledge_pa
 ALTER SEQUENCE "public"."subject_types_id_seq" OWNED BY "public"."subject_types"."id";
 
 ALTER SEQUENCE "public"."users_id_seq" OWNED BY "public"."users"."id";
+
+ALTER SEQUENCE "public"."demo_sessions_id_seq" OWNED BY "public"."demo_sessions"."id";
+
+ALTER SEQUENCE "public"."demo_step_events_id_seq" OWNED BY "public"."demo_step_events"."id";
 
 SELECT setval('"public"."admins_id_seq"', GREATEST(COALESCE(MAX("id"), 2), 2), true) FROM "public"."admins";
 

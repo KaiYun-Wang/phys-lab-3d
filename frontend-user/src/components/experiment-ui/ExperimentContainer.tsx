@@ -14,7 +14,11 @@ import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { ArrowLeft } from "lucide-react";
 import * as THREE from "three";
 import { CommentsPanel } from "./CommentsPanel";
-import { fetchExperiment } from "@/lib/api";
+import { DemoPanel, type DemoAdapter, type DemoStageUi } from "@/components/demo/DemoPanel";
+import { DemoSpotlight } from "@/components/demo/DemoSpotlight";
+import { DemoCaptionBar } from "@/components/demo/DemoCaptionBar";
+import AiChatWidget from "@/components/AiChatWidget";
+import { fetchExperiment, type AiChatContext } from "@/lib/api";
 
 const LEFT_W_KEY = "physlab.rail.leftWidth";
 const RIGHT_W_KEY = "physlab.rail.rightWidth";
@@ -81,9 +85,13 @@ export interface ExperimentContainerProps {
   backgroundColor?: string;
   toneMappingExposure?: number;
   simulationBar?: SimulationBarProps;
+  /** 有适配器时右栏出现「对话 / AI 演示」 */
+  demoAdapter?: DemoAdapter;
+  /** 追加到对话上下文（参数快照等） */
+  chatContext?: Partial<AiChatContext>;
 }
 
-type RightPanel = "comments" | null;
+type RightPanel = "chat" | "demo" | "comments" | null;
 
 export function ExperimentContainer({
   children,
@@ -97,6 +105,8 @@ export function ExperimentContainer({
   backgroundColor = "#000000",
   toneMappingExposure = 1.2,
   simulationBar,
+  demoAdapter,
+  chatContext,
 }: ExperimentContainerProps) {
   const hasLeft = !!controls;
   const [leftOpen, setLeftOpen] = useState(hasLeft);
@@ -105,6 +115,19 @@ export function ExperimentContainer({
   const [rightWidth, setRightWidth] = useState(DEFAULT_W);
   const [commentCount, setCommentCount] = useState(0);
   const [experimentId, setExperimentId] = useState<number | null>(null);
+  const [activeDemoId, setActiveDemoId] = useState<number | null>(null);
+  const [demoUi, setDemoUi] = useState<DemoStageUi>({
+    highlightId: null,
+    caption: "",
+    captionLabel: "",
+    voiceOn: true,
+    canSkip: false,
+    canPrev: false,
+    nextLabel: "下一步 ›",
+    prevLabel: "‹ 上一步",
+  });
+  const skipFnRef = useRef<(() => void) | null>(null);
+  const prevFnRef = useRef<(() => void) | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [narrow, setNarrow] = useState(false);
@@ -232,8 +255,31 @@ export function ExperimentContainer({
     };
   }, [resizing, persistWidth]);
 
-  const toggleRight = () => {
-    setRightPanel((cur) => (cur === "comments" ? null : "comments"));
+  const toggleRight = (panel: Exclude<RightPanel, null>) => {
+    setRightPanel((cur) => (cur === panel ? null : panel));
+  };
+
+  const openDemo = (demoId: number) => {
+    setActiveDemoId(demoId);
+    setRightPanel("demo");
+  };
+
+  const railTitle =
+    rightPanel === "chat" ? "对话" : rightPanel === "demo" ? "AI 演示" : "评论";
+  const railMeta =
+    rightPanel === "chat"
+      ? "统一入口 · 可生成演示"
+      : rightPanel === "demo"
+        ? "执行与查看"
+        : `${commentCount} 条讨论 · ${title}`;
+
+  const mergedChatContext: AiChatContext = {
+    path: experimentRoute ? `/experiments/${experimentRoute}` : undefined,
+    pageType: "experiment",
+    experimentId: experimentId ?? undefined,
+    experimentTitle: title,
+    experimentRoute,
+    ...chatContext,
   };
 
   if (!canRender) return null;
@@ -373,8 +419,26 @@ export function ExperimentContainer({
           {experimentRoute && (
             <button
               type="button"
+              className={`exp-chip${rightPanel === "chat" ? " active" : ""}`}
+              onClick={() => toggleRight("chat")}
+            >
+              对话
+            </button>
+          )}
+          {demoAdapter && (
+            <button
+              type="button"
+              className={`exp-chip${rightPanel === "demo" ? " active" : ""}`}
+              onClick={() => toggleRight("demo")}
+            >
+              AI 演示
+            </button>
+          )}
+          {experimentRoute && (
+            <button
+              type="button"
               className={`exp-chip${rightPanel === "comments" ? " active" : ""}`}
-              onClick={toggleRight}
+              onClick={() => toggleRight("comments")}
             >
               评论
               {commentCount > 0 && <span className="exp-badge">{commentCount}</span>}
@@ -413,6 +477,19 @@ export function ExperimentContainer({
         <div className="exp-sim-hint">拖拽旋转 · 滚轮缩放 · 右键平移</div>
       </section>
 
+      <DemoSpotlight demoId={demoUi.highlightId} />
+      <DemoCaptionBar
+        label={demoUi.captionLabel}
+        text={demoUi.caption}
+        visible={!!demoUi.caption}
+        showPrev={demoUi.canPrev}
+        showNext={demoUi.canSkip}
+        nextLabel={demoUi.nextLabel}
+        prevLabel={demoUi.prevLabel}
+        onPrev={() => prevFnRef.current?.()}
+        onNext={() => skipFnRef.current?.()}
+      />
+
       {/* RIGHT RAIL */}
       <aside className="exp-rail exp-rail-right" aria-hidden={!rightOpen}>
         <div
@@ -424,10 +501,8 @@ export function ExperimentContainer({
         <div className="exp-rail-inner">
           <div className="exp-rail-header">
             <div>
-              <h2>评论</h2>
-              <div className="exp-rail-meta">
-                {`${commentCount} 条讨论 · ${title}`}
-              </div>
+              <h2>{railTitle}</h2>
+              <div className="exp-rail-meta">{railMeta}</div>
             </div>
             <button
               type="button"
@@ -438,6 +513,36 @@ export function ExperimentContainer({
               ✕
             </button>
           </div>
+
+          {rightPanel === "chat" && (
+            <div className="exp-rail-chat">
+              <AiChatWidget
+                mode="rail"
+                contextOverride={mergedChatContext}
+                contextLabelOverride={`实验 · ${title}`}
+                onOpenDemo={demoAdapter ? openDemo : undefined}
+                onClose={() => setRightPanel(null)}
+              />
+            </div>
+          )}
+
+          {rightPanel === "demo" && demoAdapter && (
+            <div className="exp-panel-scroll">
+              <DemoPanel
+                adapter={{ ...demoAdapter, experimentId }}
+                activeDemoId={activeDemoId}
+                onActiveDemoChange={setActiveDemoId}
+                onStageUi={setDemoUi}
+                onEnsureLeftOpen={() => setLeftOpen(true)}
+                onSkipReady={(fn) => {
+                  skipFnRef.current = fn;
+                }}
+                onPrevReady={(fn) => {
+                  prevFnRef.current = fn;
+                }}
+              />
+            </div>
+          )}
 
           {rightPanel === "comments" && experimentId != null && (
             <CommentsPanel

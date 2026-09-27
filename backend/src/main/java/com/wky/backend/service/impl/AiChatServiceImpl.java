@@ -6,6 +6,9 @@ import com.wky.backend.ai.ExperimentAiTools;
 import com.wky.backend.ai.KnowledgeAiTools;
 import com.wky.backend.config.AiModelFactory;
 import com.wky.backend.config.AiProperties;
+import com.wky.backend.demo.DemoAiTools;
+import com.wky.backend.demo.DemoChatContext;
+import com.wky.backend.demo.ExperimentDefinitionRegistry;
 import com.wky.backend.domain.dto.AiChatMessageRequest;
 import com.wky.backend.domain.dto.AiChatMessageResponse;
 import com.wky.backend.domain.dto.AiChatReplyResponse;
@@ -64,17 +67,24 @@ public class AiChatServiceImpl implements IAiChatService {
     private final IExperimentService experimentService;
     private final ExperimentAiTools experimentAiTools;
     private final KnowledgeAiTools knowledgeAiTools;
+    private final DemoAiTools demoAiTools;
+    private final ExperimentDefinitionRegistry experimentDefinitionRegistry;
 
-    private List<ToolSpecification> toolSpecifications;
-    private Map<String, ToolExecutor> toolExecutors;
+    /** Base tools always; demoTools = base + createDemo/lookupDemo. */
+    private ToolBundle baseTools;
+    private ToolBundle demoTools;
 
     @PostConstruct
     void initTools() {
+        this.baseTools = buildToolBundle(List.of(experimentAiTools, knowledgeAiTools));
+        this.demoTools = buildToolBundle(List.of(experimentAiTools, knowledgeAiTools, demoAiTools));
+    }
+
+    private static ToolBundle buildToolBundle(List<Object> tools) {
         ToolService toolService = new ToolService();
-        toolService.tools(List.of(experimentAiTools, knowledgeAiTools));
+        toolService.tools(tools);
         toolService.maxSequentialToolsInvocations(MAX_TOOL_ROUNDS);
-        this.toolSpecifications = toolService.toolSpecifications();
-        this.toolExecutors = toolService.toolExecutors();
+        return new ToolBundle(toolService.toolSpecifications(), toolService.toolExecutors());
     }
 
     @Override
@@ -135,15 +145,20 @@ public class AiChatServiceImpl implements IAiChatService {
     public AiChatReplyResponse chat(
             Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
         PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
-        String answer = prepared.busy()
-                ? AiContextSummaryService.BUSY_MSG
-                : generateAnswerSync(prepared.session(), prepared.messages(), prepared.enableThinking());
-        AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer);
-        return AiChatReplyResponse.builder()
-                .userMessage(toMessage(prepared.userMsg()))
-                .assistantMessage(toMessage(assistantMsg))
-                .session(toSession(prepared.session()))
-                .build();
+        try {
+            bindDemoContext(ownerId, prepared.context(), prepared.demoEnabled());
+            String answer = prepared.busy()
+                    ? AiContextSummaryService.BUSY_MSG
+                    : generateAnswerSync(prepared);
+            AiChatMessage assistantMsg = saveAssistant(prepared.session(), answer);
+            return AiChatReplyResponse.builder()
+                    .userMessage(toMessage(prepared.userMsg()))
+                    .assistantMessage(toMessage(assistantMsg))
+                    .session(toSession(prepared.session()))
+                    .build();
+        } finally {
+            DemoChatContext.clear();
+        }
     }
 
     @Override
@@ -162,6 +177,7 @@ public class AiChatServiceImpl implements IAiChatService {
             Consumer<Throwable> onError) {
         try {
             PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
+            bindDemoContext(ownerId, prepared.context(), prepared.demoEnabled());
             AiChatSession session = prepared.session();
             onMeta.accept(new StreamMeta(
                     session.getId(),
@@ -188,7 +204,7 @@ public class AiChatServiceImpl implements IAiChatService {
                 StringBuilder roundThinking = new StringBuilder();
 
                 aiModelFactory.streamingChatModel().chat(
-                        buildChatRequest(working, prepared.enableThinking()),
+                        buildChatRequest(working, prepared.enableThinking(), prepared.tools()),
                         new StreamingChatResponseHandler() {
                             @Override
                             public void onPartialThinking(
@@ -249,7 +265,8 @@ public class AiChatServiceImpl implements IAiChatService {
                     onClear.run();
                     full.setLength(0);
                     working.add(aiMessage);
-                    appendToolResults(session, working, aiMessage.toolExecutionRequests(), onMessage);
+                    appendToolResults(
+                            session, working, aiMessage.toolExecutionRequests(), prepared.tools(), onMessage);
                     onStatus.accept("继续生成回答…");
                     continue;
                 }
@@ -279,6 +296,8 @@ public class AiChatServiceImpl implements IAiChatService {
             onError.accept(e instanceof ApiException
                     ? e
                     : new ApiException(502, "调用 AI 模型失败：" + e.getMessage()));
+        } finally {
+            DemoChatContext.clear();
         }
     }
 
@@ -287,6 +306,8 @@ public class AiChatServiceImpl implements IAiChatService {
         AiChatSession session = requireOwnedSession(ownerId, ownerType, sessionId);
         String content = request.getContent().trim();
         Map<String, Object> context = request.getContext();
+        boolean demoEnabled = demoToolsAvailable(context);
+        ToolBundle tools = demoEnabled ? demoTools : baseTools;
 
         AiChatMessage userMsg = new AiChatMessage();
         userMsg.setSessionId(session.getId());
@@ -305,9 +326,80 @@ public class AiChatServiceImpl implements IAiChatService {
         boolean busy = summaryService.checkAndMaybeEnqueue(session);
         boolean enableThinking = Boolean.TRUE.equals(request.getEnableThinking());
         if (busy) {
-            return new PreparedChat(session, userMsg, List.of(), true, enableThinking);
+            return new PreparedChat(session, userMsg, List.of(), true, enableThinking, context, demoEnabled, tools);
         }
-        return new PreparedChat(session, userMsg, buildChatMessages(session, context), false, enableThinking);
+        return new PreparedChat(
+                session,
+                userMsg,
+                buildChatMessages(session, context, demoEnabled),
+                false,
+                enableThinking,
+                context,
+                demoEnabled,
+                tools);
+    }
+
+    private void bindDemoContext(Long ownerId, Map<String, Object> context, boolean demoEnabled) {
+        if (!demoEnabled) {
+            return;
+        }
+        String route = resolveExperimentRoute(context);
+        Long experimentId = null;
+        if (context != null && context.get("experimentId") != null) {
+            try {
+                experimentId = Long.valueOf(String.valueOf(context.get("experimentId")));
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> snapshot = context != null && context.get("snapshot") instanceof Map<?, ?> m
+                ? (Map<String, Object>) m
+                : null;
+        DemoChatContext.set(ownerId, route, experimentId, snapshot);
+    }
+
+    private boolean demoToolsAvailable(Map<String, Object> context) {
+        if (context == null) {
+            return false;
+        }
+        Object pageType = context.get("pageType");
+        if (pageType == null || !"experiment".equalsIgnoreCase(String.valueOf(pageType).trim())) {
+            return false;
+        }
+        return experimentDefinitionRegistry.supports(resolveExperimentRoute(context));
+    }
+
+    /** Prefer experimentRoute, then path /experiments/{route}, then title heuristics. */
+    static String resolveExperimentRoute(Map<String, Object> context) {
+        if (context == null) {
+            return null;
+        }
+        Object route = context.get("experimentRoute");
+        if (route != null && StringUtils.hasText(String.valueOf(route))) {
+            return String.valueOf(route).trim();
+        }
+        Object path = context.get("path");
+        if (path != null) {
+            String p = String.valueOf(path);
+            int idx = p.indexOf("/experiments/");
+            if (idx >= 0) {
+                String rest = p.substring(idx + "/experiments/".length());
+                int slash = rest.indexOf('/');
+                String seg = slash < 0 ? rest : rest.substring(0, slash);
+                if (StringUtils.hasText(seg)) {
+                    return seg.trim();
+                }
+            }
+        }
+        Object title = context.get("experimentTitle");
+        if (title != null) {
+            String t = String.valueOf(title).toLowerCase();
+            if (t.contains("venturi") || t.contains("文丘里") || t.contains("伯努利")) {
+                return "bernoulli-venturi";
+            }
+        }
+        return null;
     }
 
     private AiChatMessage saveAssistant(AiChatSession session, String answer) {
@@ -341,24 +433,29 @@ public class AiChatServiceImpl implements IAiChatService {
         return msg;
     }
 
-    private String generateAnswerSync(
-            AiChatSession session, List<ChatMessage> messages, boolean enableThinking) {
+    private String generateAnswerSync(PreparedChat prepared) {
         try {
-            List<ChatMessage> working = new ArrayList<>(messages);
+            List<ChatMessage> working = new ArrayList<>(prepared.messages());
             for (int i = 0; i < MAX_TOOL_ROUNDS; i++) {
-                ChatResponse response =
-                        aiModelFactory.chatModel().chat(buildChatRequest(working, enableThinking));
+                ChatResponse response = aiModelFactory
+                        .chatModel()
+                        .chat(buildChatRequest(working, prepared.enableThinking(), prepared.tools()));
                 AiMessage aiMessage = response.aiMessage();
                 if (aiMessage == null) {
                     return "（模型未返回内容）";
                 }
                 if (aiMessage.hasToolExecutionRequests()) {
-                    saveThinking(session, aiMessage.thinking());
+                    saveThinking(prepared.session(), aiMessage.thinking());
                     working.add(aiMessage);
-                    appendToolResults(session, working, aiMessage.toolExecutionRequests(), null);
+                    appendToolResults(
+                            prepared.session(),
+                            working,
+                            aiMessage.toolExecutionRequests(),
+                            prepared.tools(),
+                            null);
                     continue;
                 }
-                saveThinking(session, aiMessage.thinking());
+                saveThinking(prepared.session(), aiMessage.thinking());
                 return StringUtils.hasText(aiMessage.text()) ? aiMessage.text() : "（模型未返回内容）";
             }
             throw new ApiException(502, "工具调用轮次过多");
@@ -373,6 +470,7 @@ public class AiChatServiceImpl implements IAiChatService {
             AiChatSession session,
             List<ChatMessage> working,
             List<ToolExecutionRequest> requests,
+            ToolBundle tools,
             Consumer<AiChatMessageResponse> onMessage) {
         for (ToolExecutionRequest request : requests) {
             String label = toolLabel(request.name());
@@ -384,7 +482,7 @@ public class AiChatServiceImpl implements IAiChatService {
                     insertMessage(session.getId(), "tool_call", "调用工具：" + label, callCtx);
             emitMessage(onMessage, callMsg);
 
-            ToolExecutor executor = toolExecutors.get(request.name());
+            ToolExecutor executor = tools.executors().get(request.name());
             String result;
             try {
                 result = executor != null
@@ -414,15 +512,18 @@ public class AiChatServiceImpl implements IAiChatService {
             case "listPublishedExperiments" -> "查询已发布实验";
             case "listKnowledgePages" -> "查询知识页目录";
             case "getKnowledgePageContents" -> "读取知识页正文";
+            case "createDemo" -> "生成演示计划";
+            case "lookupDemo" -> "查询演示记录";
             default -> name;
         };
     }
 
-    private ChatRequest buildChatRequest(List<ChatMessage> messages, boolean enableThinking) {
+    private ChatRequest buildChatRequest(
+            List<ChatMessage> messages, boolean enableThinking, ToolBundle tools) {
         return ChatRequest.builder()
                 .messages(messages)
                 .parameters(OpenAiChatRequestParameters.builder()
-                        .toolSpecifications(toolSpecifications)
+                        .toolSpecifications(tools.specifications())
                         .customParameters(Map.of(
                                 "thinking",
                                 Map.of("type", enableThinking ? "enabled" : "disabled")))
@@ -430,9 +531,10 @@ public class AiChatServiceImpl implements IAiChatService {
                 .build();
     }
 
-    private List<ChatMessage> buildChatMessages(AiChatSession session, Map<String, Object> context) {
+    private List<ChatMessage> buildChatMessages(
+            AiChatSession session, Map<String, Object> context, boolean demoEnabled) {
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(buildSystemPrompt(context)));
+        messages.add(SystemMessage.from(buildSystemPrompt(context, demoEnabled)));
         if (StringUtils.hasText(session.getContextSummary())) {
             messages.add(SystemMessage.from("此前对话摘要：\n" + session.getContextSummary().trim()));
         }
@@ -510,7 +612,7 @@ public class AiChatServiceImpl implements IAiChatService {
         return window;
     }
 
-    private String buildSystemPrompt(Map<String, Object> context) {
+    private String buildSystemPrompt(Map<String, Object> context, boolean demoEnabled) {
         StringBuilder sb = new StringBuilder();
         sb.append("你是 PhysLab 3D 交互物理实验平台的实验助手。用简洁中文回答。\n")
                 .append("回答规则：\n")
@@ -524,15 +626,30 @@ public class AiChatServiceImpl implements IAiChatService {
                 .append("4. 禁止编造：不要虚构本平台不存在的实验名称/功能；不要捏造未给出的实验参数或文档内容。\n")
                 .append("5. 确实不知道或资料不足时，直接说不知道，不要猜测凑答。\n");
 
+        if (demoEnabled) {
+            sb.append("6. 当前页支持实验演示：当用户明确要求演示、教程、带练、逐步讲解当前实验时，")
+                    .append("调用 createDemo(goal) 生成计划；工具只生成并保存计划，不会自动播放，")
+                    .append("用户需稍后自行点击开始。可用 lookupDemo 查询历史演示。\n")
+                    .append("7. 回答中可引用工具返回的 CREATED_DEMO id=…，方便用户识别演示卡片。\n");
+        }
+
         if (context != null && !context.isEmpty()) {
             sb.append("\n【用户当前页面】\n");
             Object path = context.get("path");
             Object pageType = context.get("pageType");
             Object experimentId = context.get("experimentId");
             Object experimentTitle = context.get("experimentTitle");
+            Object experimentRoute = context.get("experimentRoute");
+            Object snapshot = context.get("snapshot");
             if (path != null) sb.append("- path: ").append(path).append('\n');
             if (pageType != null) sb.append("- pageType: ").append(pageType).append('\n');
             if (experimentTitle != null) sb.append("- 实验: ").append(experimentTitle).append('\n');
+            String resolved = resolveExperimentRoute(context);
+            if (experimentRoute != null) {
+                sb.append("- experimentRoute: ").append(experimentRoute).append('\n');
+            } else if (resolved != null) {
+                sb.append("- experimentRoute: ").append(resolved).append('\n');
+            }
             if (experimentId != null) {
                 sb.append("- experimentId: ").append(experimentId).append('\n');
                 try {
@@ -544,6 +661,9 @@ public class AiChatServiceImpl implements IAiChatService {
                 } catch (Exception ignored) {
                     // ignore
                 }
+            }
+            if (snapshot != null) {
+                sb.append("- 当前参数快照: ").append(snapshot).append('\n');
             }
         }
 
@@ -609,10 +729,16 @@ public class AiChatServiceImpl implements IAiChatService {
         return s == null ? "" : s;
     }
 
+    private record ToolBundle(
+            List<ToolSpecification> specifications, Map<String, ToolExecutor> executors) {}
+
     private record PreparedChat(
             AiChatSession session,
             AiChatMessage userMsg,
             List<ChatMessage> messages,
             boolean busy,
-            boolean enableThinking) {}
+            boolean enableThinking,
+            Map<String, Object> context,
+            boolean demoEnabled,
+            ToolBundle tools) {}
 }

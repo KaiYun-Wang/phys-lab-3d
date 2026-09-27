@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   BernoulliVenturiSceneComponent,
   BernoulliData,
@@ -15,9 +15,11 @@ import {
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
+import type { DemoAdapter } from "@/components/demo/DemoPanel";
 
 export default function BernoulliVenturiPage() {
   const [data, setData] = useState<BernoulliData | null>(null);
+  const dataRef = useRef<BernoulliData | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -26,6 +28,9 @@ export default function BernoulliVenturiPage() {
   const [v1, setV1] = useState(2.0);
   const [areaRatio, setAreaRatio] = useState(0.5);
   const [fluid, setFluid] = useState<FluidType>("water");
+
+  const paramsRef = useRef({ v1, areaRatio, fluid });
+  paramsRef.current = { v1, areaRatio, fluid };
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
@@ -37,6 +42,54 @@ export default function BernoulliVenturiPage() {
     setFluid("water");
   };
 
+  const onDataChange = useCallback((d: BernoulliData) => {
+    dataRef.current = d;
+    setData(d);
+  }, []);
+
+  const demoAdapter: DemoAdapter = useMemo(
+    () => ({
+      experimentId: null,
+      getParams: () => ({ ...paramsRef.current }),
+      getReadings: () => {
+        const d = dataRef.current;
+        if (!d) return null;
+        const p = paramsRef.current;
+        return {
+          v1: d.v1,
+          v2: d.v2,
+          areaRatio: p.areaRatio,
+          rho: d.rho,
+          deltaP: d.deltaP,
+        };
+      },
+      applyParams: (params) => {
+        if (typeof params.v1 === "number") setV1(params.v1);
+        else if (params.v1 != null) setV1(Number(params.v1));
+        if (typeof params.areaRatio === "number") setAreaRatio(params.areaRatio);
+        else if (params.areaRatio != null) setAreaRatio(Number(params.areaRatio));
+        if (params.fluid === "water" || params.fluid === "glycerol") {
+          setFluid(params.fluid);
+        }
+      },
+    }),
+    [],
+  );
+
+  const chatContext = useMemo(
+    () => ({
+      snapshot: {
+        v1,
+        areaRatio,
+        fluid,
+        ...(data
+          ? { v2: data.v2, rho: data.rho, deltaP: data.deltaP }
+          : {}),
+      },
+    }),
+    [v1, areaRatio, fluid, data],
+  );
+
   const fluidPresets = [
     { label: "水", value: "water", emoji: "💧" },
     { label: "甘油", value: "glycerol", emoji: "🧪" },
@@ -44,7 +97,7 @@ export default function BernoulliVenturiPage() {
 
   const fluidLabel = useMemo(
     () => fluidPresets.find((p) => p.value === fluid)?.label || fluid,
-    [fluid]
+    [fluid],
   );
 
   const statusLine = !data
@@ -68,6 +121,7 @@ export default function BernoulliVenturiPage() {
           color="#3b82f6"
           onChange={setV1}
           decimals={1}
+          demoId="v1"
         />
         <ControlSlider
           label="截面积比 A₂/A₁"
@@ -79,6 +133,7 @@ export default function BernoulliVenturiPage() {
           color="#8b5cf6"
           onChange={setAreaRatio}
           decimals={2}
+          demoId="areaRatio"
         />
       </ControlGroup>
 
@@ -89,6 +144,7 @@ export default function BernoulliVenturiPage() {
           presets={fluidPresets}
           onChange={(value) => setFluid(value as FluidType)}
           displayValue={() => fluidLabel}
+          demoId="fluid"
         />
         <div className="mt-2 flex items-center justify-between text-xs text-gray-900">
           <span>当前密度 ρ</span>
@@ -145,6 +201,8 @@ export default function BernoulliVenturiPage() {
       backgroundColor="#000000"
       controls={parameterControls}
       dataPanel={hud}
+      demoAdapter={demoAdapter}
+      chatContext={chatContext}
       simulationBar={{
         isPlaying,
         onPlayPause: handlePlayPause,
@@ -160,7 +218,7 @@ export default function BernoulliVenturiPage() {
         isPlaying={isPlaying}
         simulationSpeed={simulationSpeed}
         resetTrigger={resetTrigger}
-        onDataChange={setData}
+        onDataChange={onDataChange}
       />
     </ExperimentContainer>
   );

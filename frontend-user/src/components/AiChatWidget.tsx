@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import {
@@ -9,6 +9,7 @@ import {
   fetchAiExampleQuestions,
   fetchAiMessages,
   fetchAiSessions,
+  parseCreatedDemo,
   streamAiMessage,
   type AiChatContext,
   type AiChatMessage,
@@ -16,6 +17,7 @@ import {
   type AiExampleQuestion,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
+import { DemoPlanCard } from "@/components/demo/DemoPlanCard";
 
 const PANEL_W_KEY = "physlab.ai.panel.w";
 const PANEL_H_KEY = "physlab.ai.panel.h";
@@ -42,6 +44,7 @@ function pageContext(pathname: string): { label: string; context: AiChatContext 
         path: pathname,
         pageType: "experiment",
         experimentTitle: title || undefined,
+        experimentRoute: route || undefined,
       },
     };
   }
@@ -54,7 +57,6 @@ function pageContext(pathname: string): { label: string; context: AiChatContext 
   return { label: pathname, context: { path: pathname, pageType: "other" } };
 }
 
-/** 思考 / 工具：默认折叠；流式思考时自动展开正文 */
 function CollapsibleStep({
   label,
   detail,
@@ -94,6 +96,8 @@ function toolStepLabel(role: "tool_call" | "tool_result", content: string, conte
       listPublishedExperiments: "查询已发布实验",
       listKnowledgePages: "查询知识页目录",
       getKnowledgePageContents: "读取知识页正文",
+      createDemo: "生成演示计划",
+      lookupDemo: "查询演示记录",
     };
     return `工具结果：${map[name] ?? name}`;
   }
@@ -153,9 +157,38 @@ function clampPanel(w: number, h: number) {
 
 type ResizeMode = "w" | "h" | "both" | null;
 
-export default function AiChatWidget() {
+export type AiChatWidgetProps = {
+  /** fab = 首页气泡；rail = 实验页右栏内嵌 */
+  mode?: "fab" | "rail";
+  open?: boolean;
+  onClose?: () => void;
+  contextOverride?: AiChatContext;
+  contextLabelOverride?: string;
+  onOpenDemo?: (demoId: number) => void;
+};
+
+export default function AiChatWidget({
+  mode = "fab",
+  open: openProp,
+  onClose,
+  contextOverride,
+  contextLabelOverride,
+  onOpenDemo,
+}: AiChatWidgetProps = {}) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const isRail = mode === "rail";
+  const onExperimentPage = (pathname || "").startsWith("/experiments/");
+
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = isRail ? openProp !== false : openInternal;
+  const setOpen = (v: boolean) => {
+    if (isRail) {
+      if (!v) onClose?.();
+    } else {
+      setOpenInternal(v);
+    }
+  };
+
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState<AiChatSession[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -174,15 +207,21 @@ export default function AiChatWidget() {
   const sizeRef = useRef({ w: DEFAULT_W, h: DEFAULT_H });
   const loggedIn = isAuthenticated();
 
-  const { label: contextLabel, context } = pageContext(pathname || "/");
+  const page = pageContext(pathname || "/");
+  const context = useMemo(
+    () => ({ ...page.context, ...contextOverride }),
+    [page.context, contextOverride],
+  );
+  const contextLabel = contextLabelOverride || page.label;
   const hideOnLogin = pathname === "/login";
 
   useEffect(() => {
+    if (isRail) return;
     const next = clampPanel(readSize(PANEL_W_KEY, DEFAULT_W), readSize(PANEL_H_KEY, DEFAULT_H));
     setPanelW(next.w);
     setPanelH(next.h);
     sizeRef.current = next;
-  }, []);
+  }, [isRail]);
 
   const scrollBottom = useCallback(() => {
     const el = listRef.current;
@@ -192,8 +231,8 @@ export default function AiChatWidget() {
   const loadSessions = useCallback(async () => {
     if (!loggedIn) return;
     try {
-      const page = await fetchAiSessions(1, 50);
-      setSessions(page.records ?? []);
+      const pageRes = await fetchAiSessions(1, 50);
+      setSessions(pageRes.records ?? []);
     } catch {
       /* ignore */
     }
@@ -236,7 +275,7 @@ export default function AiChatWidget() {
     scrollBottom();
   }, [messages, open, scrollBottom]);
 
-  const onResizePointerDown = (mode: Exclude<ResizeMode, null>) => (e: ReactPointerEvent) => {
+  const onResizePointerDown = (modeR: Exclude<ResizeMode, null>) => (e: ReactPointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     dragRef.current = {
@@ -245,12 +284,12 @@ export default function AiChatWidget() {
       startW: panelW,
       startH: panelH,
     };
-    setResizing(mode);
+    setResizing(modeR);
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
   useEffect(() => {
-    if (!resizing) return;
+    if (!resizing || isRail) return;
     const onMove = (e: PointerEvent) => {
       const dx = e.clientX - dragRef.current.startX;
       const dy = e.clientY - dragRef.current.startY;
@@ -278,7 +317,7 @@ export default function AiChatWidget() {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [resizing]);
+  }, [resizing, isRail]);
 
   const startNew = async () => {
     if (!loggedIn) {
@@ -354,115 +393,114 @@ export default function AiChatWidget() {
         content,
         context,
         {
-        onMeta: (meta) => {
-          setSessionId(meta.sessionId);
-          setMessages((m) =>
-            m.map((row) =>
-              row.id === tempUserId
-                ? { ...row, id: meta.userMessageId, sessionId: meta.sessionId }
-                : row.id === tempAssistantId
-                  ? { ...row, sessionId: meta.sessionId }
+          onMeta: (meta) => {
+            setSessionId(meta.sessionId);
+            setMessages((m) =>
+              m.map((row) =>
+                row.id === tempUserId
+                  ? { ...row, id: meta.userMessageId, sessionId: meta.sessionId }
+                  : row.id === tempAssistantId
+                    ? { ...row, sessionId: meta.sessionId }
+                    : row,
+              ),
+            );
+            setSessions((prev) => {
+              const rest = prev.filter((s) => s.id !== meta.sessionId);
+              return [
+                {
+                  id: meta.sessionId,
+                  title: meta.sessionTitle,
+                  createTime: new Date().toISOString(),
+                  updateTime: new Date().toISOString(),
+                },
+                ...rest,
+              ];
+            });
+          },
+          onStatus: (textStatus) => {
+            setMessages((m) => {
+              const assistantIdx = m.findIndex((row) => row.id === tempAssistantId);
+              const statusMsg: AiChatMessage = {
+                id: -Date.now() - Math.floor(Math.random() * 1000),
+                sessionId: sessionId ?? 0,
+                role: "status",
+                content: textStatus,
+                createTime: new Date().toISOString(),
+              };
+              if (assistantIdx < 0) return [...m, statusMsg];
+              const next = [...m];
+              next.splice(assistantIdx, 0, statusMsg);
+              return next;
+            });
+          },
+          onMessage: (msg) => {
+            setMessages((m) => {
+              let next = [...m];
+              if (msg.role === "thinking") {
+                next = next.map((row) =>
+                  row.id === tempAssistantId ? { ...row, thinking: "" } : row,
+                );
+              }
+              if (next.some((row) => row.id === msg.id)) return next;
+              const assistantIdx = next.findIndex((row) => row.id === tempAssistantId);
+              if (assistantIdx < 0) return [...next, msg];
+              next.splice(assistantIdx, 0, msg);
+              return next;
+            });
+          },
+          onClear: () => {
+            setMessages((m) =>
+              m.map((row) =>
+                row.id === tempAssistantId ? { ...row, content: "", thinking: "" } : row,
+              ),
+            );
+          },
+          onThinking: (chunk) => {
+            setMessages((m) =>
+              m.map((row) =>
+                row.id === tempAssistantId
+                  ? { ...row, thinking: (row.thinking || "") + chunk }
                   : row,
-            ),
-          );
-          setSessions((prev) => {
-            const rest = prev.filter((s) => s.id !== meta.sessionId);
-            return [
-              {
-                id: meta.sessionId,
-                title: meta.sessionTitle,
-                createTime: new Date().toISOString(),
-                updateTime: new Date().toISOString(),
-              },
-              ...rest,
-            ];
-          });
+              ),
+            );
+          },
+          onDelta: (chunk) => {
+            setMessages((m) =>
+              m.map((row) =>
+                row.id === tempAssistantId ? { ...row, content: row.content + chunk } : row,
+              ),
+            );
+          },
+          onDone: (done) => {
+            setMessages((m) =>
+              m.map((row) =>
+                row.id === tempAssistantId
+                  ? {
+                      ...row,
+                      id: done.assistantMessageId,
+                      sessionId: done.sessionId,
+                      thinking: "",
+                    }
+                  : row,
+              ),
+            );
+            setSessions((prev) => {
+              const rest = prev.filter((s) => s.id !== done.sessionId);
+              return [
+                {
+                  id: done.sessionId,
+                  title: done.sessionTitle,
+                  createTime: new Date().toISOString(),
+                  updateTime: new Date().toISOString(),
+                },
+                ...rest,
+              ];
+            });
+          },
+          onError: (message) => {
+            setError(message);
+          },
         },
-        onStatus: (text) => {
-          setMessages((m) => {
-            const assistantIdx = m.findIndex((row) => row.id === tempAssistantId);
-            const statusMsg: AiChatMessage = {
-              id: -Date.now() - Math.floor(Math.random() * 1000),
-              sessionId: sessionId ?? 0,
-              role: "status",
-              content: text,
-              createTime: new Date().toISOString(),
-            };
-            if (assistantIdx < 0) return [...m, statusMsg];
-            const next = [...m];
-            next.splice(assistantIdx, 0, statusMsg);
-            return next;
-          });
-        },
-        onMessage: (msg) => {
-          setMessages((m) => {
-            let next = [...m];
-            if (msg.role === "thinking") {
-              next = next.map((row) =>
-                row.id === tempAssistantId ? { ...row, thinking: "" } : row,
-              );
-            }
-            // 避免重复插入（重放/重连）
-            if (next.some((row) => row.id === msg.id)) return next;
-            const assistantIdx = next.findIndex((row) => row.id === tempAssistantId);
-            if (assistantIdx < 0) return [...next, msg];
-            next.splice(assistantIdx, 0, msg);
-            return next;
-          });
-        },
-        onClear: () => {
-          setMessages((m) =>
-            m.map((row) =>
-              row.id === tempAssistantId ? { ...row, content: "", thinking: "" } : row,
-            ),
-          );
-        },
-        onThinking: (chunk) => {
-          setMessages((m) =>
-            m.map((row) =>
-              row.id === tempAssistantId
-                ? { ...row, thinking: (row.thinking || "") + chunk }
-                : row,
-            ),
-          );
-        },
-        onDelta: (chunk) => {
-          setMessages((m) =>
-            m.map((row) =>
-              row.id === tempAssistantId ? { ...row, content: row.content + chunk } : row,
-            ),
-          );
-        },
-        onDone: (done) => {
-          setMessages((m) =>
-            m.map((row) =>
-              row.id === tempAssistantId
-                ? {
-                    ...row,
-                    id: done.assistantMessageId,
-                    sessionId: done.sessionId,
-                    thinking: "",
-                  }
-                : row,
-            ),
-          );
-          setSessions((prev) => {
-            const rest = prev.filter((s) => s.id !== done.sessionId);
-            return [
-              {
-                id: done.sessionId,
-                title: done.sessionTitle,
-                createTime: new Date().toISOString(),
-                updateTime: new Date().toISOString(),
-              },
-              ...rest,
-            ];
-          });
-        },
-        onError: (message) => {
-          setError(message);
-        },
-      },
         { enableThinking },
       );
     } catch (e) {
@@ -473,40 +511,54 @@ export default function AiChatWidget() {
     }
   };
 
-  if (hideOnLogin) return null;
+  // 实验页全局气泡关闭：只保留右栏入口
+  if (!isRail && (hideOnLogin || onExperimentPage)) return null;
+  if (isRail && openProp === false) return null;
+
+  const placeholder = isRail
+    ? "输入您想问的问题，自动会生成演示教程"
+    : loggedIn
+      ? "问点什么…"
+      : "登录后开始对话…";
 
   return (
     <>
-      <button
-        type="button"
-        className={`ai-fab${open ? " is-hidden" : ""}`}
-        aria-label="打开 AI 助手"
-        onClick={() => setOpen(true)}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-          <circle cx="9" cy="11" r="0.9" fill="currentColor" stroke="none" />
-          <circle cx="12.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
-          <circle cx="16" cy="11" r="0.9" fill="currentColor" stroke="none" />
-        </svg>
-      </button>
+      {!isRail && (
+        <button
+          type="button"
+          className={`ai-fab${open ? " is-hidden" : ""}`}
+          aria-label="打开 AI 助手"
+          onClick={() => setOpen(true)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+            <circle cx="9" cy="11" r="0.9" fill="currentColor" stroke="none" />
+            <circle cx="12.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
+            <circle cx="16" cy="11" r="0.9" fill="currentColor" stroke="none" />
+          </svg>
+        </button>
+      )}
 
       <div
-        className={`ai-panel${open ? " is-open" : ""}${historyOpen ? " history-open" : ""}${
+        className={`ai-panel${open || isRail ? " is-open" : ""}${historyOpen ? " history-open" : ""}${
           resizing ? " is-resizing" : ""
-        }`}
+        }${isRail ? " ai-panel--rail" : ""}`}
         role="dialog"
         aria-label="PhysLab AI 助手"
-        aria-hidden={!open}
-        style={{ width: panelW, height: panelH }}
+        aria-hidden={!open && !isRail}
+        style={isRail ? undefined : { width: panelW, height: panelH }}
       >
-        <div className="ai-resize ai-resize--w" title="拖动调整宽度" onPointerDown={onResizePointerDown("w")} />
-        <div className="ai-resize ai-resize--h" title="拖动调整高度" onPointerDown={onResizePointerDown("h")} />
-        <div
-          className="ai-resize ai-resize--corner"
-          title="拖动调整大小"
-          onPointerDown={onResizePointerDown("both")}
-        />
+        {!isRail && (
+          <>
+            <div className="ai-resize ai-resize--w" title="拖动调整宽度" onPointerDown={onResizePointerDown("w")} />
+            <div className="ai-resize ai-resize--h" title="拖动调整高度" onPointerDown={onResizePointerDown("h")} />
+            <div
+              className="ai-resize ai-resize--corner"
+              title="拖动调整大小"
+              onPointerDown={onResizePointerDown("both")}
+            />
+          </>
+        )}
 
         <header className="ai-panel-header">
           <div className="ai-avatar" aria-hidden>
@@ -540,20 +592,22 @@ export default function AiChatWidget() {
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
-          <button
-            type="button"
-            className="ai-icon-btn"
-            title="关闭"
-            aria-label="关闭"
-            onClick={() => {
-              setHistoryOpen(false);
-              setOpen(false);
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
+          {!isRail && (
+            <button
+              type="button"
+              className="ai-icon-btn"
+              title="关闭"
+              aria-label="关闭"
+              onClick={() => {
+                setHistoryOpen(false);
+                setOpen(false);
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          )}
         </header>
 
         <div className="ai-panel-body">
@@ -616,9 +670,11 @@ export default function AiChatWidget() {
               {messages.length === 0 && !loading && (
                 <div className="msg assistant">
                   <div className="bubble">
-                    你好，我是 PhysLab 实验助手。可以问我实验原理、操作建议，或让我根据你当前所在页面解答。
+                    {isRail
+                      ? "你好，可以说「演示一下流速翻倍看压差怎么变」，我会生成演示计划，由你确认后开始。"
+                      : "你好，我是 PhysLab 实验助手。可以问我实验原理、操作建议，或让我根据你当前所在页面解答。"}
                   </div>
-                  {examples.length > 0 && (
+                  {!isRail && examples.length > 0 && (
                     <div className="ai-examples">
                       <span className="ai-examples__label">试试这些问题</span>
                       <div className="ai-examples__list">
@@ -642,23 +698,47 @@ export default function AiChatWidget() {
                   )}
                 </div>
               )}
-              {messages.map((m) =>
-                m.role === "status" ? (
-                  <div key={m.id} className="msg status">
-                    <div className="status-line">{m.content}</div>
-                  </div>
-                ) : m.role === "tool_call" || m.role === "tool_result" ? (
-                  <div key={m.id} className="msg status">
-                    <CollapsibleStep
-                      label={toolStepLabel(m.role, m.content, m.context)}
-                      detail={toolStepDetail(m.role, m.content, m.context)}
-                    />
-                  </div>
-                ) : m.role === "thinking" ? (
-                  <div key={m.id} className="msg status">
-                    <CollapsibleStep label="思考过程" detail={m.content || m.thinking || ""} />
-                  </div>
-                ) : (
+              {messages.map((m) => {
+                if (m.role === "status") {
+                  return (
+                    <div key={m.id} className="msg status">
+                      <div className="status-line">{m.content}</div>
+                    </div>
+                  );
+                }
+                if (m.role === "tool_call" || m.role === "tool_result") {
+                  const created =
+                    m.role === "tool_result" && m.context?.name === "createDemo"
+                      ? parseCreatedDemo(m.content)
+                      : m.role === "tool_result"
+                        ? parseCreatedDemo(m.content)
+                        : null;
+                  return (
+                    <div key={m.id} className="msg status">
+                      <CollapsibleStep
+                        label={toolStepLabel(m.role, m.content, m.context)}
+                        detail={toolStepDetail(m.role, m.content, m.context)}
+                      />
+                      {created && onOpenDemo && (
+                        <DemoPlanCard
+                          demoId={created.id}
+                          title={created.title}
+                          overview={created.overview}
+                          steps={created.steps}
+                          onStart={onOpenDemo}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+                if (m.role === "thinking") {
+                  return (
+                    <div key={m.id} className="msg status">
+                      <CollapsibleStep label="思考过程" detail={m.content || m.thinking || ""} />
+                    </div>
+                  );
+                }
+                return (
                   <div key={m.id} className={`msg ${m.role}`}>
                     {m.role === "assistant" && (m.thinking || (enableThinking && sending && m.id < 0)) && (
                       <CollapsibleStep
@@ -680,8 +760,8 @@ export default function AiChatWidget() {
                     </div>
                     <span className="time">{timeLabel(m.createTime)}</span>
                   </div>
-                ),
-              )}
+                );
+              })}
               {sending && messages.every((m) => m.id >= 0) && (
                 <div className="msg assistant">
                   <div className="bubble">…</div>
@@ -711,7 +791,7 @@ export default function AiChatWidget() {
               <textarea
                 rows={1}
                 value={draft}
-                placeholder={loggedIn ? "问点什么…" : "登录后开始对话…"}
+                placeholder={placeholder}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {

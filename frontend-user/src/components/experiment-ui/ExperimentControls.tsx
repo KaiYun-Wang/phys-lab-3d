@@ -54,14 +54,28 @@ export interface ControlSliderProps {
   onChange: (value: number) => void;
   decimals?: number;
   disabled?: boolean;
+  /** AI 演示高亮目标，对应 data-demo-id */
+  demoId?: string;
 }
 
 /**
  * Interactive slider control
  */
-export function ControlSlider({ label, value, unit, min, max, step, color = "#a855f7", onChange, decimals = 2, disabled = false }: ControlSliderProps) {
+export function ControlSlider({
+  label,
+  value,
+  unit,
+  min,
+  max,
+  step,
+  color = "#a855f7",
+  onChange,
+  decimals = 2,
+  disabled = false,
+  demoId,
+}: ControlSliderProps) {
   return (
-    <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`}>
+    <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`} data-demo-id={demoId || undefined}>
       <div className="flex justify-between text-xs">
         <span className="text-[#e8e8f0]/90">{label}</span>
         <span className="font-mono text-xs" style={{ color }}>
@@ -133,7 +147,7 @@ export interface HudReadingsProps {
 /** 场景左上角玻璃风实时读数（无卡片）。 */
 export function HudReadings({ data }: HudReadingsProps) {
   return (
-    <div className="exp-hud">
+    <div className="exp-hud" data-demo-id="readings">
       {Object.entries(data).map(([key, item]) => {
         const label = key.replace(/([A-Z])/g, " $1").trim();
         const text =
@@ -435,6 +449,7 @@ export interface ControlPresetButtonsProps {
   presets: PresetOption[];
   onChange: (value: number | string) => void;
   displayValue?: (value: number | string) => string;
+  demoId?: string;
 }
 
 /**
@@ -445,7 +460,8 @@ export function ControlPresetButtons({
   value,
   presets,
   onChange,
-  displayValue
+  displayValue,
+  demoId,
 }: ControlPresetButtonsProps) {
   const isActive = (presetValue: number | string) => {
     if (typeof presetValue === "number" && typeof value === "number") {
@@ -455,7 +471,7 @@ export function ControlPresetButtons({
   };
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-2 space-y-2" data-demo-id={demoId || undefined}>
       <div className="flex justify-between text-sm">
         <span className="text-[#e8e8f0]/90">{label}</span>
         <span className="font-mono text-white">

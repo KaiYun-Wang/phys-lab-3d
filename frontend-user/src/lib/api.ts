@@ -270,6 +270,9 @@ export type AiChatContext = {
   pageType?: string;
   experimentId?: number;
   experimentTitle?: string;
+  experimentRoute?: string;
+  /** 当前实验参数/读数快照，供演示工具使用 */
+  snapshot?: Record<string, unknown>;
 };
 
 export type AiChatSession = {
@@ -467,6 +470,123 @@ export type AnnouncementPage = {
   page: number;
   pageSize: number;
 };
+
+/* ── AI 实验演示 ── */
+
+export type DemoStep = {
+  title: string;
+  params: Record<string, unknown>;
+  focus?: string;
+  actionNarration?: string;
+  resultNarration?: string;
+};
+
+export type DemoQuiz = {
+  question: string;
+  options: string[];
+  answerIndex?: number;
+  explanation?: string;
+};
+
+export type DemoPlan = {
+  title?: string;
+  overview?: string;
+  steps?: DemoStep[];
+  summary?: string;
+  quiz?: DemoQuiz;
+};
+
+export type DemoSessionSummary = {
+  id: number;
+  experimentId: number;
+  goal?: string;
+  title: string;
+  status: string;
+  /** 已完成的大步骤数 */
+  currentStep: number;
+  totalSteps?: number;
+  quizAnswerIndex?: number | null;
+  quizCorrect?: boolean | null;
+  createTime?: string;
+  updateTime?: string;
+};
+
+export type DemoQuizResult = {
+  chosenIndex: number;
+  correct: boolean;
+  answerIndex?: number;
+  explanation?: string;
+};
+
+export type DemoSessionDetail = DemoSessionSummary & {
+  plan: DemoPlan;
+  quizResult?: DemoQuizResult;
+};
+
+export function fetchDemos(experimentId?: number) {
+  const q = experimentId != null ? `?experimentId=${experimentId}` : "";
+  return apiFetch<DemoSessionSummary[]>(`/api/users/me/demos${q}`);
+}
+
+export function fetchDemo(id: number) {
+  return apiFetch<DemoSessionDetail>(`/api/users/me/demos/${id}`);
+}
+
+export function verifyDemoStep(
+  id: number,
+  stepIndex: number,
+  body: { params: Record<string, unknown>; readings: Record<string, unknown> },
+) {
+  return apiFetch<{ ok: boolean; stepIndex: number; ideal: Record<string, number> }>(
+    `/api/users/me/demos/${id}/steps/${stepIndex}/verify`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export function submitDemoQuiz(id: number, answerIndex: number) {
+  return apiFetch<{
+    correct: boolean;
+    answerIndex: number;
+    chosenIndex: number;
+    explanation?: string;
+  }>(`/api/users/me/demos/${id}/quiz/submit`, {
+    method: "POST",
+    body: JSON.stringify({ answerIndex }),
+  });
+}
+
+export function updateDemoStatus(id: number, status: string) {
+  return apiFetch<{ id: number; status: string }>(`/api/users/me/demos/${id}/status`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function clearDemoProgress(id: number) {
+  return apiFetch<DemoSessionSummary>(`/api/users/me/demos/${id}/clear-progress`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+/** 解析 createDemo 工具返回：CREATED_DEMO id=… title=… steps=… overview=… */
+export function parseCreatedDemo(content: string): {
+  id: number;
+  title: string;
+  steps: number;
+  overview: string;
+} | null {
+  const m = content.match(
+    /CREATED_DEMO\s+id=(\d+)\s+title=(.*?)\s+steps=(\d+)\s+overview=([\s\S]*)/,
+  );
+  if (!m) return null;
+  return {
+    id: Number(m[1]),
+    title: m[2].trim(),
+    steps: Number(m[3]),
+    overview: (m[4] ?? "").trim(),
+  };
+}
 
 export function fetchLatestAnnouncement() {
   return apiFetch<Announcement | undefined>("/api/announcements/latest");
