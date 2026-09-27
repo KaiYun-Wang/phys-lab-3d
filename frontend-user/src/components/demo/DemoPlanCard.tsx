@@ -9,6 +9,7 @@ export function DemoPlanCard({
   quizStatus,
   active,
   onStart,
+  onDelete,
 }: {
   demoId: number;
   title: string;
@@ -20,6 +21,7 @@ export function DemoPlanCard({
   quizStatus?: string;
   active?: boolean;
   onStart: (demoId: number) => void;
+  onDelete?: (demoId: number) => void;
 }) {
   const listMode = typeof currentStep === "number" && typeof steps === "number";
   const pct =
@@ -64,6 +66,22 @@ export function DemoPlanCard({
                 : "▶ 开始"
             : "▶ 开始演示"}
         </button>
+        {onDelete ? (
+          <button
+            type="button"
+            className="demo-plan-card__del"
+            title="删除"
+            aria-label="删除演示"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(demoId);
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <path d="M5 7h14M10 11v6M14 11v6M8 7l1-2h6l1 2M9 7v12a1 1 0 001 1h4a1 1 0 001-1V7" />
+            </svg>
+          </button>
+        ) : null}
       </div>
     </div>
   );

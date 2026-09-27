@@ -5,6 +5,7 @@ import com.wky.backend.exception.ApiException;
 import com.wky.backend.security.AuthPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -85,6 +86,15 @@ public class UserDemoController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable Long id) {
         return demoPlanService.clearProgress(requireUser(principal), id);
+    }
+
+    /** 硬删除演示 */
+    @DeleteMapping("/{id}")
+    public Map<String, Object> delete(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable Long id) {
+        demoPlanService.delete(requireUser(principal), id);
+        return Map.of("ok", true, "id", id);
     }
 
     private static Long requireUser(AuthPrincipal principal) {

@@ -315,6 +315,14 @@ public class DemoPlanService {
         return toSummary(s);
     }
 
+    /** 硬删除演示会话（不软删）。 */
+    @Transactional
+    public void delete(Long userId, Long id) {
+        DemoSession s = requireOwned(userId, id);
+        sessionMapper.deleteById(s.getId());
+        // ponytail: orphan MinIO clips OK; add cleanup when storage accrues cost
+    }
+
     @Transactional
     public Map<String, Object> updateStatus(Long userId, Long id, String status) {
         if (!StringUtils.hasText(status) || !STATUSES.contains(status.trim())) {

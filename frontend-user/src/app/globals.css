@@ -2978,6 +2978,7 @@ canvas {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+  align-items: center;
 }
 .demo-plan-card__btn {
   padding: 7px 14px;
@@ -3278,10 +3279,30 @@ canvas {
   min-height: 0;
 }
 .demo-panel__scroll {
-  max-height: min(52vh, 420px);
-  overflow-y: auto;
-  padding-right: 2px;
+  /* ponytail: parent .exp-panel-scroll scrolls; capped max-height left a black void under cards */
   margin-top: 8px;
+}
+.demo-plan-card__del {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sx-ink-mute, #8b8b98);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0.55;
+}
+.demo-plan-card__del:hover {
+  opacity: 1;
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+}
+.demo-plan-card__del svg {
+  width: 15px;
+  height: 15px;
 }
 .demo-panel__back {
   margin: 0;

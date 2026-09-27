@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearDemoProgress,
   completeDemoStep,
+  deleteDemo,
   ensureDemoAudio,
   fetchDemo,
   fetchDemos,
@@ -86,6 +87,7 @@ export function DemoPanel({
   const [history, setHistory] = useState<DemoSessionSummary[]>([]);
   const [browsing, setBrowsing] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [hoverTip, setHoverTip] = useState<{ i: number; left: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -534,6 +536,26 @@ export function DemoPanel({
     }
   };
 
+  const doDelete = async (id: number) => {
+    setConfirmDeleteId(null);
+    if (detail?.id === id) {
+      runIdRef.current += 1;
+      abortRef.current?.abort();
+      stopSpeaking();
+      setDetail(null);
+      setBrowsing(true);
+      onActiveDemoChange(null);
+      clearStage();
+    }
+    try {
+      await deleteDemo(id);
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "删除失败");
+      void loadHistory();
+    }
+  };
+
   const onQuiz = async (questionIndex: number, answerIndex: number) => {
     if (!detail || !stepsDone || quizFb[questionIndex]) return;
     try {
@@ -587,6 +609,7 @@ export function DemoPanel({
                     quizStatus={quizLabel(h)}
                     active={detail?.id === h.id}
                     onStart={(id) => void loadDemo(id)}
+                    onDelete={(id) => setConfirmDeleteId(id)}
                   />
                 ))}
               </div>
@@ -771,6 +794,39 @@ export function DemoPanel({
               </button>
               <button type="button" className="demo-panel__btn primary" onClick={() => void doClearProgress()}>
                 清除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteId != null && (
+        <div
+          className="demo-confirm-overlay"
+          role="presentation"
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="demo-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="demo-delete-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="demo-delete-title" className="demo-confirm__title">
+              删除演示？
+            </p>
+            <p className="demo-confirm__body">将永久删除该演示剧本与进度，不可恢复。</p>
+            <div className="demo-confirm__actions">
+              <button type="button" className="demo-panel__btn" onClick={() => setConfirmDeleteId(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className="demo-panel__btn primary"
+                onClick={() => void doDelete(confirmDeleteId)}
+              >
+                删除
               </button>
             </div>
           </div>

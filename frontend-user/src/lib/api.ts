@@ -580,6 +580,12 @@ export function clearDemoProgress(id: number) {
   });
 }
 
+export function deleteDemo(id: number) {
+  return apiFetch<{ ok: boolean; id: number }>(`/api/users/me/demos/${id}`, {
+    method: "DELETE",
+  });
+}
+
 /** 解析 createDemo 工具返回：CREATED_DEMO id=… title=… steps=… overview=… */
 export function parseCreatedDemo(content: string): {
   id: number;
