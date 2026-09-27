@@ -24,7 +24,7 @@ public class AdminUserResponse {
                 .id(user.getId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
-                .avatarUrl(user.getAvatarUrl())
+                .avatarUrl(UserProfileResponse.relativizeAvatar(user.getAvatarUrl()))
                 .status(user.getStatus() != null ? user.getStatus() : UserStatus.ENABLED)
                 .createTime(user.getCreateTime())
                 .updateTime(user.getUpdateTime())

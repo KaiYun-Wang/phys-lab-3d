@@ -313,7 +313,8 @@ public class AiChatServiceImpl implements IAiChatService {
         userMsg.setSessionId(session.getId());
         userMsg.setRole("user");
         userMsg.setContent(content);
-        userMsg.setContextJson(context);
+        // 只落轻量页面身份，不存实时参数（避免回复期间用户改参导致错位）
+        userMsg.setContextJson(slimPageContext(context));
         messageMapper.insert(userMsg);
 
         if ("新对话".equals(session.getTitle())) {
@@ -352,11 +353,7 @@ public class AiChatServiceImpl implements IAiChatService {
                 // ignore
             }
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> snapshot = context != null && context.get("snapshot") instanceof Map<?, ?> m
-                ? (Map<String, Object>) m
-                : null;
-        DemoChatContext.set(ownerId, route, experimentId, snapshot);
+        DemoChatContext.set(ownerId, route, experimentId);
     }
 
     private boolean demoToolsAvailable(Map<String, Object> context) {
@@ -513,7 +510,7 @@ public class AiChatServiceImpl implements IAiChatService {
             case "listKnowledgePages" -> "查询知识页目录";
             case "getKnowledgePageContents" -> "读取知识页正文";
             case "createDemo" -> "生成演示计划";
-            case "lookupDemo" -> "查询演示记录";
+            case "lookupDemo" -> "查询演示剧本";
             default -> name;
         };
     }
@@ -614,9 +611,10 @@ public class AiChatServiceImpl implements IAiChatService {
 
     private String buildSystemPrompt(Map<String, Object> context, boolean demoEnabled) {
         StringBuilder sb = new StringBuilder();
-        sb.append("你是 PhysLab 3D 交互物理实验平台的实验助手。用简洁中文回答。\n")
+        sb.append("你是 PhysLab 3D 交互物理实验平台的实验助手。\n")
+                .append("回答语言：跟随用户——用户用中文则中文回复；用户用英文（或其它外语）则用英文回复。不要擅自把用户的外语请求改成中文。\n")
                 .append("回答规则：\n")
-                .append("1. 涉及本平台有哪些实验、某实验是否存在、实验简介/入口（route）时：")
+                .append("1. 涉及本平台有哪些实验、某实验是否存在、实验简介时：")
                 .append("必须先调用工具 listPublishedExperiments 查询，再根据工具结果回答；不要凭记忆编造平台实验。\n")
                 .append("2. 涉及实验原理、操作说明、平台知识文档时：先调用 listKnowledgePages（可带关键词或留空看全目录），")
                 .append("根据返回的 description 判断相关文档，再调用 getKnowledgePageContents 拉取必要正文；")
@@ -624,13 +622,22 @@ public class AiChatServiceImpl implements IAiChatService {
                 .append("3. 一般性问题（如自我介绍、问候、通用物理概念解释等）：可用你自身可靠知识回答，")
                 .append("但不要假装来自本平台知识页。\n")
                 .append("4. 禁止编造：不要虚构本平台不存在的实验名称/功能；不要捏造未给出的实验参数或文档内容。\n")
-                .append("5. 确实不知道或资料不足时，直接说不知道，不要猜测凑答。\n");
+                .append("5. 确实不知道或资料不足时，直接说不知道，不要猜测凑答。\n")
+                .append("6. 对用户只说人话：禁止在回复里出现程序内部字段、协议名或机器标识，")
+                .append("例如 id / demoId / experimentId / sessionId / route / pageType / path、")
+                .append("CREATED_DEMO、tool 名、JSON 键名、枚举原值（ready/playing 等）、驼峰参数名（v1、areaRatio）等。")
+                .append("用标题、实验名、可读参数名（入口流速/inlet velocity、面积比/area ratio）等用户能看懂的说法。")
+                .append("工具入参/出参里的内部字段仅供你自己使用，不要原样抄进对用户的文字。\n");
 
         if (demoEnabled) {
-            sb.append("6. 当前页支持实验演示：当用户明确要求演示、教程、带练、逐步讲解当前实验时，")
+            sb.append("7. 当前页支持实验演示：当用户明确要求演示、教程、带练、逐步讲解当前实验时，")
                     .append("调用 createDemo(goal) 生成计划；工具只生成并保存计划，不会自动播放，")
-                    .append("用户需稍后自行点击开始。可用 lookupDemo 查询历史演示。\n")
-                    .append("7. 回答中可引用工具返回的 CREATED_DEMO id=…，方便用户识别演示卡片。\n");
+                    .append("用户需稍后自行点击开始。")
+                    .append("goal 必须保持用户原话的语言与意图（用户英文提问则 goal 用英文，禁止先译成中文再传入）。\n")
+                    .append("8. 用户询问某次演示的内容、步骤、随堂题或答案时，调用 lookupDemo：")
+                    .append("有引用/已知内部 id 时传 demoId；否则用标题关键词 query。")
+                    .append("工具会返回完整剧本（含题目与标准答案），据此作答，勿声称平台没有题目；")
+                    .append("向用户复述只用演示标题与题目内容。\n");
         }
 
         if (context != null && !context.isEmpty()) {
@@ -640,7 +647,6 @@ public class AiChatServiceImpl implements IAiChatService {
             Object experimentId = context.get("experimentId");
             Object experimentTitle = context.get("experimentTitle");
             Object experimentRoute = context.get("experimentRoute");
-            Object snapshot = context.get("snapshot");
             if (path != null) sb.append("- path: ").append(path).append('\n');
             if (pageType != null) sb.append("- pageType: ").append(pageType).append('\n');
             if (experimentTitle != null) sb.append("- 实验: ").append(experimentTitle).append('\n');
@@ -662,8 +668,14 @@ public class AiChatServiceImpl implements IAiChatService {
                     // ignore
                 }
             }
-            if (snapshot != null) {
-                sb.append("- 当前参数快照: ").append(snapshot).append('\n');
+            Object refs = context.get("referencedDemoIds");
+            if (refs instanceof List<?> list && !list.isEmpty()) {
+                sb.append("- 用户本条消息引用的演示（内部 id，仅供工具，勿写入对用户回复）: ")
+                        .append(list)
+                        .append('\n');
+                sb.append("  （相关问题优先 lookupDemo；对用户只用演示标题）\n");
+            } else if (refs != null && StringUtils.hasText(String.valueOf(refs))) {
+                sb.append("- 用户本条消息引用的演示 id: ").append(refs).append('\n');
             }
         }
 
@@ -707,6 +719,26 @@ public class AiChatServiceImpl implements IAiChatService {
                 .context(m.getContextJson())
                 .createTime(m.getCreateTime())
                 .build();
+    }
+
+    /** 用户消息只存页面身份与引用演示，不存 snapshot 等易过期字段。 */
+    private static Map<String, Object> slimPageContext(Map<String, Object> context) {
+        if (context == null || context.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> slim = new LinkedHashMap<>();
+        for (String key : List.of(
+                "path",
+                "pageType",
+                "experimentId",
+                "experimentTitle",
+                "experimentRoute",
+                "referencedDemoIds")) {
+            if (context.get(key) != null) {
+                slim.put(key, context.get(key));
+            }
+        }
+        return slim.isEmpty() ? null : slim;
     }
 
     private static String extractThinking(Map<String, Object> contextJson) {

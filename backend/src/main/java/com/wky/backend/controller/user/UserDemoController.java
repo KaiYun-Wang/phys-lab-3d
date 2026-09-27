@@ -37,21 +37,21 @@ public class UserDemoController {
         return demoPlanService.getForClient(requireUser(principal), id);
     }
 
-    @PostMapping("/{id}/steps/{stepIndex}/verify")
-    public Map<String, Object> verify(
+    /** Ensure cloud TTS audio exists for this demo (idempotent). */
+    @PostMapping("/{id}/audio/ensure")
+    public Map<String, Object> ensureAudio(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable Long id) {
+        return demoPlanService.ensureAudio(requireUser(principal), id);
+    }
+
+    /** 标记某步已播完（更新 current_step） */
+    @PostMapping("/{id}/steps/{stepIndex}/complete")
+    public Map<String, Object> completeStep(
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable Long id,
-            @PathVariable int stepIndex,
-            @RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> params = body.get("params") instanceof Map<?, ?> m
-                ? (Map<String, Object>) m
-                : null;
-        @SuppressWarnings("unchecked")
-        Map<String, Object> readings = body.get("readings") instanceof Map<?, ?> m
-                ? (Map<String, Object>) m
-                : null;
-        return demoPlanService.verifyStep(requireUser(principal), id, stepIndex, params, readings);
+            @PathVariable int stepIndex) {
+        return demoPlanService.completeStep(requireUser(principal), id, stepIndex);
     }
 
     @PostMapping("/{id}/quiz/submit")
@@ -59,11 +59,15 @@ public class UserDemoController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable Long id,
             @RequestBody Map<String, Object> body) {
+        Object qi = body.get("questionIndex");
         Object ai = body.get("answerIndex");
-        if (!(ai instanceof Number n)) {
+        if (!(qi instanceof Number qn)) {
+            throw new ApiException(400, "缺少 questionIndex");
+        }
+        if (!(ai instanceof Number an)) {
             throw new ApiException(400, "缺少 answerIndex");
         }
-        return demoPlanService.submitQuiz(requireUser(principal), id, n.intValue());
+        return demoPlanService.submitQuiz(requireUser(principal), id, qn.intValue(), an.intValue());
     }
 
     @PostMapping("/{id}/status")
@@ -75,7 +79,7 @@ public class UserDemoController {
                 requireUser(principal), id, body.get("status") == null ? null : String.valueOf(body.get("status")));
     }
 
-    /** 清除大步骤进度与答题（保留剧本） */
+    /** 清除步骤进度与答题（保留剧本） */
     @PostMapping("/{id}/clear-progress")
     public Map<String, Object> clearProgress(
             @AuthenticationPrincipal AuthPrincipal principal,

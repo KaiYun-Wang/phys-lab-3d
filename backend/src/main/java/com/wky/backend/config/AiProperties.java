@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class AiProperties {
 
     private Chat chat = new Chat();
+    private Tts tts = new Tts();
     /**
      * 入模至少保留的对话条数（user/assistant）；摘要后若 until 之后不足则从 until 往前补。
      * 摘要任务也会留下最近这么多条不进本次压缩。
@@ -25,5 +26,14 @@ public class AiProperties {
         private String apiKey = "";
         private String baseUrl = "https://api.deepseek.com";
         private String model = "deepseek-chat";
+    }
+
+    @Data
+    public static class Tts {
+        private boolean enabled = false;
+        private String apiKey = "";
+        private String baseUrl = "https://api.siliconflow.cn/v1";
+        private String model = "fnlp/MOSS-TTSD-v0.5";
+        private String voice = "fnlp/MOSS-TTSD-v0.5:anna";
     }
 }

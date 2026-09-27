@@ -18,7 +18,14 @@ public class UserProfileResponse {
                 user.getId(),
                 user.getUsername(),
                 user.getNickname(),
-                user.getAvatarUrl()
+                relativizeAvatar(user.getAvatarUrl())
         );
+    }
+
+    /** Strip host from legacy absolute avatar URLs. */
+    public static String relativizeAvatar(String url) {
+        if (url == null || url.isBlank()) return url;
+        int i = url.indexOf("/api/avatars/");
+        return i >= 0 ? url.substring(i) : url;
     }
 }

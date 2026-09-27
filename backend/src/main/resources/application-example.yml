@@ -20,10 +20,11 @@ phys-lab:
   minio:
     access-key: minioadmin
     secret-key: minioadmin
+    # 仅后端 SDK 连 MinIO（浏览器不直连）
     endpoint: http://127.0.0.1:9000
     bucket: phys-lab
-    # 后端对外拼文件 URL 的前缀（经 Spring 代理 /api/avatars、/api/covers）
-    domain: http://127.0.0.1:8080/api/
+    # x-file-storage 占位；入库一律相对路径 /api/avatars|covers|demos/...
+    domain: /api/
 
   redis:
     host: localhost
@@ -49,3 +50,10 @@ phys-lab:
     summary-soft-limit: 30
     # 大于此条数 -> 助手回复「系统繁忙，请稍后重试」（仍会尝试投递摘要）
     summary-hard-limit: 50
+    # ----- TTS（演示讲解预生成；OpenAI 兼容 /audio/speech）-----
+    tts:
+      enabled: false
+      api-key: sk-your-tts-api-key
+      base-url: https://api.siliconflow.cn/v1
+      model: fnlp/MOSS-TTSD-v0.5
+      voice: fnlp/MOSS-TTSD-v0.5:anna

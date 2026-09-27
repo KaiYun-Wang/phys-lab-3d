@@ -1,24 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearDemoProgress,
+  completeDemoStep,
+  ensureDemoAudio,
   fetchDemo,
   fetchDemos,
   submitDemoQuiz,
   updateDemoStatus,
-  verifyDemoStep,
+  type DemoQuizResult,
   type DemoSessionDetail,
   type DemoSessionSummary,
   type DemoStep,
 } from "@/lib/api";
-import { animateParams, speak, stopSpeaking, wait, warmVoices } from "@/lib/demoSpeech";
+import {
+  animateParams,
+  isSoftPaused,
+  narrateText,
+  softPauseMedia,
+  softResumeMedia,
+  stopSpeaking,
+  wait,
+  warmVoices,
+} from "@/lib/demoSpeech";
+import { DemoPlanCard } from "@/components/demo/DemoPlanCard";
 
 export type DemoAdapter = {
   experimentId: number | null;
   getParams: () => Record<string, unknown>;
   getReadings: () => Record<string, unknown> | null;
   applyParams: (params: Record<string, unknown>) => void;
+  setOnUserEdit?: (fn: (() => void) | null) => void;
 };
 
 export type DemoStageUi = {
@@ -32,23 +45,7 @@ export type DemoStageUi = {
   prevLabel: string;
 };
 
-type Phase =
-  | "idle"
-  | "action"
-  | "verify"
-  | "result"
-  | "gate"
-  | "done"
-  | "paused"
-  | "error";
-
-type GateAction = "next" | "prev";
-
-const MICRO = {
-  action: { label: "操作讲解", n: 1 },
-  verify: { label: "核验读数", n: 2 },
-  result: { label: "结果讲解", n: 3 },
-} as const;
+type Phase = "idle" | "step" | "done" | "paused" | "error";
 
 function focusToDemoId(focus?: string): string | null {
   if (!focus) return null;
@@ -58,15 +55,14 @@ function focusToDemoId(focus?: string): string | null {
 }
 
 function quizLabel(h: DemoSessionSummary): string {
-  if (h.quizAnswerIndex == null) return "未答题";
-  if (h.quizCorrect === true) return "答题正确";
-  if (h.quizCorrect === false) return "答题错误";
+  const a = h.quizAnswers;
+  if (!a || a.every((x) => x == null)) return "未答题";
+  if (a.some((x) => x == null)) return "答题中";
   return "已答题";
 }
 
-function microLabel(kind: keyof typeof MICRO): string {
-  const m = MICRO[kind];
-  return `${m.label} · ${m.n}/3`;
+function stepCaptionLabel(i: number, total: number): string {
+  return `讲解 · ${i + 1}/${total}`;
 }
 
 export function DemoPanel({
@@ -88,26 +84,54 @@ export function DemoPanel({
 }) {
   const [detail, setDetail] = useState<DemoSessionDetail | null>(null);
   const [history, setHistory] = useState<DemoSessionSummary[]>([]);
+  const [browsing, setBrowsing] = useState(true);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [hoverTip, setHoverTip] = useState<{ i: number; left: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [stepIndex, setStepIndex] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [voiceOn, setVoiceOn] = useState(true);
-  const [quizPick, setQuizPick] = useState<number | null>(null);
-  const [quizFb, setQuizFb] = useState<{ correct: boolean; explanation?: string } | null>(null);
+  /** per-question feedback after submit */
+  const [quizFb, setQuizFb] = useState<Record<number, DemoQuizResult>>({});
   const abortRef = useRef<AbortController | null>(null);
   const skipRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
-  const gateRef = useRef<{ resolve: (a: GateAction) => void } | null>(null);
   const voiceRef = useRef(voiceOn);
   voiceRef.current = voiceOn;
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+  const resumePhaseRef = useRef<Phase>("step");
+  const pauseSnapshotRef = useRef<Record<string, unknown> | null>(null);
+  const softPausedUiRef = useRef(false);
+  const stepTargetParamsRef = useRef<Record<string, unknown> | null>(null);
+  const pauseRef = useRef<() => void>(() => undefined);
+  const pauseUiRef = useRef<{
+    caption: string;
+    captionLabel: string;
+    highlightId: string | null;
+  } | null>(null);
+  const stageUiRef = useRef<{
+    caption: string;
+    captionLabel: string;
+    highlightId: string | null;
+  }>({ caption: "", captionLabel: "", highlightId: null });
+  const skipCooldownRef = useRef(0);
+  const detailRef = useRef(detail);
+  detailRef.current = detail;
 
   const steps: DemoStep[] = detail?.plan?.steps ?? [];
+  const quizzes = useMemo(() => {
+    const p = detail?.plan;
+    if (!p) return [];
+    if (p.quizzes?.length) return p.quizzes;
+    return p.quiz ? [p.quiz] : [];
+  }, [detail?.plan]);
+
+  const stepsDone = steps.length > 0 && completed >= steps.length;
 
   useEffect(() => {
     warmVoices();
@@ -115,8 +139,8 @@ export function DemoPanel({
 
   const pushUi = useCallback(
     (partial: Partial<DemoStageUi>) => {
-      onStageUi?.({
-        highlightId: null,
+      const next = {
+        highlightId: null as string | null,
         caption: "",
         captionLabel: "",
         voiceOn: voiceRef.current,
@@ -125,7 +149,13 @@ export function DemoPanel({
         nextLabel: "下一步 ›",
         prevLabel: "‹ 上一步",
         ...partial,
-      });
+      };
+      stageUiRef.current = {
+        caption: next.caption,
+        captionLabel: next.captionLabel,
+        highlightId: next.highlightId,
+      };
+      onStageUi?.(next);
     },
     [onStageUi],
   );
@@ -136,34 +166,26 @@ export function DemoPanel({
   }, [pushUi]);
 
   const requestSkip = useCallback(() => {
-    if (phaseRef.current === "gate") {
-      gateRef.current?.resolve("next");
-      return;
-    }
+    const now = Date.now();
+    if (now - skipCooldownRef.current < 350) return;
+    skipCooldownRef.current = now;
+    if (phaseRef.current === "paused" || softPausedUiRef.current) return;
     skipRef.current?.abort();
-    stopSpeaking();
-  }, []);
-
-  const requestPrev = useCallback(() => {
-    if (phaseRef.current === "gate") {
-      gateRef.current?.resolve("prev");
-      return;
-    }
-    // 播放中：中断并重播上一节（或本节）
-    const i = stepIndexRef.current;
-    const target = phaseRef.current === "action" && i > 0 ? i - 1 : i;
-    skipRef.current?.abort();
-    abortRef.current?.abort();
-    stopSpeaking();
-    // playFrom 由外部调用；用 run 标记后异步启动
-    void (async () => {
-      await wait(60);
-      // 直接在闭包外触发需要 playFrom — 用 ref
-      playFromRef.current?.(target);
-    })();
   }, []);
 
   const playFromRef = useRef<((from: number) => void) | null>(null);
+
+  const requestPrev = useCallback(() => {
+    const i = stepIndexRef.current;
+    const target = phaseRef.current === "step" && i > 0 ? i - 1 : i;
+    skipRef.current?.abort();
+    abortRef.current?.abort();
+    stopSpeaking();
+    void (async () => {
+      await wait(60);
+      playFromRef.current?.(target);
+    })();
+  }, []);
 
   useEffect(() => {
     onSkipReady?.(requestSkip);
@@ -174,6 +196,13 @@ export function DemoPanel({
     onPrevReady?.(requestPrev);
     return () => onPrevReady?.(null);
   }, [onPrevReady, requestPrev]);
+
+  useEffect(() => {
+    adapter.setOnUserEdit?.(() => {
+      if (phaseRef.current === "step") pauseRef.current();
+    });
+    return () => adapter.setOnUserEdit?.(null);
+  }, [adapter]);
 
   const freshSkip = () => {
     skipRef.current = new AbortController();
@@ -199,19 +228,14 @@ export function DemoPanel({
       setDetail(d);
       setCompleted(cur);
       onActiveDemoChange(d.id);
-      if (d.quizResult) {
-        setQuizPick(d.quizResult.chosenIndex);
-        setQuizFb({
-          correct: d.quizResult.correct,
-          explanation: d.quizResult.explanation,
-        });
-      } else {
-        setQuizPick(null);
-        setQuizFb(null);
+      const fb: Record<number, DemoQuizResult> = {};
+      for (const r of d.quizResults ?? []) {
+        fb[r.questionIndex] = r;
       }
+      setQuizFb(fb);
       if (n > 0 && cur >= n) {
         setPhase("done");
-        setStepIndex(n - 1);
+        setStepIndex(Math.max(0, n - 1));
       } else {
         setPhase("idle");
         setStepIndex(cur);
@@ -225,15 +249,16 @@ export function DemoPanel({
     async (id: number) => {
       runIdRef.current += 1;
       abortRef.current?.abort();
-      gateRef.current = null;
       stopSpeaking();
       setLoading(true);
       setError("");
+      setBrowsing(false);
       try {
         const d = await fetchDemo(id);
         applyLoaded(d);
       } catch (e) {
         setDetail(null);
+        setBrowsing(true);
         setError(e instanceof Error ? e.message : "加载演示失败");
       } finally {
         setLoading(false);
@@ -247,136 +272,109 @@ export function DemoPanel({
   }, [loadHistory]);
 
   useEffect(() => {
-    if (activeDemoId != null && activeDemoId !== detail?.id) {
+    if (activeDemoId == null) {
+      setBrowsing(true);
+      return;
+    }
+    if (activeDemoId !== detail?.id) {
       void loadDemo(activeDemoId);
     }
   }, [activeDemoId, detail?.id, loadDemo]);
 
-  useEffect(() => () => clearStage(), [clearStage]);
-
-  const waitReadingsStable = async (
-    signal: AbortSignal,
-    skipSignal?: AbortSignal,
-  ): Promise<Record<string, unknown>> => {
-    let prev: string | null = null;
-    for (let i = 0; i < 50; i++) {
-      if (signal.aborted) throw new Error("已暂停");
-      if (skipSignal?.aborted) {
-        const last = adapter.getReadings();
-        if (last) return last;
-      }
-      await wait(100, signal, skipSignal);
-      const r = adapter.getReadings();
-      if (!r) continue;
-      const key = JSON.stringify({
-        v2: Number(r.v2)?.toFixed?.(3) ?? r.v2,
-        deltaP: Number(r.deltaP)?.toFixed?.(2) ?? r.deltaP,
-      });
-      if (prev != null && prev === key) return r;
-      prev = key;
-    }
-    const last = adapter.getReadings();
-    if (!last) throw new Error("读数未就绪");
-    return last;
+  const backToList = () => {
+    runIdRef.current += 1;
+    abortRef.current?.abort();
+    stopSpeaking();
+    clearStage();
+    setPhase("idle");
+    setBrowsing(true);
+    setConfirmClear(false);
+    setHoverTip(null);
+    onActiveDemoChange(null);
+    void loadHistory();
   };
 
-  const narrate = async (text: string, signal: AbortSignal, skipSignal: AbortSignal) => {
-    if (!text.trim()) return;
+  useEffect(() => () => clearStage(), [clearStage]);
+
+  const narrate = async (
+    text: string,
+    signal: AbortSignal,
+    skipSignal: AbortSignal,
+    audioUrl?: string | null,
+  ) => {
+    if (!text.trim() && !audioUrl) return;
     if (voiceRef.current) {
-      await speak(text, { signal, skipSignal });
+      await narrateText(text, audioUrl, { signal, skipSignal });
     } else {
       await wait(Math.min(10000, Math.max(2800, text.length * 180)), signal, skipSignal);
     }
   };
 
-  const waitGate = (signal: AbortSignal): Promise<GateAction> =>
-    new Promise((resolve, reject) => {
-      if (signal.aborted) {
-        reject(new Error("已暂停"));
-        return;
-      }
-      const onAbort = () => {
-        gateRef.current = null;
-        reject(new Error("已暂停"));
-      };
-      signal.addEventListener("abort", onAbort, { once: true });
-      gateRef.current = {
-        resolve: (a) => {
-          signal.removeEventListener("abort", onAbort);
-          gateRef.current = null;
-          resolve(a);
-        },
-      };
-    });
-
-  /** 播完一个大步骤（含三个小步）；不自动进下一节 */
-  const runBigStep = async (
+  const runStep = async (
     i: number,
     ac: AbortSignal,
     runId: number,
+    playSteps: DemoStep[],
+    demoId: number,
   ): Promise<"ok" | "stop"> => {
-    if (!detail) return "stop";
-    const step = steps[i];
+    const step = playSteps[i];
+    if (!step) return "stop";
     setStepIndex(i);
+    const animate = !!step.animate && !!step.params;
+    stepTargetParamsRef.current = animate ? { ...step.params } : { ...adapter.getParams() };
     onEnsureLeftOpen?.();
 
-    // 1 操作
-    const focusId = focusToDemoId(step.focus);
-    setPhase("action");
-    const skipAction = freshSkip();
+    const text = step.narration || step.title;
+    const focusId = animate ? focusToDemoId(step.focus) : "readings";
+    setPhase("step");
+    const skip = freshSkip();
     pushUi({
       highlightId: focusId,
-      captionLabel: microLabel("action"),
-      caption: step.actionNarration || step.title,
+      captionLabel: stepCaptionLabel(i, playSteps.length),
+      caption: text,
       canSkip: true,
       canPrev: true,
     });
-    const fromParams = adapter.getParams();
-    await Promise.all([
-      narrate(step.actionNarration || step.title, ac, skipAction),
-      animateParams(fromParams, step.params, adapter.applyParams, 1600, ac, skipAction),
-    ]);
-    if (runId !== runIdRef.current) return "stop";
-    adapter.applyParams(step.params);
 
-    // 2 核验
-    setPhase("verify");
-    const skipVerify = freshSkip();
-    pushUi({
-      highlightId: "readings",
-      captionLabel: microLabel("verify"),
-      caption: "观察场景与读数变化，正在与理想模型核对…",
-      canSkip: true,
-      canPrev: true,
-    });
-    const readings = await waitReadingsStable(ac, skipVerify);
-    if (runId !== runIdRef.current) return "stop";
-    await verifyDemoStep(detail.id, i, { params: step.params, readings });
+    if (animate && step.params) {
+      const fromParams = adapter.getParams();
+      await Promise.all([
+        narrate(text, ac, skip, step.audio?.url),
+        animateParams(fromParams, step.params, adapter.applyParams, 1600, ac, skip),
+      ]);
+      if (runId !== runIdRef.current) return "stop";
+      adapter.applyParams(step.params);
+    } else {
+      await narrate(text, ac, skip, step.audio?.url);
+      if (runId !== runIdRef.current) return "stop";
+    }
+
     const nextDone = i + 1;
     setCompleted((c) => Math.max(c, nextDone));
-    setDetail((d) => (d ? { ...d, currentStep: Math.max(d.currentStep ?? 0, nextDone) } : d));
-
-    // 3 结果
-    setPhase("result");
-    const skipResult = freshSkip();
-    const resultText = step.resultNarration || "本步完成。";
-    pushUi({
-      highlightId: "readings",
-      captionLabel: microLabel("result"),
-      caption: resultText,
-      canSkip: true,
-      canPrev: true,
-    });
-    await narrate(resultText, ac, skipResult);
+    setDetail((d) =>
+      d
+        ? {
+            ...d,
+            currentStep: Math.max(d.currentStep ?? 0, nextDone),
+            stepsFinished: nextDone >= playSteps.length,
+          }
+        : d,
+    );
+    try {
+      await completeDemoStep(demoId, i);
+    } catch {
+      /* progress best-effort */
+    }
     if (runId !== runIdRef.current) return "stop";
     return "ok";
   };
 
   const playFrom = async (from: number) => {
     if (!detail) return;
+    softPausedUiRef.current = false;
+    pauseSnapshotRef.current = null;
     const runId = ++runIdRef.current;
     abortRef.current?.abort();
-    gateRef.current = null;
     stopSpeaking();
     await wait(40);
     if (runId !== runIdRef.current) return;
@@ -384,41 +382,35 @@ export function DemoPanel({
     const ac = new AbortController();
     abortRef.current = ac;
     setError("");
+    let playDetail = detail;
     try {
-      await updateDemoStatus(detail.id, "playing");
+      const already =
+        !!playDetail.plan.summaryAudioUrl ||
+        (playDetail.plan.steps ?? []).some((s) => s.audio?.url);
+      if (!already) {
+        try {
+          await ensureDemoAudio(detail.id);
+          playDetail = await fetchDemo(detail.id);
+          setDetail(playDetail);
+          detailRef.current = playDetail;
+        } catch {
+          /* browser fallback */
+        }
+      }
+      const playSteps = playDetail.plan?.steps ?? [];
+      await updateDemoStatus(playDetail.id, "playing");
       let i = from;
-      while (i < steps.length) {
+      while (i < playSteps.length) {
         if (runId !== runIdRef.current || ac.signal.aborted) {
-          if (runId === runIdRef.current) setPhase("paused");
+          if (runId === runIdRef.current && !softPausedUiRef.current) setPhase("paused");
           return;
         }
-        const r = await runBigStep(i, ac.signal, runId);
+        const r = await runStep(i, ac.signal, runId, playSteps, playDetail.id);
         if (r !== "ok" || runId !== runIdRef.current) return;
-
-        if (i >= steps.length - 1) break;
-
-        // 大步骤之间：等用户确认
-        setPhase("gate");
-        const nextTitle = steps[i + 1]?.title ?? "下一节";
-        pushUi({
-          highlightId: null,
-          captionLabel: "本节完成",
-          caption: `「${steps[i].title}」讲完了。是否进入下一节「${nextTitle}」？`,
-          canSkip: true,
-          canPrev: true,
-          nextLabel: "进入下一节 ›",
-          prevLabel: "‹ 重看本节",
-        });
-        const action = await waitGate(ac.signal);
-        if (runId !== runIdRef.current) return;
-        if (action === "prev") {
-          // 重看本节
-          continue;
-        }
         i += 1;
       }
 
-      const summary = detail.plan.summary || "演示完成。";
+      const summary = playDetail.plan.summary || "演示完成。";
       setPhase("done");
       const skipSum = freshSkip();
       pushUi({
@@ -429,7 +421,7 @@ export function DemoPanel({
         canPrev: false,
         nextLabel: "完成",
       });
-      await narrate(summary, ac.signal, skipSum);
+      await narrate(summary, ac.signal, skipSum, playDetail.plan.summaryAudioUrl);
       if (runId !== runIdRef.current) return;
       pushUi({
         canSkip: false,
@@ -438,10 +430,18 @@ export function DemoPanel({
         captionLabel: "演示小结",
         highlightId: null,
       });
-      await updateDemoStatus(detail.id, "done");
+      try {
+        await updateDemoStatus(detail.id, "ready");
+      } catch {
+        /* ignore */
+      }
       void loadHistory();
     } catch (e) {
       if (runId !== runIdRef.current) return;
+      if (softPausedUiRef.current || isSoftPaused()) {
+        setPhase("paused");
+        return;
+      }
       if (ac.signal.aborted) {
         setPhase("paused");
         pushUi({
@@ -463,7 +463,6 @@ export function DemoPanel({
     } finally {
       if (runId === runIdRef.current) {
         skipRef.current = null;
-        gateRef.current = null;
       }
     }
   };
@@ -473,23 +472,57 @@ export function DemoPanel({
   };
 
   const pause = () => {
-    abortRef.current?.abort();
-    gateRef.current = null;
-    stopSpeaking();
+    if (softPausedUiRef.current) return;
+    if (phaseRef.current !== "step") return;
+    resumePhaseRef.current = "step";
+    pauseSnapshotRef.current = {
+      ...(stepTargetParamsRef.current ?? adapter.getParams()),
+    };
+    pauseUiRef.current = { ...stageUiRef.current };
+    softPausedUiRef.current = true;
+    softPauseMedia();
     setPhase("paused");
+    pushUi({
+      highlightId: pauseUiRef.current.highlightId,
+      captionLabel: "已暂停",
+      caption: "你可以手动操作；继续时会回到本步目标参数并从语音断点接着讲。",
+      canSkip: false,
+      canPrev: false,
+    });
+  };
+  pauseRef.current = pause;
+
+  const resumeSoft = () => {
+    const snap = pauseSnapshotRef.current;
+    if (snap) {
+      adapter.applyParams(snap);
+      pauseSnapshotRef.current = null;
+    }
+    softPausedUiRef.current = false;
+    setPhase("step");
+    const ui = pauseUiRef.current;
+    pauseUiRef.current = null;
+    pushUi({
+      highlightId: ui?.highlightId ?? null,
+      caption: ui?.caption ?? "",
+      captionLabel: ui?.captionLabel ?? "",
+      canSkip: true,
+      canPrev: true,
+    });
+    softResumeMedia();
   };
 
+  /** 进度条任意跳转 */
   const jumpToStep = (i: number) => {
-    if (i < 0 || i >= completed) return;
+    if (i < 0 || i >= steps.length) return;
     void playFrom(i);
   };
 
-  const onClearProgress = async () => {
+  const doClearProgress = async () => {
     if (!detail) return;
-    if (!window.confirm("清除观看进度与答题结果？剧本保留，可重新完整观看。")) return;
+    setConfirmClear(false);
     runIdRef.current += 1;
     abortRef.current?.abort();
-    gateRef.current = null;
     stopSpeaking();
     try {
       await clearDemoProgress(detail.id);
@@ -501,27 +534,18 @@ export function DemoPanel({
     }
   };
 
-  const onQuiz = async (idx: number) => {
-    if (!detail || quizFb) return;
-    setQuizPick(idx);
+  const onQuiz = async (questionIndex: number, answerIndex: number) => {
+    if (!detail || !stepsDone || quizFb[questionIndex]) return;
     try {
-      const res = await submitDemoQuiz(detail.id, idx);
-      setQuizFb({ correct: res.correct, explanation: res.explanation });
-      setDetail((d) =>
-        d
-          ? {
-              ...d,
-              quizAnswerIndex: res.chosenIndex,
-              quizCorrect: res.correct,
-              quizResult: {
-                chosenIndex: res.chosenIndex,
-                correct: res.correct,
-                answerIndex: res.answerIndex,
-                explanation: res.explanation,
-              },
-            }
-          : d,
-      );
+      const res = await submitDemoQuiz(detail.id, questionIndex, answerIndex);
+      setQuizFb((prev) => ({ ...prev, [questionIndex]: res }));
+      setDetail((d) => {
+        if (!d) return d;
+        const answers = [...(d.quizAnswers ?? [])];
+        while (answers.length <= questionIndex) answers.push(null);
+        answers[questionIndex] = res.chosenIndex;
+        return { ...d, quizAnswers: answers };
+      });
       void loadHistory();
     } catch (e) {
       setError(e instanceof Error ? e.message : "提交失败");
@@ -529,69 +553,102 @@ export function DemoPanel({
   };
 
   const nextToPlay = Math.min(completed, steps.length);
-  const canShowQuiz =
-    phase === "done" || (completed >= steps.length && steps.length > 0 && !!detail?.plan.quiz);
-  const playing =
-    phase === "action" || phase === "verify" || phase === "result" || phase === "gate";
+  const playing = phase === "step";
+  const progressPct =
+    steps.length <= 1 ? (completed > 0 ? 100 : 0) : (completed / steps.length) * 100;
+  const showList = browsing || !detail;
 
   return (
     <div className="demo-panel">
       {loading && <p className="demo-panel__hint">加载中…</p>}
       {error && <p className="demo-panel__err">{error}</p>}
 
-      {!detail && !loading && (
-        <div className="demo-panel__empty">
-          <p>在对话里说一句想看的演示，AI 会生成带讲解的教学计划。</p>
-          <p className="demo-panel__hint">开始后：高亮控件 · 中下字幕 · 语音播报。</p>
+      {showList && (
+        <div className="demo-panel__list">
+          {history.length === 0 && !loading ? (
+            <div className="demo-panel__empty">
+              <p>在对话里说一句想看的演示，AI 会生成带讲解的教学计划。</p>
+              <p className="demo-panel__hint">开始后：高亮控件 · 中下字幕 · 语音播报。</p>
+            </div>
+          ) : (
+            <>
+              <div className="demo-panel__head">
+                <span className="demo-panel__src">我的演示</span>
+                <span className="demo-panel__prog">{history.length} 个</span>
+              </div>
+              <div className="demo-panel__scroll">
+                {history.map((h) => (
+                  <DemoPlanCard
+                    key={h.id}
+                    demoId={h.id}
+                    title={h.title}
+                    steps={h.totalSteps ?? 0}
+                    currentStep={h.currentStep ?? 0}
+                    quizStatus={quizLabel(h)}
+                    active={detail?.id === h.id}
+                    onStart={(id) => void loadDemo(id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {detail && (
+      {!showList && detail && (
         <>
           <div className="demo-panel__head">
+            <button type="button" className="demo-panel__back" onClick={backToList}>
+              ‹ 列表
+            </button>
             <span className="demo-panel__src">AI 教学演示</span>
             <span className="demo-panel__prog">
-              {completed}/{steps.length} 已完成
+              {completed}/{steps.length} 步
               {phase === "idle" && (completed > 0 ? " · 可继续" : " · 待开始")}
-              {playing && phase !== "gate" && " · 讲解中"}
-              {phase === "gate" && " · 待进入下一节"}
-              {phase === "done" && " · 已完成"}
+              {playing && " · 讲解中"}
+              {phase === "done" && " · 可答题"}
               {phase === "paused" && " · 已暂停"}
             </span>
           </div>
           <h5 className="demo-panel__title">{detail.title}</h5>
           {detail.plan.overview ? <p className="demo-panel__desc">{detail.plan.overview}</p> : null}
 
-          <ol className="demo-panel__steps">
-            {steps.map((s, i) => {
-              const isDone = i < completed;
-              const active =
-                i === stepIndex &&
-                (phase === "action" ||
-                  phase === "verify" ||
-                  phase === "result" ||
-                  phase === "gate" ||
-                  phase === "paused");
-              const clickable = isDone && !active && !playing;
-              return (
-                <li
-                  key={i}
-                  className={`${isDone && !active ? "done" : ""}${active ? " active" : ""}${clickable ? " clickable" : ""}`}
-                  onClick={clickable ? () => jumpToStep(i) : undefined}
-                  title={clickable ? "点击回看此节" : undefined}
-                >
-                  <span className="n">{isDone && !active ? "✓" : i + 1}</span>
-                  <span>
-                    <strong>{s.title}</strong>
-                    <small>
-                      v₁ {String(s.params.v1)} · 面积比 {String(s.params.areaRatio)} ·{" "}
-                      {String(s.params.fluid)}
-                    </small>
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          {steps.length > 0 && (
+            <div className="demo-scrubber" aria-label="演示进度">
+              <div className="demo-scrubber__rail">
+                <div className="demo-scrubber__fill" style={{ width: `${progressPct}%` }} />
+                {steps.map((s, i) => {
+                  const left = steps.length === 1 ? 0 : (i / (steps.length - 1)) * 100;
+                  const isDone = i < completed;
+                  const active = i === stepIndex && (playing || phase === "paused");
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`demo-scrubber__node${isDone ? " done" : ""}${active ? " active" : ""}`}
+                      style={{ left: `${left}%` }}
+                      aria-label={`第 ${i + 1} 步：${s.title}`}
+                      onMouseEnter={() => setHoverTip({ i, left })}
+                      onMouseLeave={() => setHoverTip(null)}
+                      onFocus={() => setHoverTip({ i, left })}
+                      onBlur={() => setHoverTip(null)}
+                      onClick={() => jumpToStep(i)}
+                    />
+                  );
+                })}
+                {hoverTip != null && steps[hoverTip.i] && (
+                  <div className="demo-scrubber__tip" style={{ left: `${hoverTip.left}%` }} role="tooltip">
+                    <span className="demo-scrubber__tip-n">{hoverTip.i + 1}</span>
+                    {steps[hoverTip.i].title}
+                  </div>
+                )}
+              </div>
+              <p className="demo-scrubber__hint">
+                {steps[stepIndex]?.title ?? "—"}
+                <span> · 点击节点跳转</span>
+              </p>
+            </div>
+          )}
 
           <div className="demo-panel__tools">
             <label>
@@ -610,7 +667,8 @@ export function DemoPanel({
                 type="button"
                 className="demo-panel__btn primary"
                 onClick={() => {
-                  if (phase === "paused") void playFrom(stepIndex);
+                  if (phase === "paused" && softPausedUiRef.current) resumeSoft();
+                  else if (phase === "paused") void playFrom(stepIndex);
                   else if (completed >= steps.length && steps.length > 0) void playFrom(0);
                   else void playFrom(nextToPlay);
                 }}
@@ -618,7 +676,7 @@ export function DemoPanel({
                 {phase === "paused"
                   ? "▶ 继续讲解"
                   : completed > 0 && completed < steps.length
-                    ? `▶ 从第 ${completed + 1} 节继续`
+                    ? `▶ 从第 ${completed + 1} 步继续`
                     : completed >= steps.length && steps.length > 0
                       ? "↻ 再演示一次"
                       : "▶ 开始演示"}
@@ -642,56 +700,81 @@ export function DemoPanel({
                 ↻ 再演示一次
               </button>
             )}
-            {(completed > 0 || quizFb) && (
-              <button type="button" className="demo-panel__btn" onClick={() => void onClearProgress()}>
+            {(completed > 0 || Object.keys(quizFb).length > 0) && (
+              <button type="button" className="demo-panel__btn" onClick={() => setConfirmClear(true)}>
                 清除进度
               </button>
             )}
           </div>
 
-          {canShowQuiz && detail.plan.quiz && (
-            <div className="demo-panel__quiz">
-              <p className="demo-panel__quiz-q">{detail.plan.quiz.question}</p>
-              <div className="demo-panel__quiz-opts">
-                {(detail.plan.quiz.options ?? []).map((opt, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={quizPick === i ? "sel" : ""}
-                    disabled={!!quizFb}
-                    onClick={() => void onQuiz(i)}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-              {quizFb && (
-                <p className={`demo-panel__quiz-fb${quizFb.correct ? " ok" : " bad"}`}>
-                  {quizFb.correct ? "回答正确" : "回答错误"}
-                  {quizFb.explanation ? ` · ${quizFb.explanation}` : ""}
-                </p>
+          {quizzes.length > 0 && (
+            <div className={`demo-panel__quiz${stepsDone ? "" : " locked"}`}>
+              {!stepsDone && (
+                <p className="demo-panel__hint">看完全部演示步骤后解锁随堂题（共 {quizzes.length} 题）</p>
               )}
+              {quizzes.map((q, qi) => {
+                const fb = quizFb[qi];
+                const answered = !!fb;
+                return (
+                  <div key={qi} className="demo-panel__quiz-item">
+                    <p className="demo-panel__quiz-q">
+                      {quizzes.length > 1 ? `${qi + 1}. ` : ""}
+                      {q.question}
+                    </p>
+                    <div className="demo-panel__quiz-opts">
+                      {(q.options ?? []).map((opt, oi) => (
+                        <button
+                          key={oi}
+                          type="button"
+                          className={fb?.chosenIndex === oi ? "sel" : ""}
+                          disabled={!stepsDone || answered}
+                          onClick={() => void onQuiz(qi, oi)}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    {fb && (
+                      <p className={`demo-panel__quiz-fb${fb.correct ? " ok" : " bad"}`}>
+                        {fb.correct ? "回答正确" : "回答错误"}
+                        {fb.explanation ? ` · ${fb.explanation}` : ""}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
       )}
 
-      {history.length > 0 && (
-        <details className="demo-panel__hist">
-          <summary>演示历史</summary>
-          <ul>
-            {history.map((h) => (
-              <li key={h.id}>
-                <button type="button" onClick={() => void loadDemo(h.id)}>
-                  {h.title}
-                  <small>
-                    {h.currentStep}/{h.totalSteps ?? "?"} 步 · {quizLabel(h)}
-                  </small>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </details>
+      {confirmClear && (
+        <div
+          className="demo-confirm-overlay"
+          role="presentation"
+          onClick={() => setConfirmClear(false)}
+        >
+          <div
+            className="demo-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="demo-confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="demo-confirm-title" className="demo-confirm__title">
+              清除进度？
+            </p>
+            <p className="demo-confirm__body">观看进度与答题结果会清空，剧本保留，可重新完整观看。</p>
+            <div className="demo-confirm__actions">
+              <button type="button" className="demo-panel__btn" onClick={() => setConfirmClear(false)}>
+                取消
+              </button>
+              <button type="button" className="demo-panel__btn primary" onClick={() => void doClearProgress()}>
+                清除
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

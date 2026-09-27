@@ -106,7 +106,7 @@ COMMENT ON COLUMN "public"."ai_chat_messages"."id" IS '消息 ID，自增主键'
 COMMENT ON COLUMN "public"."ai_chat_messages"."session_id" IS '会话 ID，逻辑关联 ai_chat_sessions(id)';
 COMMENT ON COLUMN "public"."ai_chat_messages"."role" IS '角色：user / assistant / thinking / tool_call / tool_result';
 COMMENT ON COLUMN "public"."ai_chat_messages"."content" IS '消息正文';
-COMMENT ON COLUMN "public"."ai_chat_messages"."context_json" IS '发消息时的页面上下文（可选 JSONB）';
+COMMENT ON COLUMN "public"."ai_chat_messages"."context_json" IS '附属 JSON：user 为页面身份；tool_call/tool_result 为工具元数据';
 COMMENT ON COLUMN "public"."ai_chat_messages"."create_time" IS '创建时间，插入时自动填充';
 CREATE INDEX "idx_ai_chat_messages_session_id" ON "public"."ai_chat_messages" USING btree ("session_id", "id");
 
@@ -420,43 +420,25 @@ CREATE TABLE "public"."demo_sessions" (
   "status" character varying(20) NOT NULL DEFAULT 'ready',
   "plan_json" jsonb NOT NULL,
   "current_step" integer NOT NULL DEFAULT 0,
-  "quiz_answer_index" integer,
-  "quiz_correct" boolean,
+  "quiz_answers" jsonb,
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
 
-COMMENT ON TABLE "public"."demo_sessions" IS 'AI 演示会话：剧本 plan_json + 大步骤进度 + 答题';
+COMMENT ON TABLE "public"."demo_sessions" IS 'AI 演示会话：剧本 plan_json（含 quizzes）+ 步骤进度 current_step + 用户选项';
+COMMENT ON COLUMN "public"."demo_sessions"."id" IS '演示会话 ID，自增主键';
+COMMENT ON COLUMN "public"."demo_sessions"."user_id" IS '用户 ID，逻辑关联 users(id)';
 COMMENT ON COLUMN "public"."demo_sessions"."experiment_id" IS '关联 experiments.id';
-COMMENT ON COLUMN "public"."demo_sessions"."status" IS 'ready | playing | done | aborted';
-COMMENT ON COLUMN "public"."demo_sessions"."plan_json" IS '演示计划（steps / quiz / summary）';
-COMMENT ON COLUMN "public"."demo_sessions"."current_step" IS '已完成的大步骤数（0..N）';
-COMMENT ON COLUMN "public"."demo_sessions"."quiz_answer_index" IS '用户选项下标；未答为 null';
-COMMENT ON COLUMN "public"."demo_sessions"."quiz_correct" IS '答题是否正确；未答为 null';
+COMMENT ON COLUMN "public"."demo_sessions"."goal" IS '用户目标简述（可选）';
+COMMENT ON COLUMN "public"."demo_sessions"."title" IS '演示标题';
+COMMENT ON COLUMN "public"."demo_sessions"."status" IS 'ready | playing | aborted';
+COMMENT ON COLUMN "public"."demo_sessions"."plan_json" IS '演示计划：扁平 steps[].narration + animate；summary；quizzes[1..5]；audio.url';
+COMMENT ON COLUMN "public"."demo_sessions"."current_step" IS '已播完步骤数 / 续播下标（0..N）；N=steps.length 表示步骤播完，才可答题';
+COMMENT ON COLUMN "public"."demo_sessions"."quiz_answers" IS '用户各题选项下标 JSON 数组；对错不落库';
+COMMENT ON COLUMN "public"."demo_sessions"."create_time" IS '创建时间，插入时自动填充';
+COMMENT ON COLUMN "public"."demo_sessions"."update_time" IS '更新时间，插入/更新时自动填充';
 CREATE INDEX "idx_demo_sessions_user_exp" ON "public"."demo_sessions" USING btree ("user_id", "experiment_id", "update_time");
-
-CREATE SEQUENCE IF NOT EXISTS "public"."demo_step_events_id_seq"
-  AS bigint
-  START WITH 1
-  INCREMENT BY 1
-  MINVALUE 1
-  MAXVALUE 9223372036854775807
-  CACHE 1
-  NO CYCLE;
-
-CREATE TABLE "public"."demo_step_events" (
-  "id" bigint NOT NULL DEFAULT nextval('demo_step_events_id_seq'::regclass),
-  "session_id" bigint NOT NULL,
-  "step_index" integer NOT NULL,
-  "params_json" jsonb,
-  "readings_json" jsonb,
-  "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id")
-);
-
-COMMENT ON TABLE "public"."demo_step_events" IS '大步骤核验回执（幂等）；不可用来改演示剧本';
-CREATE UNIQUE INDEX "uk_demo_step_events_session_step" ON "public"."demo_step_events" USING btree ("session_id", "step_index");
 
 ALTER SEQUENCE "public"."admins_id_seq" OWNED BY "public"."admins"."id";
 
@@ -481,8 +463,6 @@ ALTER SEQUENCE "public"."subject_types_id_seq" OWNED BY "public"."subject_types"
 ALTER SEQUENCE "public"."users_id_seq" OWNED BY "public"."users"."id";
 
 ALTER SEQUENCE "public"."demo_sessions_id_seq" OWNED BY "public"."demo_sessions"."id";
-
-ALTER SEQUENCE "public"."demo_step_events_id_seq" OWNED BY "public"."demo_step_events"."id";
 
 SELECT setval('"public"."admins_id_seq"', GREATEST(COALESCE(MAX("id"), 2), 2), true) FROM "public"."admins";
 

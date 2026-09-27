@@ -9,6 +9,7 @@ import com.wky.backend.config.JsonbTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -27,19 +28,21 @@ public class DemoSession {
 
     private String title;
 
-    /** ready | playing | done | aborted */
+    /** ready | playing | aborted */
     private String status;
 
     @TableField(typeHandler = JsonbTypeHandler.class)
     private Map<String, Object> planJson;
 
+    /** 已播完步骤数 / 续播下标（0..N）；N=steps 数表示步骤播完 */
     private Integer currentStep;
 
-    /** 用户答题选项；未答 null */
-    private Integer quizAnswerIndex;
-
-    /** 是否答对；未答 null */
-    private Boolean quizCorrect;
+    /**
+     * 用户各题选项下标（与 plan_json.quizzes 对齐）；未答为 null 元素或整列 null。
+     * 对错不落库，提交时与 plan 比对。
+     */
+    @TableField(typeHandler = JsonbTypeHandler.class)
+    private List<Integer> quizAnswers;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

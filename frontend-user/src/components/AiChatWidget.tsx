@@ -9,12 +9,14 @@ import {
   fetchAiExampleQuestions,
   fetchAiMessages,
   fetchAiSessions,
+  fetchDemos,
   parseCreatedDemo,
   streamAiMessage,
   type AiChatContext,
   type AiChatMessage,
   type AiChatSession,
   type AiExampleQuestion,
+  type DemoSessionSummary,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { DemoPlanCard } from "@/components/demo/DemoPlanCard";
@@ -97,7 +99,7 @@ function toolStepLabel(role: "tool_call" | "tool_result", content: string, conte
       listKnowledgePages: "查询知识页目录",
       getKnowledgePageContents: "读取知识页正文",
       createDemo: "生成演示计划",
-      lookupDemo: "查询演示记录",
+      lookupDemo: "查询演示剧本",
     };
     return `工具结果：${map[name] ?? name}`;
   }
@@ -199,6 +201,10 @@ export default function AiChatWidget({
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [demos, setDemos] = useState<DemoSessionSummary[]>([]);
+  const [refIds, setRefIds] = useState<number[]>([]);
+  const [refMenuOpen, setRefMenuOpen] = useState(false);
+  const [refQuery, setRefQuery] = useState("");
   const [panelW, setPanelW] = useState(DEFAULT_W);
   const [panelH, setPanelH] = useState(DEFAULT_H);
   const [resizing, setResizing] = useState<ResizeMode>(null);
@@ -209,11 +215,17 @@ export default function AiChatWidget({
 
   const page = pageContext(pathname || "/");
   const context = useMemo(
-    () => ({ ...page.context, ...contextOverride }),
-    [page.context, contextOverride],
+    () => ({
+      ...page.context,
+      ...contextOverride,
+      ...(refIds.length ? { referencedDemoIds: refIds } : {}),
+    }),
+    [page.context, contextOverride, refIds],
   );
   const contextLabel = contextLabelOverride || page.label;
   const hideOnLogin = pathname === "/login";
+  const experimentId = context.experimentId;
+  const canRefDemos = isRail && experimentId != null;
 
   useEffect(() => {
     if (isRail) return;
@@ -227,16 +239,6 @@ export default function AiChatWidget({
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
-
-  const loadSessions = useCallback(async () => {
-    if (!loggedIn) return;
-    try {
-      const pageRes = await fetchAiSessions(1, 50);
-      setSessions(pageRes.records ?? []);
-    } catch {
-      /* ignore */
-    }
-  }, [loggedIn]);
 
   const loadMessages = useCallback(async (id: number) => {
     setLoading(true);
@@ -252,6 +254,30 @@ export default function AiChatWidget({
     }
   }, []);
 
+  const refreshSessionList = useCallback(async () => {
+    if (!loggedIn) return [] as AiChatSession[];
+    try {
+      const pageRes = await fetchAiSessions(1, 50);
+      const rows = pageRes.records ?? [];
+      setSessions(rows);
+      return rows;
+    } catch {
+      return [] as AiChatSession[];
+    }
+  }, [loggedIn]);
+
+  const loadDemos = useCallback(async () => {
+    if (!canRefDemos || experimentId == null) {
+      setDemos([]);
+      return;
+    }
+    try {
+      setDemos(await fetchDemos(experimentId));
+    } catch {
+      setDemos([]);
+    }
+  }, [canRefDemos, experimentId]);
+
   const ensureSession = useCallback(async () => {
     if (sessionId) return sessionId;
     const s = await createAiSession();
@@ -260,9 +286,27 @@ export default function AiChatWidget({
     return s.id;
   }, [sessionId]);
 
+  // 每次打开对话：进入最近一条；无历史则空着，等用户发消息或点「新对话」
   useEffect(() => {
-    if (open && loggedIn) loadSessions();
-  }, [open, loggedIn, loadSessions]);
+    if (!open || !loggedIn) return;
+    let cancelled = false;
+    void (async () => {
+      const rows = await refreshSessionList();
+      if (cancelled) return;
+      if (rows[0]) await loadMessages(rows[0].id);
+      else {
+        setSessionId(null);
+        setMessages([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, loggedIn, refreshSessionList, loadMessages]);
+
+  useEffect(() => {
+    if (open && canRefDemos) void loadDemos();
+  }, [open, canRefDemos, loadDemos]);
 
   useEffect(() => {
     if (!open || examples.length > 0) return;
@@ -274,6 +318,39 @@ export default function AiChatWidget({
   useEffect(() => {
     scrollBottom();
   }, [messages, open, scrollBottom]);
+
+  const toggleRef = (id: number) => {
+    setRefIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const openRefMenu = () => {
+    setRefMenuOpen(true);
+    void loadDemos();
+  };
+
+  const toggleRefMenu = () => {
+    setRefMenuOpen((v) => {
+      if (!v) void loadDemos();
+      else setRefQuery("");
+      return !v;
+    });
+  };
+
+  // 侧栏窄：外面最多露 1 个标签，其余进下拉看勾选
+  const REF_TAG_VISIBLE = 1;
+  const refTags = useMemo(() => {
+    return refIds.map((id) => {
+      const hit = demos.find((d) => d.id === id);
+      return hit ?? ({ id, title: `演示 #${id}`, currentStep: 0 } as DemoSessionSummary);
+    });
+  }, [demos, refIds]);
+  const visibleRefTags = refTags.slice(0, REF_TAG_VISIBLE);
+  const hiddenRefCount = Math.max(0, refIds.length - visibleRefTags.length);
+  const filteredDemos = useMemo(() => {
+    const q = refQuery.trim().toLowerCase();
+    if (!q) return demos;
+    return demos.filter((d) => (d.title || "").toLowerCase().includes(q));
+  }, [demos, refQuery]);
 
   const onResizePointerDown = (modeR: Exclude<ResizeMode, null>) => (e: ReactPointerEvent) => {
     e.preventDefault();
@@ -508,6 +585,7 @@ export default function AiChatWidget({
       setMessages((m) => m.filter((row) => row.id !== tempUserId && row.id !== tempAssistantId));
     } finally {
       setSending(false);
+      if (canRefDemos) void loadDemos();
     }
   };
 
@@ -515,11 +593,7 @@ export default function AiChatWidget({
   if (!isRail && (hideOnLogin || onExperimentPage)) return null;
   if (isRail && openProp === false) return null;
 
-  const placeholder = isRail
-    ? "输入您想问的问题，自动会生成演示教程"
-    : loggedIn
-      ? "问点什么…"
-      : "登录后开始对话…";
+  const placeholder = isRail ? "" : loggedIn ? "问点什么…" : "登录后开始对话…";
 
   return (
     <>
@@ -579,7 +653,7 @@ export default function AiChatWidget({
             aria-label="历史记录"
             onClick={() => {
               setHistoryOpen((v) => !v);
-              if (!historyOpen) loadSessions();
+              if (!historyOpen) void refreshSessionList();
             }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -671,7 +745,7 @@ export default function AiChatWidget({
                 <div className="msg assistant">
                   <div className="bubble">
                     {isRail
-                      ? "你好，可以说「演示一下流速翻倍看压差怎么变」，我会生成演示计划，由你确认后开始。"
+                      ? "你好，我是实验助手。可以问实验相关问题，也可以让我生成演示讲解。"
                       : "你好，我是 PhysLab 实验助手。可以问我实验原理、操作建议，或让我根据你当前所在页面解答。"}
                   </div>
                   {!isRail && examples.length > 0 && (
@@ -771,10 +845,87 @@ export default function AiChatWidget({
 
             {error && <p className="ai-error">{error}</p>}
 
+            {canRefDemos && (
+              <div className="ai-refbar">
+                {visibleRefTags.map((d) => (
+                  <span key={d.id} className="ai-ref-tag" title={d.title || `演示 #${d.id}`}>
+                    <em>引用</em>
+                    <span className="ai-ref-tag__t">{d.title || `演示 #${d.id}`}</span>
+                    <button type="button" aria-label="移除引用" onClick={() => toggleRef(d.id)}>
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                {hiddenRefCount > 0 && (
+                  <button
+                    type="button"
+                    className="ai-ref-more"
+                    title={`还有 ${hiddenRefCount} 个引用，点击查看`}
+                    onClick={openRefMenu}
+                  >
+                    +{hiddenRefCount}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`ai-ref-btn${refMenuOpen ? " is-open" : ""}`}
+                  onClick={toggleRefMenu}
+                >
+                  {refMenuOpen ? "收起 ▴" : "＋ 引用演示 ▾"}
+                </button>
+              </div>
+            )}
+            {canRefDemos && refMenuOpen && (
+              <div className="ai-refwrap">
+                <div className="ai-refmenu" role="listbox" aria-label="选择引用演示">
+                  <div className="ai-refmenu__head">
+                    <div className="ai-refmenu__title">
+                      选择要引用的演示（可多选）
+                      {refIds.length > 0 ? ` · 已选 ${refIds.length}` : ""}
+                    </div>
+                    <input
+                      className="ai-refmenu__search"
+                      type="search"
+                      value={refQuery}
+                      placeholder="搜索演示标题…"
+                      onChange={(e) => setRefQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="ai-refmenu__list">
+                    {filteredDemos.length === 0 ? (
+                      <p className="ai-refmenu__empty">
+                        {demos.length === 0 ? "暂无演示，可先在对话里生成" : "没有匹配的演示"}
+                      </p>
+                    ) : (
+                      filteredDemos.map((d) => {
+                        const sel = refIds.includes(d.id);
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            className={`ai-refmenu__item${sel ? " is-sel" : ""}`}
+                            onClick={() => toggleRef(d.id)}
+                          >
+                            <span className="ai-refmenu__ck">{sel ? "✓" : ""}</span>
+                            <span className="ai-refmenu__name">{d.title || `演示 #${d.id}`}</span>
+                            <small>
+                              {d.currentStep}/{d.totalSteps ?? "?"} 步
+                            </small>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <form
               className="ai-composer"
               onSubmit={(e) => {
                 e.preventDefault();
+                setRefMenuOpen(false);
+                setRefQuery("");
                 send(draft);
               }}
             >

@@ -18,7 +18,13 @@ public class AdminProfileResponse {
                 admin.getId(),
                 admin.getUsername(),
                 admin.getDisplayName(),
-                admin.getAvatarUrl()
+                relativizeAvatar(admin.getAvatarUrl())
         );
+    }
+
+    static String relativizeAvatar(String url) {
+        if (url == null || url.isBlank()) return url;
+        int i = url.indexOf("/api/avatars/");
+        return i >= 0 ? url.substring(i) : url;
     }
 }

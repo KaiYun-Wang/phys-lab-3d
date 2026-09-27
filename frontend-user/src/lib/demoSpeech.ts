@@ -1,10 +1,82 @@
-/** Browser TTS. Prefer Microsoft Online/Neural voices; chunk long text for Chrome. */
+/** Cloud MP3 first; browser speechSynthesis as stable local fallback. Soft-pause keeps audio position. */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export function canSpeak(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
+/** Soft-pause barrier: play loop waits here instead of aborting. */
+let softPaused = false;
+const softWaiters: Array<() => void> = [];
+
+export function isSoftPaused(): boolean {
+  return softPaused;
+}
+
+export function softPauseMedia() {
+  softPaused = true;
+  if (sharedAudio && !sharedAudio.paused) {
+    sharedAudio.pause();
+  }
+  if (canSpeak()) {
+    try {
+      window.speechSynthesis.pause();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export function softResumeMedia() {
+  softPaused = false;
+  if (sharedAudio && sharedAudio.paused && sharedAudio.src && !sharedAudio.ended) {
+    void sharedAudio.play().catch(() => undefined);
+  }
+  if (canSpeak()) {
+    try {
+      window.speechSynthesis.resume();
+    } catch {
+      /* ignore */
+    }
+  }
+  const ws = softWaiters.splice(0);
+  for (const w of ws) w();
+}
+
+export async function awaitSoftPause(signal?: AbortSignal): Promise<void> {
+  while (softPaused) {
+    if (signal?.aborted) throw new Error("已暂停");
+    await new Promise<void>((resolve) => {
+      softWaiters.push(resolve);
+    });
+  }
+}
+
+let sharedAudio: HTMLAudioElement | null = null;
+
+function getAudio(): HTMLAudioElement {
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.preload = "auto";
+  }
+  return sharedAudio;
+}
+
 export function stopSpeaking() {
+  softPaused = false;
+  softWaiters.splice(0).forEach((w) => w());
+  if (sharedAudio) {
+    sharedAudio.onended = null;
+    sharedAudio.onerror = null;
+    sharedAudio.pause();
+    try {
+      sharedAudio.removeAttribute("src");
+      sharedAudio.load();
+    } catch {
+      /* ignore */
+    }
+  }
   if (!canSpeak()) return;
   try {
     window.speechSynthesis.cancel();
@@ -13,21 +85,18 @@ export function stopSpeaking() {
   }
 }
 
-let cachedVoice: SpeechSynthesisVoice | null = null;
-
-/** Score voices: Edge Online/Neural ≫ local Chinese ≫ anything. */
+/** Prefer local Chinese voices — more stable than Edge Online neural. */
 function scoreVoice(v: SpeechSynthesisVoice): number {
   const s = `${v.name} ${v.lang} ${v.voiceURI}`;
   let n = 0;
   if (/zh(-|_|\s)?cn|cmn|chinese|中文|汉语/i.test(s)) n += 50;
-  if (/online/i.test(s)) n += 40; // Edge cloud neural
-  if (/neural/i.test(s)) n += 30;
-  if (/natural/i.test(s)) n += 20;
-  if (/xiaoxiao|yunxi|xiaoyi|yunyang|xiaoyan|huihui|yaoyao/i.test(s)) n += 25;
-  if (/microsoft/i.test(s)) n += 10;
-  if (v.localService) n -= 5; // local often more robotic on Chrome
+  if (v.localService) n += 40;
+  if (/microsoft|google|samsung/i.test(s)) n += 5;
+  if (/online|neural/i.test(s)) n -= 20;
   return n;
 }
+
+let cachedVoice: SpeechSynthesisVoice | null = null;
 
 export function pickZhVoice(): SpeechSynthesisVoice | null {
   if (!canSpeak()) return null;
@@ -52,60 +121,44 @@ export type SpeakOpts = {
   skipSignal?: AbortSignal;
 };
 
-function splitSentences(text: string): string[] {
-  const parts = text
-    .split(/(?<=[。！？；…!?])\s*/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (parts.length <= 1) return [text.trim()].filter(Boolean);
-  // Chrome ~15s limit: keep chunks short
-  const out: string[] = [];
-  let buf = "";
-  for (const p of parts) {
-    if ((buf + p).length > 80 && buf) {
-      out.push(buf);
-      buf = p;
-    } else {
-      buf = buf ? buf + p : p;
-    }
-  }
-  if (buf) out.push(buf);
-  return out;
+function mediaUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function speakOne(text: string, opts?: SpeakOpts): Promise<void> {
+/** Play pre-generated MP3; supports soft-pause (currentTime kept). */
+export function playAudio(url: string, opts?: SpeakOpts): Promise<void> {
   return new Promise((resolve, reject) => {
     let settled = false;
-    let startTimer: ReturnType<typeof setTimeout> | null = null;
-    let keepAlive: ReturnType<typeof setInterval> | null = null;
+    const audio = getAudio();
 
     const cleanup = () => {
-      if (startTimer != null) clearTimeout(startTimer);
-      if (keepAlive != null) clearInterval(keepAlive);
       opts?.signal?.removeEventListener("abort", onAbort);
       opts?.skipSignal?.removeEventListener("abort", onSkip);
+      audio.onended = null;
+      audio.onerror = null;
     };
-
     const finishOk = () => {
       if (settled) return;
       settled = true;
       cleanup();
       resolve();
     };
-
     const finishAbort = () => {
       if (settled) return;
       settled = true;
       cleanup();
+      audio.pause();
       reject(new Error("已暂停"));
     };
-
-    const onAbort = () => {
-      stopSpeaking();
-      finishAbort();
-    };
+    const onAbort = () => finishAbort();
     const onSkip = () => {
-      stopSpeaking();
+      audio.pause();
+      try {
+        audio.currentTime = audio.duration || 0;
+      } catch {
+        /* ignore */
+      }
       finishOk();
     };
 
@@ -117,26 +170,101 @@ function speakOne(text: string, opts?: SpeakOpts): Promise<void> {
       resolve();
       return;
     }
-
     opts?.signal?.addEventListener("abort", onAbort);
     opts?.skipSignal?.addEventListener("abort", onSkip);
 
-    // Edge/Chrome: cancel→speak same turn often silent; settle first
-    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-      stopSpeaking();
+    audio.onended = () => finishOk();
+    audio.onerror = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("音频播放失败"));
+    };
+
+    const src = mediaUrl(url);
+    if (audio.src !== src && !audio.src.endsWith(url)) {
+      audio.src = src;
     }
-    startTimer = setTimeout(() => {
-      startTimer = null;
+
+    const tryPlay = () => {
       if (settled) return;
       if (opts?.signal?.aborted) {
         onAbort();
         return;
       }
       if (opts?.skipSignal?.aborted) {
-        finishOk();
+        onSkip();
         return;
       }
+      if (softPaused) {
+        void awaitSoftPause(opts?.signal).then(tryPlay).catch(finishAbort);
+        return;
+      }
+      void audio.play().catch(() => {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          reject(new Error("音频播放失败"));
+        }
+      });
+    };
+    tryPlay();
+  });
+}
 
+function speakOne(text: string, opts?: SpeakOpts): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      opts?.signal?.removeEventListener("abort", onAbort);
+      opts?.skipSignal?.removeEventListener("abort", onSkip);
+    };
+    const finishOk = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const finishAbort = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("已暂停"));
+    };
+    const onAbort = () => {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+      finishAbort();
+    };
+    const onSkip = () => {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+      finishOk();
+    };
+
+    if (opts?.signal?.aborted) {
+      reject(new Error("已暂停"));
+      return;
+    }
+    if (opts?.skipSignal?.aborted) {
+      resolve();
+      return;
+    }
+    opts?.signal?.addEventListener("abort", onAbort);
+    opts?.skipSignal?.addEventListener("abort", onSkip);
+
+    const start = () => {
+      if (settled) return;
+      if (softPaused) {
+        void awaitSoftPause(opts?.signal).then(start).catch(finishAbort);
+        return;
+      }
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickZhVoice();
       if (voice) {
@@ -145,59 +273,57 @@ function speakOne(text: string, opts?: SpeakOpts): Promise<void> {
       } else {
         u.lang = "zh-CN";
       }
-      u.rate = opts?.rate ?? 0.95;
+      u.rate = opts?.rate ?? 1;
       u.pitch = opts?.pitch ?? 1;
-
-      let started = false;
-      u.onstart = () => {
-        started = true;
-      };
       u.onend = finishOk;
       u.onerror = () => finishOk();
-
       try {
         window.speechSynthesis.speak(u);
-        window.speechSynthesis.resume();
-        keepAlive = setInterval(() => {
-          try {
-            if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-          } catch {
-            /* ignore */
-          }
-        }, 3000);
-        // Edge sometimes never fires onstart/onend — safety timeout
-        const ms = Math.min(30000, Math.max(4000, text.length * 280));
-        setTimeout(() => {
-          if (!settled && !started && !window.speechSynthesis.speaking) finishOk();
-        }, ms);
       } catch {
         finishOk();
       }
-    }, 180);
+    };
+    start();
   });
 }
 
 export async function speak(text: string, opts?: SpeakOpts): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed) return;
+  await awaitSoftPause(opts?.signal);
 
   if (!canSpeak()) {
     await wait(Math.min(12000, Math.max(2500, trimmed.length * 220)), opts?.signal, opts?.skipSignal);
     return;
   }
-
-  // Ensure voices loaded (Edge often empty on first call)
   if (!window.speechSynthesis.getVoices().length) {
-    await wait(250, opts?.signal, opts?.skipSignal);
+    await wait(200, opts?.signal, opts?.skipSignal);
     pickZhVoice();
   }
+  if (opts?.signal?.aborted) throw new Error("已暂停");
+  if (opts?.skipSignal?.aborted) return;
+  await speakOne(trimmed, opts);
+}
 
-  const chunks = splitSentences(trimmed);
-  for (const chunk of chunks) {
-    if (opts?.signal?.aborted) throw new Error("已暂停");
-    if (opts?.skipSignal?.aborted) return;
-    await speakOne(chunk, opts);
+/** Prefer cloud URL; fall back to browser TTS. */
+export async function narrateText(
+  text: string,
+  audioUrl: string | undefined | null,
+  opts?: SpeakOpts,
+): Promise<void> {
+  if (!text.trim() && !audioUrl) return;
+  await awaitSoftPause(opts?.signal);
+  if (audioUrl) {
+    try {
+      await playAudio(audioUrl, opts);
+      return;
+    } catch (e) {
+      if (opts?.signal?.aborted) throw e;
+      if (e instanceof Error && e.message === "已暂停") throw e;
+      // fall through to browser
+    }
   }
+  if (text.trim()) await speak(text, opts);
 }
 
 export function wait(ms: number, signal?: AbortSignal, skipSignal?: AbortSignal): Promise<void> {
@@ -210,23 +336,59 @@ export function wait(ms: number, signal?: AbortSignal, skipSignal?: AbortSignal)
       resolve();
       return;
     }
-    const t = setTimeout(() => {
+    let left = ms;
+    let last = performance.now();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = () => {
+      if (signal?.aborted) {
+        cleanup();
+        reject(new Error("已暂停"));
+        return;
+      }
+      if (skipSignal?.aborted) {
+        cleanup();
+        resolve();
+        return;
+      }
+      if (softPaused) {
+        last = performance.now();
+        void awaitSoftPause(signal).then(() => {
+          last = performance.now();
+          timer = setTimeout(tick, 32);
+        }, () => {
+          cleanup();
+          reject(new Error("已暂停"));
+        });
+        return;
+      }
+      const now = performance.now();
+      left -= now - last;
+      last = now;
+      if (left <= 0) {
+        cleanup();
+        resolve();
+        return;
+      }
+      timer = setTimeout(tick, Math.min(32, left));
+    };
+
+    const cleanup = () => {
+      if (timer != null) clearTimeout(timer);
       signal?.removeEventListener("abort", onAbort);
       skipSignal?.removeEventListener("abort", onSkip);
-      resolve();
-    }, ms);
+    };
     const onAbort = () => {
-      clearTimeout(t);
-      skipSignal?.removeEventListener("abort", onSkip);
+      cleanup();
       reject(new Error("已暂停"));
     };
     const onSkip = () => {
-      clearTimeout(t);
-      signal?.removeEventListener("abort", onAbort);
+      cleanup();
       resolve();
     };
     signal?.addEventListener("abort", onAbort, { once: true });
     skipSignal?.addEventListener("abort", onSkip, { once: true });
+    timer = setTimeout(tick, Math.min(32, ms));
   });
 }
 
@@ -239,7 +401,8 @@ export async function animateParams(
   skipSignal?: AbortSignal,
 ): Promise<void> {
   const keys = ["v1", "areaRatio"] as const;
-  const start = performance.now();
+  let start = performance.now();
+  let pausedAccum = 0;
   const fromN: Record<string, number> = {};
   const toN: Record<string, number> = {};
   for (const k of keys) {
@@ -263,7 +426,12 @@ export async function animateParams(
       apply({ ...to });
       return;
     }
-    const t = Math.min(1, (performance.now() - start) / durationMs);
+    if (softPaused) {
+      const pauseAt = performance.now();
+      await awaitSoftPause(signal);
+      pausedAccum += performance.now() - pauseAt;
+    }
+    const t = Math.min(1, (performance.now() - start - pausedAccum) / durationMs);
     const eased = t * (2 - t);
     const cur: Record<string, unknown> = { ...to };
     for (const k of Object.keys(toN)) {

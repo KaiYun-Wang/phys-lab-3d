@@ -31,9 +31,17 @@ export default function BernoulliVenturiPage() {
 
   const paramsRef = useRef({ v1, areaRatio, fluid });
   paramsRef.current = { v1, areaRatio, fluid };
+  const userEditHandlerRef = useRef<(() => void) | null>(null);
+  const demoApplyingRef = useRef(false);
+
+  const notifyUserEdit = useCallback(() => {
+    if (demoApplyingRef.current) return;
+    userEditHandlerRef.current?.();
+  }, []);
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
+    notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(1);
@@ -64,30 +72,27 @@ export default function BernoulliVenturiPage() {
         };
       },
       applyParams: (params) => {
-        if (typeof params.v1 === "number") setV1(params.v1);
-        else if (params.v1 != null) setV1(Number(params.v1));
-        if (typeof params.areaRatio === "number") setAreaRatio(params.areaRatio);
-        else if (params.areaRatio != null) setAreaRatio(Number(params.areaRatio));
-        if (params.fluid === "water" || params.fluid === "glycerol") {
-          setFluid(params.fluid);
+        demoApplyingRef.current = true;
+        try {
+          if (typeof params.v1 === "number") setV1(params.v1);
+          else if (params.v1 != null) setV1(Number(params.v1));
+          if (typeof params.areaRatio === "number") setAreaRatio(params.areaRatio);
+          else if (params.areaRatio != null) setAreaRatio(Number(params.areaRatio));
+          if (params.fluid === "water" || params.fluid === "glycerol") {
+            setFluid(params.fluid);
+          }
+        } finally {
+          // setState is sync for the flag purpose; clear after paint so slider onChange isn't confused
+          queueMicrotask(() => {
+            demoApplyingRef.current = false;
+          });
         }
+      },
+      setOnUserEdit: (fn) => {
+        userEditHandlerRef.current = fn;
       },
     }),
     [],
-  );
-
-  const chatContext = useMemo(
-    () => ({
-      snapshot: {
-        v1,
-        areaRatio,
-        fluid,
-        ...(data
-          ? { v2: data.v2, rho: data.rho, deltaP: data.deltaP }
-          : {}),
-      },
-    }),
-    [v1, areaRatio, fluid, data],
   );
 
   const fluidPresets = [
@@ -119,7 +124,10 @@ export default function BernoulliVenturiPage() {
           max={5}
           step={0.1}
           color="#3b82f6"
-          onChange={setV1}
+          onChange={(v) => {
+            notifyUserEdit();
+            setV1(v);
+          }}
           decimals={1}
           demoId="v1"
         />
@@ -131,7 +139,10 @@ export default function BernoulliVenturiPage() {
           max={2.0}
           step={0.05}
           color="#8b5cf6"
-          onChange={setAreaRatio}
+          onChange={(v) => {
+            notifyUserEdit();
+            setAreaRatio(v);
+          }}
           decimals={2}
           demoId="areaRatio"
         />
@@ -142,7 +153,10 @@ export default function BernoulliVenturiPage() {
           label="当前介质"
           value={fluid}
           presets={fluidPresets}
-          onChange={(value) => setFluid(value as FluidType)}
+          onChange={(value) => {
+            notifyUserEdit();
+            setFluid(value as FluidType);
+          }}
           displayValue={() => fluidLabel}
           demoId="fluid"
         />
@@ -202,7 +216,6 @@ export default function BernoulliVenturiPage() {
       controls={parameterControls}
       dataPanel={hud}
       demoAdapter={demoAdapter}
-      chatContext={chatContext}
       simulationBar={{
         isPlaying,
         onPlayPause: handlePlayPause,

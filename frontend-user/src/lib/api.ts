@@ -271,8 +271,8 @@ export type AiChatContext = {
   experimentId?: number;
   experimentTitle?: string;
   experimentRoute?: string;
-  /** 当前实验参数/读数快照，供演示工具使用 */
-  snapshot?: Record<string, unknown>;
+  /** 用户在输入区勾选引用的演示 id */
+  referencedDemoIds?: number[];
 };
 
 export type AiChatSession = {
@@ -475,10 +475,11 @@ export type AnnouncementPage = {
 
 export type DemoStep = {
   title: string;
-  params: Record<string, unknown>;
+  narration?: string;
+  animate?: boolean;
+  params?: Record<string, unknown>;
   focus?: string;
-  actionNarration?: string;
-  resultNarration?: string;
+  audio?: { url?: string };
 };
 
 export type DemoQuiz = {
@@ -493,6 +494,10 @@ export type DemoPlan = {
   overview?: string;
   steps?: DemoStep[];
   summary?: string;
+  summaryAudioUrl?: string;
+  audioStatus?: string;
+  quizzes?: DemoQuiz[];
+  /** @deprecated use quizzes */
   quiz?: DemoQuiz;
 };
 
@@ -502,16 +507,17 @@ export type DemoSessionSummary = {
   goal?: string;
   title: string;
   status: string;
-  /** 已完成的大步骤数 */
+  /** 已播完步骤数 / 续播下标（0..N） */
   currentStep: number;
   totalSteps?: number;
-  quizAnswerIndex?: number | null;
-  quizCorrect?: boolean | null;
+  stepsFinished?: boolean;
+  quizAnswers?: (number | null)[] | null;
   createTime?: string;
   updateTime?: string;
 };
 
 export type DemoQuizResult = {
+  questionIndex: number;
   chosenIndex: number;
   correct: boolean;
   answerIndex?: number;
@@ -520,7 +526,7 @@ export type DemoQuizResult = {
 
 export type DemoSessionDetail = DemoSessionSummary & {
   plan: DemoPlan;
-  quizResult?: DemoQuizResult;
+  quizResults?: DemoQuizResult[];
 };
 
 export function fetchDemos(experimentId?: number) {
@@ -532,26 +538,31 @@ export function fetchDemo(id: number) {
   return apiFetch<DemoSessionDetail>(`/api/users/me/demos/${id}`);
 }
 
-export function verifyDemoStep(
-  id: number,
-  stepIndex: number,
-  body: { params: Record<string, unknown>; readings: Record<string, unknown> },
-) {
-  return apiFetch<{ ok: boolean; stepIndex: number; ideal: Record<string, number> }>(
-    `/api/users/me/demos/${id}/steps/${stepIndex}/verify`,
-    { method: "POST", body: JSON.stringify(body) },
+/** Idempotent cloud TTS fill; returns after synthesis attempt. */
+export function ensureDemoAudio(id: number) {
+  return apiFetch<{ ok: boolean; tts?: boolean; ready?: boolean; made?: number }>(
+    `/api/users/me/demos/${id}/audio/ensure`,
+    { method: "POST", body: "{}" },
   );
 }
 
-export function submitDemoQuiz(id: number, answerIndex: number) {
+export function completeDemoStep(id: number, stepIndex: number) {
+  return apiFetch<{ ok: boolean; stepIndex: number; currentStep: number }>(
+    `/api/users/me/demos/${id}/steps/${stepIndex}/complete`,
+    { method: "POST", body: "{}" },
+  );
+}
+
+export function submitDemoQuiz(id: number, questionIndex: number, answerIndex: number) {
   return apiFetch<{
+    questionIndex: number;
     correct: boolean;
     answerIndex: number;
     chosenIndex: number;
     explanation?: string;
   }>(`/api/users/me/demos/${id}/quiz/submit`, {
     method: "POST",
-    body: JSON.stringify({ answerIndex }),
+    body: JSON.stringify({ questionIndex, answerIndex }),
   });
 }
 

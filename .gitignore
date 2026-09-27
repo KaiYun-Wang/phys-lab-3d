@@ -8,4 +8,6 @@ Roo-Code/
 .idea
 .cursor
 backend/target
+backend/org/
 backend/src/main/resources/application-local.yml
+docs

@@ -107,7 +107,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             throw new ApiException(500, "头像上传失败");
         }
 
-        user.setAvatarUrl(fileInfo.getUrl());
+        // ponytail: relative path; host comes from frontend API_BASE
+        user.setAvatarUrl("/api/avatars/" + filename);
         updateById(user);
         return UserProfileResponse.from(user);
     }

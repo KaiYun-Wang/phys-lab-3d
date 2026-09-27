@@ -256,7 +256,11 @@ export function ExperimentContainer({
   }, [resizing, persistWidth]);
 
   const toggleRight = (panel: Exclude<RightPanel, null>) => {
-    setRightPanel((cur) => (cur === panel ? null : panel));
+    setRightPanel((cur) => {
+      if (cur === panel) return null;
+      if (panel === "demo") setActiveDemoId(null);
+      return panel;
+    });
   };
 
   const openDemo = (demoId: number) => {

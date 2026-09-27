@@ -50,6 +50,12 @@ phys-lab:
     summary-soft-limit: 30
     # 未摘要对话条数大于此值 -> 助手回复繁忙文案（仍会尝试投递摘要）
     summary-hard-limit: 50
+    tts:
+      enabled: ${PHYS_LAB_AI_TTS_ENABLED:false}
+      api-key: ${PHYS_LAB_AI_TTS_API_KEY:}
+      base-url: ${PHYS_LAB_AI_TTS_BASE_URL:https://api.siliconflow.cn/v1}
+      model: ${PHYS_LAB_AI_TTS_MODEL:fnlp/MOSS-TTSD-v0.5}
+      voice: ${PHYS_LAB_AI_TTS_VOICE:fnlp/MOSS-TTSD-v0.5:anna}
 
 dromara:
   x-file-storage:
@@ -61,7 +67,8 @@ dromara:
         secret-key: ${phys-lab.minio.secret-key}
         end-point: ${phys-lab.minio.endpoint}
         bucket-name: ${phys-lab.minio.bucket}
-        domain: ${phys-lab.minio.domain}
+        # 仅占位；业务入库用相对路径 /api/avatars|covers|demos/...
+        domain: ${phys-lab.minio.domain:/api/}
         base-path: avatars/
       - platform: minio-covers
         enable-storage: true
@@ -69,5 +76,13 @@ dromara:
         secret-key: ${phys-lab.minio.secret-key}
         end-point: ${phys-lab.minio.endpoint}
         bucket-name: ${phys-lab.minio.bucket}
-        domain: ${phys-lab.minio.domain}
+        domain: ${phys-lab.minio.domain:/api/}
         base-path: covers/
+      - platform: minio-demos
+        enable-storage: true
+        access-key: ${phys-lab.minio.access-key}
+        secret-key: ${phys-lab.minio.secret-key}
+        end-point: ${phys-lab.minio.endpoint}
+        bucket-name: ${phys-lab.minio.bucket}
+        domain: ${phys-lab.minio.domain:/api/}
+        base-path: demos/
