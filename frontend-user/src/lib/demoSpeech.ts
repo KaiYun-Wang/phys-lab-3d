@@ -400,21 +400,29 @@ export async function animateParams(
   signal?: AbortSignal,
   skipSignal?: AbortSignal,
 ): Promise<void> {
-  const keys = ["v1", "areaRatio"] as const;
   let start = performance.now();
   let pausedAccum = 0;
   const fromN: Record<string, number> = {};
   const toN: Record<string, number> = {};
-  for (const k of keys) {
+  for (const [k, v] of Object.entries(to)) {
     const a = Number(from[k]);
-    const b = Number(to[k]);
+    const b = Number(v);
     if (Number.isFinite(a) && Number.isFinite(b) && a !== b) {
       fromN[k] = a;
       toN[k] = b;
     }
   }
-  if (to.fluid != null && to.fluid !== from.fluid) {
-    apply({ ...from, fluid: to.fluid });
+  // 非数值参数（如流体介质枚举）在动画开始前直接切换
+  const switchNow: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(to)) {
+    if (v == null) continue;
+    const a = Number(from[k]);
+    const b = Number(v);
+    if (Number.isFinite(a) && Number.isFinite(b)) continue;
+    if (v !== from[k]) switchNow[k] = v;
+  }
+  if (Object.keys(switchNow).length > 0) {
+    apply({ ...from, ...switchNow });
   }
   if (Object.keys(toN).length === 0) {
     apply({ ...to });

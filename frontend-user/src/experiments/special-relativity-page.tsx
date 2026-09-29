@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   SpecialRelativitySceneComponent,
   SpecialRelativityData,
@@ -12,9 +12,11 @@ import {
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
+import type { DemoAdapter } from "@/components/demo/DemoPanel";
 
 export default function SpecialRelativityPage() {
   const [data, setData] = useState<SpecialRelativityData | null>(null);
+  const dataRef = useRef<SpecialRelativityData | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -22,13 +24,61 @@ export default function SpecialRelativityPage() {
 
   const [velocity, setVelocity] = useState(0);
 
+  const paramsRef = useRef({ velocity });
+  paramsRef.current = { velocity };
+  const userEditHandlerRef = useRef<(() => void) | null>(null);
+  const demoApplyingRef = useRef(false);
+
+  const notifyUserEdit = useCallback(() => {
+    if (demoApplyingRef.current) return;
+    userEditHandlerRef.current?.();
+  }, []);
+
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
+    notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(1);
     setVelocity(0);
   };
+
+  const onDataChange = useCallback((d: SpecialRelativityData) => {
+    dataRef.current = d;
+    setData(d);
+  }, []);
+
+  const demoAdapter: DemoAdapter = useMemo(
+    () => ({
+      experimentId: null,
+      getParams: () => ({ ...paramsRef.current }),
+      getReadings: () => {
+        const d = dataRef.current;
+        if (!d) return null;
+        return {
+          velocity: d.velocity,
+          gamma: d.gamma,
+          lengthPercent: d.lengthPercent,
+          relativisticMass: d.relativisticMass,
+        };
+      },
+      applyParams: (params) => {
+        demoApplyingRef.current = true;
+        try {
+          if (typeof params.velocity === "number") setVelocity(params.velocity);
+          else if (params.velocity != null) setVelocity(Number(params.velocity));
+        } finally {
+          queueMicrotask(() => {
+            demoApplyingRef.current = false;
+          });
+        }
+      },
+      setOnUserEdit: (fn) => {
+        userEditHandlerRef.current = fn;
+      },
+    }),
+    [],
+  );
 
   const velocityPercent = velocity * 100;
 
@@ -43,8 +93,12 @@ export default function SpecialRelativityPage() {
           max={99.5}
           step={0.1}
           color="#22d3ee"
-          onChange={(v) => setVelocity(v / 100)}
+          onChange={(v) => {
+            notifyUserEdit();
+            setVelocity(v / 100);
+          }}
           decimals={1}
+          demoId="velocity"
         />
       </ControlGroup>
 
@@ -60,7 +114,10 @@ export default function SpecialRelativityPage() {
           ].map((preset) => (
             <button
               key={preset.label}
-              onClick={() => setVelocity(preset.v)}
+              onClick={() => {
+                notifyUserEdit();
+                setVelocity(preset.v);
+              }}
               className={`px-2 py-1.5 text-xs rounded-md border transition-all ${
                 Math.abs(velocity - preset.v) < 0.005
                   ? "bg-cyan-600/30 border-cyan-500 text-cyan-700"
@@ -124,6 +181,7 @@ export default function SpecialRelativityPage() {
         backgroundColor="#000000"
         controls={parameterControls}
         dataPanel={hud}
+        demoAdapter={demoAdapter}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,
@@ -137,7 +195,7 @@ export default function SpecialRelativityPage() {
           isPlaying={isPlaying}
           simulationSpeed={simulationSpeed}
           resetTrigger={resetTrigger}
-          onDataChange={setData}
+          onDataChange={onDataChange}
         />
       </ExperimentContainer>
     </>

@@ -395,6 +395,9 @@ public class AiChatServiceImpl implements IAiChatService {
             if (t.contains("venturi") || t.contains("文丘里") || t.contains("伯努利")) {
                 return "bernoulli-venturi";
             }
+            if (t.contains("狭义") || t.contains("special relativity")) {
+                return "special-relativity";
+            }
         }
         return null;
     }
