@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   API_BASE,
   fetchMe,
@@ -9,11 +10,12 @@ import {
   uploadAdminAvatar,
   type AdminProfile,
 } from "@/lib/api";
-import { avatarSrc, displayInitials } from "@/lib/auth";
+import { avatarSrc, clearToken, displayInitials } from "@/lib/auth";
 import AdminShell from "@/components/AdminShell";
 import { useToast } from "@/components/Toast";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
@@ -72,12 +74,17 @@ export default function ProfilePage() {
     }
   }
 
+  function logout() {
+    clearToken();
+    router.replace("/login");
+  }
+
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   const src = avatarSrc(admin.avatarUrl, API_BASE);
 
   return (
-    <AdminShell admin={admin} title="个人资料">
+    <AdminShell admin={admin}>
       <form className="experiment-form" onSubmit={saveProfile} style={{ maxWidth: 520 }}>
         <div className="profile-avatar-row">
           <div className="profile-avatar">
@@ -130,6 +137,15 @@ export default function ProfilePage() {
         </div>
 
         <div className="form-actions">
+          <button
+            type="button"
+            className="btn-pill btn-pill--outline row-actions__danger"
+            style={{ marginRight: "auto" }}
+            disabled={loading}
+            onClick={logout}
+          >
+            退出登录
+          </button>
           <button type="submit" className="btn-pill btn-pill--primary" disabled={loading}>
             {loading ? "保存中…" : "保存"}
           </button>

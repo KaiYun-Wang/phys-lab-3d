@@ -2182,11 +2182,6 @@ canvas {
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
-.ai-sub {
-  font-size: 11px;
-  color: var(--sx-ink-mute);
-  margin-top: 2px;
-}
 .ai-icon-btn {
   width: 32px;
   height: 32px;
@@ -2322,44 +2317,6 @@ canvas {
   font-size: 12px;
   color: var(--sx-ink-mute);
   line-height: 1.55;
-}
-
-.ai-context {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--sx-hairline);
-  background: rgba(0, 0, 0, 0.35);
-  flex-shrink: 0;
-}
-.ai-context .label {
-  font-size: 10px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--sx-ink-mute);
-}
-.ai-context .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--sx-hairline);
-  background: var(--sx-elevated);
-  font-size: 11px;
-  color: var(--sx-mute);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ai-context .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #7dcea0;
-  flex-shrink: 0;
 }
 
 .ai-messages {

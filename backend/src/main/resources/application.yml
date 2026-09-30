@@ -5,7 +5,7 @@ spring:
   application:
     name: backend
   profiles:
-    active: local
+    active: aliyun
   servlet:
     multipart:
       max-file-size: 10MB

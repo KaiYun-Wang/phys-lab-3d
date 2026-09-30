@@ -18,7 +18,6 @@ type Filter = "all" | "mine";
 
 function avatarSrc(url: string | null | undefined) {
   if (!url) return null;
-  if (url.startsWith("http")) return url;
   return `${API_BASE}${url}`;
 }
 

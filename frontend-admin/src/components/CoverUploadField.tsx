@@ -137,18 +137,11 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
         >
           {uploading ? "上传中…" : value ? "更换封面" : "上传封面"}
         </button>
-        <p className="field-hint">固定 4:3 比例裁剪，支持 JPG / PNG / WebP，上传后不超过 2MB</p>
-        <label htmlFor="coverUrl" className="cover-upload__url-label">
-          或手动填写 URL
-        </label>
-        <input
-          className="text-input"
-          id="coverUrl"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="留空则用户端显示实验名称"
-          disabled={disabled || uploading}
-        />
+        <p className="field-hint">
+          JPG / PNG / WebP，不超过 2MB
+          <br />
+          固定 4:3 比例裁剪
+        </p>
         {error && !imageSrc ? <p className="form-error">{error}</p> : null}
       </div>
 

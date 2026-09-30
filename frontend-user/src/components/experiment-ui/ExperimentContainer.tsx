@@ -270,12 +270,7 @@ export function ExperimentContainer({
 
   const railTitle =
     rightPanel === "chat" ? "对话" : rightPanel === "demo" ? "AI 演示" : "评论";
-  const railMeta =
-    rightPanel === "chat"
-      ? "统一入口 · 可生成演示"
-      : rightPanel === "demo"
-        ? "执行与查看"
-        : `${commentCount} 条讨论 · ${title}`;
+  const railMeta = rightPanel === "comments" ? `${commentCount} 条讨论 · ${title}` : null;
 
   const mergedChatContext: AiChatContext = {
     path: experimentRoute ? `/experiments/${experimentRoute}` : undefined,
@@ -506,7 +501,7 @@ export function ExperimentContainer({
           <div className="exp-rail-header">
             <div>
               <h2>{railTitle}</h2>
-              <div className="exp-rail-meta">{railMeta}</div>
+              {railMeta ? <div className="exp-rail-meta">{railMeta}</div> : null}
             </div>
             <button
               type="button"
@@ -523,7 +518,6 @@ export function ExperimentContainer({
               <AiChatWidget
                 mode="rail"
                 contextOverride={mergedChatContext}
-                contextLabelOverride={`实验 · ${title}`}
                 onOpenDemo={demoAdapter ? openDemo : undefined}
                 onClose={() => setRightPanel(null)}
               />

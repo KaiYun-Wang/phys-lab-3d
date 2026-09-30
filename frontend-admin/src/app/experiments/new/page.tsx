@@ -44,11 +44,10 @@ export default function NewExperimentPage() {
   }
 
   return (
-    <AdminShell admin={admin} title="新建实验">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">新建实验</h2>
-          <p className="caption">填写元数据；路由需与用户端 3D registry 一致</p>
         </div>
       </section>
 

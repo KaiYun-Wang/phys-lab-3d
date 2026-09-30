@@ -373,6 +373,8 @@ export function getExperimentSubjectLabel(
 export type ExperimentListParams = {
   q?: string;
   status?: ExperimentStatus | "all";
+  page?: number;
+  pageSize?: number;
 };
 
 export type ExperimentListResponse = {
@@ -410,6 +412,8 @@ export function fetchExperiments(params: ExperimentListParams = {}) {
   const query = buildQuery({
     q: params.q,
     status: params.status && params.status !== "all" ? params.status : undefined,
+    page: String(params.page ?? 1),
+    pageSize: String(params.pageSize ?? 20),
   });
   return apiFetch<Experiment[] | ExperimentListResponse | ExperimentPageResponse>(
     `/api/admin/experiments${query}`,

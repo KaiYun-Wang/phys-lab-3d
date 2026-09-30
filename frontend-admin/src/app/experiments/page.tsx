@@ -17,16 +17,21 @@ import {
   type ExperimentStatus,
   type SubjectTypeRecord,
 } from "@/lib/api";
+import Pager from "@/components/Pager";
 import { resolveCoverUrl } from "@/lib/covers";
 import { formatCount, formatDateTime } from "@/lib/format";
 import { useToast } from "@/components/Toast";
 
 type StatusFilter = ExperimentStatus | "all";
 
+const PAGE_SIZE = 10;
+
 export default function ExperimentsPage() {
   const toast = useToast();
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -40,15 +45,26 @@ export default function ExperimentsPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchExperiments({ q: query || undefined, status: statusFilter });
-      setExperiments(data.items ?? []);
+      const data = await fetchExperiments({
+        q: query || undefined,
+        status: statusFilter,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+      const rows = data.items ?? [];
+      if (rows.length === 0 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+        return;
+      }
+      setExperiments(rows);
+      setTotal(data.total ?? 0);
     } catch (err) {
       setExperiments([]);
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
-  }, [query, statusFilter]);
+  }, [query, statusFilter, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -88,11 +104,10 @@ export default function ExperimentsPage() {
   }
 
   return (
-    <AdminShell admin={admin} title="实验管理">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">实验列表</h2>
-          <p className="caption">管理实验元数据、封面与发布状态</p>
         </div>
         <Link href="/experiments/new" className="btn-pill btn-pill--primary btn-pill--sm">
           新建实验
@@ -105,6 +120,7 @@ export default function ExperimentsPage() {
             className="search-form"
             onSubmit={(e) => {
               e.preventDefault();
+              setPage(1);
               setQuery(search.trim());
             }}
           >
@@ -122,7 +138,10 @@ export default function ExperimentsPage() {
           <select
             className="text-input table-toolbar__select"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            onChange={(e) => {
+              setPage(1);
+              setStatusFilter(e.target.value as StatusFilter);
+            }}
             aria-label="状态筛选"
           >
             <option value="all">全部状态</option>
@@ -220,6 +239,10 @@ export default function ExperimentsPage() {
             </table>
           </div>
         )}
+
+        {!loading && experiments.length > 0 ? (
+          <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="jump" />
+        ) : null}
       </section>
 
       {deleteTarget ? (

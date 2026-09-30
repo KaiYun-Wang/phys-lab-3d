@@ -34,6 +34,5 @@ export function displayInitials(name: string): string {
 
 export function avatarSrc(avatarUrl: string | null | undefined, apiBase: string): string | null {
   if (!avatarUrl) return null;
-  if (avatarUrl.startsWith("http")) return avatarUrl;
   return `${apiBase}${avatarUrl}`;
 }

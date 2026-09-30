@@ -76,7 +76,7 @@ export default function EditExperimentPage() {
 
   if (Number.isNaN(id)) {
     return (
-      <AdminShell admin={admin} title="编辑实验">
+      <AdminShell admin={admin}>
         <p className="form-error">无效的实验 ID</p>
       </AdminShell>
     );
@@ -84,7 +84,7 @@ export default function EditExperimentPage() {
 
   if (loading) {
     return (
-      <AdminShell admin={admin} title="编辑实验">
+      <AdminShell admin={admin}>
         <p className="caption">加载中…</p>
       </AdminShell>
     );
@@ -92,7 +92,7 @@ export default function EditExperimentPage() {
 
   if (!experiment) {
     return (
-      <AdminShell admin={admin} title="编辑实验">
+      <AdminShell admin={admin}>
         <p className="form-error">{loadError || "实验不存在"}</p>
       </AdminShell>
     );
@@ -109,12 +109,12 @@ export default function EditExperimentPage() {
   };
 
   return (
-    <AdminShell admin={admin} title="编辑实验">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">{experiment.title}</h2>
           <p className="caption">
-            路由 <code className="mono-tag">{experiment.route}</code> · ID {experiment.id}
+            路由 <code className="mono-tag">{experiment.route}</code>
           </p>
         </div>
         <button

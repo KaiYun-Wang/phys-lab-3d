@@ -12,6 +12,7 @@ import {
   type UserStatus,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import Pager from "@/components/Pager";
 
 const PAGE_SIZE = 20;
 
@@ -72,14 +73,11 @@ export default function UsersPage() {
 
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
   return (
-    <AdminShell admin={admin} title="用户列表">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">用户列表</h2>
-          <p className="caption">禁用后无法登录，历史评论与收藏等数据保留（共 {total} 人）</p>
         </div>
       </section>
 
@@ -151,7 +149,6 @@ export default function UsersPage() {
                         <td className="data-table__num">{row.id}</td>
                         <td>
                           <span className="data-table__title">{row.nickname || row.username}</span>
-                          <div className="caption">{row.username}</div>
                         </td>
                         <td>
                           <span className={`pill-tag ${enabled ? "pill-tag--mint" : "pill-tag--shade"}`}>
@@ -177,28 +174,8 @@ export default function UsersPage() {
                 </tbody>
               </table>
             </div>
-            {totalPages > 1 ? (
-              <div className="table-pager">
-                <button
-                  type="button"
-                  className="btn-pill btn-pill--outline btn-pill--sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  上一页
-                </button>
-                <span className="caption">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  className="btn-pill btn-pill--outline btn-pill--sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  下一页
-                </button>
-              </div>
+            {!loading && items.length > 0 ? (
+              <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="step" />
             ) : null}
           </>
         )}

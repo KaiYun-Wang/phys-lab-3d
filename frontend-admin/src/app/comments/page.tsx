@@ -13,12 +13,15 @@ import {
   type AdminProfile,
 } from "@/lib/api";
 import { formatCount, formatDateTime } from "@/lib/format";
+import Pager from "@/components/Pager";
 import { useToast } from "@/components/Toast";
 
 type StatusFilter = "all" | "VISIBLE" | "HIDDEN" | "DELETED";
 
+const PAGE_SIZE = 20;
+
 function ownerLabel(row: AdminComment) {
-  const name = row.nickname || row.username || `#${row.ownerId}`;
+  const name = row.nickname || row.username || "匿名用户";
   if (row.ownerType === 1) return `${name}（管理员）`;
   return name;
 }
@@ -28,6 +31,7 @@ export default function CommentsPage() {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [items, setItems] = useState<AdminComment[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -46,8 +50,15 @@ export default function CommentsPage() {
       const data = await fetchAdminComments({
         keyword: query || undefined,
         status: statusFilter,
+        page,
+        size: PAGE_SIZE,
       });
-      setItems(data.records ?? []);
+      const rows = data.records ?? [];
+      if (rows.length === 0 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+        return;
+      }
+      setItems(rows);
       setTotal(data.total ?? 0);
     } catch (err) {
       setItems([]);
@@ -55,7 +66,7 @@ export default function CommentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, statusFilter]);
+  }, [query, statusFilter, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -120,11 +131,10 @@ export default function CommentsPage() {
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
-    <AdminShell admin={admin} title="评论管理">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">评论管理</h2>
-          <p className="caption">审核评论内容；可官方回复（共 {total} 条）</p>
         </div>
       </section>
 
@@ -134,6 +144,7 @@ export default function CommentsPage() {
             className="search-form"
             onSubmit={(e) => {
               e.preventDefault();
+              setPage(1);
               setQuery(search.trim());
             }}
           >
@@ -151,7 +162,10 @@ export default function CommentsPage() {
           <select
             className="text-input table-toolbar__select"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            onChange={(e) => {
+              setPage(1);
+              setStatusFilter(e.target.value as StatusFilter);
+            }}
             aria-label="状态筛选"
           >
             <option value="all">全部状态</option>
@@ -197,12 +211,7 @@ export default function CommentsPage() {
                         {row.content.length > 60 ? `${row.content.slice(0, 60)}…` : row.content}
                       </span>
                     </td>
-                    <td>
-                      {ownerLabel(row)}
-                      <div className="caption">
-                        {row.ownerType === 1 ? "ADMIN" : "USER"} #{row.ownerId}
-                      </div>
-                    </td>
+                    <td>{ownerLabel(row)}</td>
                     <td>
                       {row.experimentId ? (
                         <Link href={`/experiments/${row.experimentId}/edit`}>
@@ -213,7 +222,7 @@ export default function CommentsPage() {
                       )}
                     </td>
                     <td className="data-table__num">
-                      {row.rootId == null ? "一级" : `楼#${row.rootId} → #${row.replyToId}`}
+                      {row.rootId == null ? "一级" : "回复"}
                     </td>
                     <td className="data-table__num">{formatCount(row.likeCount)}</td>
                     <td>
@@ -270,6 +279,10 @@ export default function CommentsPage() {
             </table>
           </div>
         )}
+
+        {!loading && items.length > 0 ? (
+          <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="step" />
+        ) : null}
       </section>
 
       {replyTarget ? (
@@ -286,7 +299,7 @@ export default function CommentsPage() {
           >
             <h3 className="heading-sm">官方回复</h3>
             <p className="caption" style={{ marginBottom: 12 }}>
-              回复 #{replyTarget.id} · {ownerLabel(replyTarget)}
+              回复 {ownerLabel(replyTarget)}
               <br />
               「
               {replyTarget.content.length > 80

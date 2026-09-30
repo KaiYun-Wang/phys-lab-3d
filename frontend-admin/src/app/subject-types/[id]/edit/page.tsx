@@ -75,7 +75,7 @@ export default function EditSubjectTypePage() {
 
   if (Number.isNaN(id)) {
     return (
-      <AdminShell admin={admin} title="编辑学科分类">
+      <AdminShell admin={admin}>
         <p className="form-error">无效的分类 ID</p>
       </AdminShell>
     );
@@ -83,7 +83,7 @@ export default function EditSubjectTypePage() {
 
   if (loading) {
     return (
-      <AdminShell admin={admin} title="编辑学科分类">
+      <AdminShell admin={admin}>
         <p className="caption">加载中…</p>
       </AdminShell>
     );
@@ -91,7 +91,7 @@ export default function EditSubjectTypePage() {
 
   if (!subjectType) {
     return (
-      <AdminShell admin={admin} title="编辑学科分类">
+      <AdminShell admin={admin}>
         <p className="form-error">{loadError || "分类不存在"}</p>
       </AdminShell>
     );
@@ -105,12 +105,12 @@ export default function EditSubjectTypePage() {
   };
 
   return (
-    <AdminShell admin={admin} title="编辑学科分类">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">{subjectType.label}</h2>
           <p className="caption">
-            代码 <code className="mono-tag">{subjectType.code}</code> · ID {subjectType.id}
+            代码 <code className="mono-tag">{subjectType.code}</code>
           </p>
         </div>
         <button

@@ -19,16 +19,22 @@ public class SubjectTypeResponse {
     private String label;
     private String description;
     private Integer sortOrder;
+    private Long experimentCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
     public static SubjectTypeResponse from(SubjectType subjectType) {
+        return from(subjectType, null);
+    }
+
+    public static SubjectTypeResponse from(SubjectType subjectType, Long experimentCount) {
         return SubjectTypeResponse.builder()
                 .id(subjectType.getId())
                 .code(subjectType.getCode())
                 .label(subjectType.getLabel())
                 .description(subjectType.getDescription())
                 .sortOrder(subjectType.getSortOrder())
+                .experimentCount(experimentCount)
                 .createTime(subjectType.getCreateTime())
                 .updateTime(subjectType.getUpdateTime())
                 .build();

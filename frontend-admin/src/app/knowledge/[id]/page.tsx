@@ -84,14 +84,14 @@ export default function KnowledgeEditPage() {
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
-    <AdminShell admin={admin} title="编辑知识页">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <Link href="/knowledge" className="caption">
             ← 返回列表
           </Link>
           <h2 className="page-title" style={{ marginTop: 8 }}>
-            编辑知识页 #{Number.isFinite(id) ? id : "—"}
+            编辑知识页
           </h2>
         </div>
       </section>

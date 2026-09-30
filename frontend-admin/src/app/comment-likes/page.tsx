@@ -10,13 +10,17 @@ import {
   type AdminProfile,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import Pager from "@/components/Pager";
 import { useToast } from "@/components/Toast";
+
+const PAGE_SIZE = 20;
 
 export default function CommentLikesPage() {
   const toast = useToast();
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [items, setItems] = useState<AdminCommentLike[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [commentId, setCommentId] = useState("");
@@ -34,8 +38,15 @@ export default function CommentLikesPage() {
         commentId: filters.commentId || undefined,
         userId: filters.userId || undefined,
         experimentId: filters.experimentId || undefined,
+        page,
+        size: PAGE_SIZE,
       });
-      setItems(data.records ?? []);
+      const rows = data.records ?? [];
+      if (rows.length === 0 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+        return;
+      }
+      setItems(rows);
       setTotal(data.total ?? 0);
     } catch (err) {
       setItems([]);
@@ -43,7 +54,7 @@ export default function CommentLikesPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -72,11 +83,10 @@ export default function CommentLikesPage() {
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
-    <AdminShell admin={admin} title="评论点赞">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">评论点赞管理</h2>
-          <p className="caption">查看与删除点赞记录（共 {total} 条）</p>
         </div>
       </section>
 
@@ -106,13 +116,14 @@ export default function CommentLikesPage() {
           <button
             type="button"
             className="btn-pill btn-pill--outline btn-pill--sm"
-            onClick={() =>
+            onClick={() => {
+              setPage(1);
               setFilters({
                 commentId: commentId.trim(),
                 userId: userId.trim(),
                 experimentId: experimentId.trim(),
-              })
-            }
+              });
+            }}
           >
             筛选
           </button>
@@ -146,12 +157,8 @@ export default function CommentLikesPage() {
                 {items.map((row) => (
                   <tr key={row.id}>
                     <td className="data-table__num">{row.id}</td>
-                    <td>
-                      {row.nickname || row.username || row.userId}
-                      <div className="caption">#{row.userId}</div>
-                    </td>
+                    <td>{row.nickname || row.username || "匿名用户"}</td>
                     <td style={{ maxWidth: 280 }}>
-                      <span className="caption">#{row.commentId}</span>
                       <div className="data-table__title" title={row.commentContent ?? ""}>
                         {row.commentContent || "—"}
                       </div>
@@ -173,6 +180,10 @@ export default function CommentLikesPage() {
             </table>
           </div>
         )}
+
+        {!loading && items.length > 0 ? (
+          <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="step" />
+        ) : null}
       </section>
 
       {deleteTarget ? (

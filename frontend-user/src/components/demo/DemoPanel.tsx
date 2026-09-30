@@ -590,7 +590,6 @@ export function DemoPanel({
           {history.length === 0 && !loading ? (
             <div className="demo-panel__empty">
               <p>在对话里说一句想看的演示，AI 会生成带讲解的教学计划。</p>
-              <p className="demo-panel__hint">开始后：高亮控件 · 中下字幕 · 语音播报。</p>
             </div>
           ) : (
             <>

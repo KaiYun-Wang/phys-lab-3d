@@ -39,11 +39,10 @@ export default function NewAnnouncementPage() {
   }
 
   return (
-    <AdminShell admin={admin} title="发布公告">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">发布公告</h2>
-          <p className="caption">用户登录后将弹出最新一条公告</p>
         </div>
       </section>
 

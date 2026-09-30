@@ -59,7 +59,6 @@ function useAuthIfAvailable(): boolean {
 /** 无封面时返回 null，由 UI 用实验名占位 */
 export function experimentCoverSrc(coverUrl: string | null | undefined): string | null {
   if (!coverUrl?.trim() || coverUrl === "/covers/experiment-cover.png") return null;
-  if (coverUrl.startsWith("http")) return coverUrl;
   if (coverUrl.startsWith("/covers/")) return coverUrl;
   return `${API_BASE}${coverUrl}`;
 }

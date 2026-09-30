@@ -349,7 +349,7 @@ export default function AdminAiChatPage() {
   }
 
   return (
-    <AdminShell admin={admin} title="AI 试聊">
+    <AdminShell admin={admin}>
       <div className="page-toolbar">
         <div>
           <h2 className="page-title">AI 试聊</h2>

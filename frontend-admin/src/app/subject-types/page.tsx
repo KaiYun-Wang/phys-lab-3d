@@ -11,12 +11,16 @@ import {
   type SubjectTypeRecord,
 } from "@/lib/api";
 import { formatCount, formatDateTime } from "@/lib/format";
+import Pager from "@/components/Pager";
 import { useToast } from "@/components/Toast";
+
+const PAGE_SIZE = 10;
 
 export default function SubjectTypesPage() {
   const toast = useToast();
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [items, setItems] = useState<SubjectTypeRecord[]>([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SubjectTypeRecord | null>(null);
@@ -63,12 +67,15 @@ export default function SubjectTypesPage() {
     return <div className="auth-loading">加载中…</div>;
   }
 
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleItems = items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
-    <AdminShell admin={admin} title="学科分类">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">学科分类</h2>
-          <p className="caption">管理实验学科分类，供实验表单下拉选择</p>
         </div>
         <Link href="/subject-types/new" className="btn-pill btn-pill--primary btn-pill--sm">
           新建分类
@@ -106,7 +113,7 @@ export default function SubjectTypesPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {visibleItems.map((item) => (
                   <tr key={item.id}>
                     <td>
                       <code className="mono-tag">{item.code}</code>
@@ -140,6 +147,16 @@ export default function SubjectTypesPage() {
             </table>
           </div>
         )}
+
+        {!loading && items.length > 0 ? (
+          <Pager
+            page={currentPage}
+            total={items.length}
+            pageSize={PAGE_SIZE}
+            onChange={setPage}
+            variant="jump"
+          />
+        ) : null}
       </section>
 
       {deleteTarget ? (

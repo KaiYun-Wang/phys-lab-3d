@@ -41,7 +41,7 @@ export function DemoPlanCard({
         <span>{listMode ? "教学演示" : "演示计划"}</span>
         {stateLabel ? <span className="demo-plan-card__state">{stateLabel}</span> : null}
       </div>
-      <h5 className="demo-plan-card__title">{title || `演示 #${demoId}`}</h5>
+      <h5 className="demo-plan-card__title">{title || "未命名演示"}</h5>
       {overview ? <p className="demo-plan-card__ov">{overview}</p> : null}
       {listMode ? (
         <>

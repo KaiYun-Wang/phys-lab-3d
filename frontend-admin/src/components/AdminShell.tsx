@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { API_BASE, type AdminProfile } from "@/lib/api";
-import { avatarSrc, clearToken, displayInitials } from "@/lib/auth";
+import { avatarSrc, displayInitials } from "@/lib/auth";
 
 type NavItem = {
   icon: string;
@@ -56,31 +56,26 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-function TopbarAvatar({ admin }: { admin: AdminProfile }) {
+function SidebarProfile({ admin }: { admin: AdminProfile }) {
   const src = avatarSrc(admin.avatarUrl, API_BASE);
   return (
-    <Link href="/profile" className="topbar__avatar" title="编辑资料">
-      {src ? <img src={src} alt="" /> : displayInitials(admin.displayName)}
+    <Link href="/profile" className="sidebar-profile" title="用户设置">
+      <span className="sidebar-profile__avatar">
+        {src ? <img src={src} alt="" /> : displayInitials(admin.displayName)}
+      </span>
+      <span className="sidebar-profile__name">{admin.displayName}</span>
     </Link>
   );
 }
 
 export default function AdminShell({
   admin,
-  title,
   children,
 }: {
   admin: AdminProfile;
-  title: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
-
-  function logout() {
-    clearToken();
-    router.replace("/login");
-  }
 
   return (
     <div className="dash-layout">
@@ -116,22 +111,11 @@ export default function AdminShell({
         </div>
 
         <div className="sidebar__foot">
-          <button type="button" className="nav-item" onClick={logout}>
-            <span className="nav-item__icon">↩</span>
-            退出登录
-          </button>
+          <SidebarProfile admin={admin} />
         </div>
       </aside>
 
       <div className="dash-main">
-        <header className="topbar">
-          <div className="topbar__left">
-            <span className="topbar__title">{title}</span>
-          </div>
-          <div className="topbar__right">
-            <TopbarAvatar admin={admin} />
-          </div>
-        </header>
         <div className="dash-content">{children}</div>
       </div>
     </div>

@@ -69,7 +69,7 @@ export default function KnowledgeNewPage() {
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
-    <AdminShell admin={admin} title="新增知识页">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <Link href="/knowledge" className="caption">

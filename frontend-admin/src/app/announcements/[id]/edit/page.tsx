@@ -74,7 +74,7 @@ export default function EditAnnouncementPage() {
 
   if (Number.isNaN(id)) {
     return (
-      <AdminShell admin={admin} title="编辑公告">
+      <AdminShell admin={admin}>
         <p className="form-error">无效的公告 ID</p>
       </AdminShell>
     );
@@ -82,7 +82,7 @@ export default function EditAnnouncementPage() {
 
   if (loading) {
     return (
-      <AdminShell admin={admin} title="编辑公告">
+      <AdminShell admin={admin}>
         <p className="caption">加载中…</p>
       </AdminShell>
     );
@@ -90,7 +90,7 @@ export default function EditAnnouncementPage() {
 
   if (!announcement) {
     return (
-      <AdminShell admin={admin} title="编辑公告">
+      <AdminShell admin={admin}>
         <p className="form-error">{loadError || "公告不存在"}</p>
       </AdminShell>
     );
@@ -102,11 +102,10 @@ export default function EditAnnouncementPage() {
   };
 
   return (
-    <AdminShell admin={admin} title="编辑公告">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">{announcement.title}</h2>
-          <p className="caption">ID {announcement.id}</p>
         </div>
         <button
           type="button"

@@ -159,12 +159,10 @@ export default function Home() {
     return experiments.filter((exp) => exp.favorited);
   }, [experiments, showFavoritesOnly]);
 
-  const topFavorite = useMemo(() => {
-    if (experiments.length === 0) return null;
-    return [...experiments].sort(
-      (a, b) => (b.favoriteCount ?? 0) - (a.favoriteCount ?? 0),
-    )[0];
-  }, [experiments]);
+  const subjectCount = useMemo(
+    () => new Set(experiments.map((exp) => experimentSubjectLabel(exp))).size,
+    [experiments],
+  );
 
   const promptLogin = () => {
     router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
@@ -238,18 +236,10 @@ export default function Home() {
               <a href="#experiments" className="btn-ghost">
                 开始探索
               </a>
-              {topFavorite && (
-                <a
-                  href={`/experiments/${topFavorite.route}`}
-                  className="btn-ghost opacity-70 hover:opacity-100"
-                >
-                  试玩
-                </a>
-              )}
             </div>
             <p className="sx-eyebrow text-[#5a5a5f] mt-8">
               {experiments.length > 0
-                ? `${experiments.length} 实验 · 1 学科 · 3D 交互`
+                ? `${experiments.length} 实验 · ${subjectCount} 学科 · 3D 交互`
                 : "3D 交互物理实验"}
             </p>
           </div>

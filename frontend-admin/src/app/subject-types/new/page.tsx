@@ -41,11 +41,10 @@ export default function NewSubjectTypePage() {
   }
 
   return (
-    <AdminShell admin={admin} title="新建学科分类">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">新建学科分类</h2>
-          <p className="caption">代码创建后不可修改</p>
         </div>
       </section>
 

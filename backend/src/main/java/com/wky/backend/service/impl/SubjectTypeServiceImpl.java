@@ -3,6 +3,7 @@ package com.wky.backend.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wky.backend.domain.dto.CreateSubjectTypeRequest;
+import com.wky.backend.domain.dto.SubjectTypeCountRow;
 import com.wky.backend.domain.dto.SubjectTypeResponse;
 import com.wky.backend.domain.dto.UpdateSubjectTypeRequest;
 import com.wky.backend.domain.entity.Experiment;
@@ -28,11 +29,14 @@ public class SubjectTypeServiceImpl extends ServiceImpl<SubjectTypeMapper, Subje
 
     @Override
     public List<SubjectTypeResponse> listAll() {
+        Map<Long, Long> experimentCountBySubjectTypeId = experimentMapper.countBySubjectTypeId().stream()
+                .collect(Collectors.toMap(SubjectTypeCountRow::getSubjectTypeId, SubjectTypeCountRow::getCnt));
         return list(new LambdaQueryWrapper<SubjectType>()
                 .orderByAsc(SubjectType::getSortOrder)
                 .orderByAsc(SubjectType::getId))
                 .stream()
-                .map(SubjectTypeResponse::from)
+                .map(subjectType -> SubjectTypeResponse.from(
+                        subjectType, experimentCountBySubjectTypeId.getOrDefault(subjectType.getId(), 0L)))
                 .toList();
     }
 

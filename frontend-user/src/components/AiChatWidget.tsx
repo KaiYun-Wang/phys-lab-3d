@@ -165,7 +165,6 @@ export type AiChatWidgetProps = {
   open?: boolean;
   onClose?: () => void;
   contextOverride?: AiChatContext;
-  contextLabelOverride?: string;
   onOpenDemo?: (demoId: number) => void;
 };
 
@@ -174,7 +173,6 @@ export default function AiChatWidget({
   open: openProp,
   onClose,
   contextOverride,
-  contextLabelOverride,
   onOpenDemo,
 }: AiChatWidgetProps = {}) {
   const pathname = usePathname();
@@ -222,7 +220,6 @@ export default function AiChatWidget({
     }),
     [page.context, contextOverride, refIds],
   );
-  const contextLabel = contextLabelOverride || page.label;
   const hideOnLogin = pathname === "/login";
   const experimentId = context.experimentId;
   const canRefDemos = isRail && experimentId != null;
@@ -341,7 +338,7 @@ export default function AiChatWidget({
   const refTags = useMemo(() => {
     return refIds.map((id) => {
       const hit = demos.find((d) => d.id === id);
-      return hit ?? ({ id, title: `演示 #${id}`, currentStep: 0 } as DemoSessionSummary);
+      return hit ?? ({ id, title: "未命名演示", currentStep: 0 } as DemoSessionSummary);
     });
   }, [demos, refIds]);
   const visibleRefTags = refTags.slice(0, REF_TAG_VISIBLE);
@@ -644,7 +641,6 @@ export default function AiChatWidget({
           </div>
           <div className="ai-meta">
             <div className="ai-title">实验助手</div>
-            <div className="ai-sub">PhysLab AI · 可感知当前页面</div>
           </div>
           <button
             type="button"
@@ -732,14 +728,6 @@ export default function AiChatWidget({
           </aside>
 
           <div className="ai-chat-view">
-            <div className="ai-context">
-              <span className="label">当前页</span>
-              <span className="chip">
-                <span className="dot" aria-hidden />
-                <span>{contextLabel}</span>
-              </span>
-            </div>
-
             <div className="ai-messages" ref={listRef}>
               {messages.length === 0 && !loading && (
                 <div className="msg assistant">
@@ -848,9 +836,9 @@ export default function AiChatWidget({
             {canRefDemos && (
               <div className="ai-refbar">
                 {visibleRefTags.map((d) => (
-                  <span key={d.id} className="ai-ref-tag" title={d.title || `演示 #${d.id}`}>
+                  <span key={d.id} className="ai-ref-tag" title={d.title || "未命名演示"}>
                     <em>引用</em>
-                    <span className="ai-ref-tag__t">{d.title || `演示 #${d.id}`}</span>
+                    <span className="ai-ref-tag__t">{d.title || "未命名演示"}</span>
                     <button type="button" aria-label="移除引用" onClick={() => toggleRef(d.id)}>
                       ✕
                     </button>
@@ -907,7 +895,7 @@ export default function AiChatWidget({
                             onClick={() => toggleRef(d.id)}
                           >
                             <span className="ai-refmenu__ck">{sel ? "✓" : ""}</span>
-                            <span className="ai-refmenu__name">{d.title || `演示 #${d.id}`}</span>
+                            <span className="ai-refmenu__name">{d.title || "未命名演示"}</span>
                             <small>
                               {d.currentStep}/{d.totalSteps ?? "?"} 步
                             </small>

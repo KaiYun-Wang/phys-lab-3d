@@ -65,12 +65,11 @@ export default function DashboardPage() {
   const maxFavorite = Math.max(1, ...(analytics?.favoriteTop.map((i) => i.favoriteCount) ?? [1]));
 
   return (
-    <AdminShell admin={admin} title="首页">
+    <AdminShell admin={admin}>
       <section className="hero-band">
         <div className="hero-band__text">
           <span className="eyebrow">欢迎回来，{admin.displayName}</span>
           <h2>管理控制台</h2>
-          <p>查看平台访问与 AI 辅导概况，管理物理实验内容与知识页。</p>
         </div>
         <div className="quick-actions">
           <div className="range-toggle" role="group" aria-label="统计周期">
@@ -221,7 +220,13 @@ export default function DashboardPage() {
                 <Link href={item.href} className="quick-link">
                   {item.title}
                 </Link>
-                <span className="pill-tag pill-tag--mint">→</span>
+                <Link
+                  href={item.href}
+                  className="pill-tag pill-tag--mint"
+                  aria-label={`进入${item.title}`}
+                >
+                  →
+                </Link>
               </div>
             ))}
           </div>

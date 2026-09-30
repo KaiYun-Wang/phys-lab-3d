@@ -100,7 +100,7 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         experiment.setSubjectTypeId(subjectType.getId());
         experiment.setSubjectType(subjectType.getCode());
         experiment.setDescription(request.getDescription());
-        experiment.setCoverUrl(normalizeCoverUrl(request.getCoverUrl()));
+        experiment.setCoverUrl(request.getCoverUrl());
         experiment.setTopics(normalizeTopics(request.getTopics()));
         experiment.setStatus(request.getStatus() != null ? request.getStatus() : ExperimentStatus.PUBLISHED);
         experiment.setVisitorCount(0L);
@@ -121,7 +121,7 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         experiment.setSubjectTypeId(subjectType.getId());
         experiment.setSubjectType(subjectType.getCode());
         experiment.setDescription(request.getDescription());
-        experiment.setCoverUrl(normalizeCoverUrl(request.getCoverUrl()));
+        experiment.setCoverUrl(request.getCoverUrl());
         experiment.setTopics(normalizeTopics(request.getTopics()));
         experiment.setStatus(request.getStatus());
         updateById(experiment);
@@ -204,17 +204,5 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
 
     private static List<String> normalizeTopics(List<String> topics) {
         return topics == null ? Collections.emptyList() : topics;
-    }
-
-    /** Store relative API path; accept legacy full URLs from older uploads. */
-    private static String normalizeCoverUrl(String coverUrl) {
-        if (!StringUtils.hasText(coverUrl)) {
-            return coverUrl;
-        }
-        int idx = coverUrl.indexOf("/api/covers/");
-        if (idx >= 0) {
-            return coverUrl.substring(idx);
-        }
-        return coverUrl;
     }
 }

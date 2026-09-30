@@ -11,12 +11,17 @@ import {
   type AnnouncementRecord,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import Pager from "@/components/Pager";
 import { useToast } from "@/components/Toast";
+
+const PAGE_SIZE = 10;
 
 export default function AnnouncementsPage() {
   const toast = useToast();
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [items, setItems] = useState<AnnouncementRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<AnnouncementRecord | null>(null);
@@ -26,15 +31,21 @@ export default function AnnouncementsPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchAnnouncements();
-      setItems(data.records ?? []);
+      const data = await fetchAnnouncements(page, PAGE_SIZE);
+      const rows = data.records ?? [];
+      if (rows.length === 0 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+        return;
+      }
+      setItems(rows);
+      setTotal(data.total ?? 0);
     } catch (err) {
       setItems([]);
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -64,11 +75,10 @@ export default function AnnouncementsPage() {
   }
 
   return (
-    <AdminShell admin={admin} title="公告管理">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">公告管理</h2>
-          <p className="caption">发布与管理用户端公告，登录后弹出最新一条</p>
         </div>
         <Link href="/announcements/new" className="btn-pill btn-pill--primary btn-pill--sm">
           发布公告
@@ -135,6 +145,10 @@ export default function AnnouncementsPage() {
             </table>
           </div>
         )}
+
+        {!loading && items.length > 0 ? (
+          <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="jump" />
+        ) : null}
       </section>
 
       {deleteTarget ? (

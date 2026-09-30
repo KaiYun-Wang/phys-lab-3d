@@ -14,6 +14,9 @@ import {
   type ExampleQuestionRecord,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import Pager from "@/components/Pager";
+
+const PAGE_SIZE = 10;
 
 const EMPTY_FORM: ExampleQuestionInput = {
   title: "",
@@ -27,6 +30,7 @@ export default function ExampleQuestionsPage() {
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
   const [items, setItems] = useState<ExampleQuestionRecord[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -42,8 +46,13 @@ export default function ExampleQuestionsPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchExampleQuestions({ q: query || undefined, size: 100 });
-      setItems(data.records ?? []);
+      const data = await fetchExampleQuestions({ q: query || undefined, page, size: PAGE_SIZE });
+      const rows = data.records ?? [];
+      if (rows.length === 0 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+        return;
+      }
+      setItems(rows);
       setTotal(data.total ?? 0);
     } catch (err) {
       setItems([]);
@@ -51,7 +60,7 @@ export default function ExampleQuestionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -129,11 +138,10 @@ export default function ExampleQuestionsPage() {
   const formOpen = creating || editing != null;
 
   return (
-    <AdminShell admin={admin} title="示例问题">
+    <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">示例问题管理</h2>
-          <p className="caption">配置用户端 AI 助手欢迎区的推荐问法（共 {total} 条）</p>
         </div>
         <button type="button" className="btn-pill btn-pill--primary btn-pill--sm" onClick={openCreate}>
           + 新增示例
@@ -146,6 +154,7 @@ export default function ExampleQuestionsPage() {
             className="search-form"
             onSubmit={(e) => {
               e.preventDefault();
+              setPage(1);
               setQuery(search.trim());
             }}
           >
@@ -232,6 +241,10 @@ export default function ExampleQuestionsPage() {
             </table>
           </div>
         )}
+
+        {!loading && items.length > 0 ? (
+          <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="jump" />
+        ) : null}
       </section>
 
       {formOpen ? (
