@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   GeneralRelativitySceneComponent,
   GeneralRelativityData,
@@ -21,10 +21,10 @@ import {
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
+import type { DemoAdapter } from "@/components/demo/DemoPanel";
 
 export default function GeneralRelativityPage() {
   const [data, setData] = useState<GeneralRelativityData | null>(null);
-  const [showGuide, setShowGuide] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(3);
@@ -35,6 +35,79 @@ export default function GeneralRelativityPage() {
   const [particleTangentialVelocity, setParticleTangentialVelocity] = useState(() => schwarzschildPlungePreset(10).vt);
   const [particleRadialVelocity, setParticleRadialVelocity] = useState(() => schwarzschildPlungePreset(10).vr);
   const [photonImpactParam, setPhotonImpactParam] = useState(25);
+
+  const paramsRef = useRef({
+    blackHoleMass,
+    particleLaunchRadius,
+    particleTangentialVelocity,
+    particleRadialVelocity,
+    photonImpactParam,
+  });
+  paramsRef.current = {
+    blackHoleMass,
+    particleLaunchRadius,
+    particleTangentialVelocity,
+    particleRadialVelocity,
+    photonImpactParam,
+  };
+  const dataRef = useRef<GeneralRelativityData | null>(null);
+  const userEditHandlerRef = useRef<(() => void) | null>(null);
+  const demoApplyingRef = useRef(false);
+
+  const notifyUserEdit = useCallback(() => {
+    if (demoApplyingRef.current) return;
+    userEditHandlerRef.current?.();
+  }, []);
+
+  const onDataChange = useCallback((d: GeneralRelativityData) => {
+    dataRef.current = d;
+    setData(d);
+  }, []);
+
+  const demoAdapter: DemoAdapter = useMemo(
+    () => ({
+      experimentId: null,
+      getParams: () => ({ ...paramsRef.current }),
+      getReadings: () => {
+        const d = dataRef.current;
+        if (!d) return null;
+        return {
+          rs: d.rs,
+          rOverRs: d.rOverRs,
+          redshift: d.redshift,
+          orbitType: d.orbitType,
+          deflectionAngle: d.deflectionAngle,
+          precessionRate: d.precessionRate,
+          isco: d.isco,
+          photonSphere: d.photonSphere,
+          activeParticles: d.activeParticles,
+        };
+      },
+      applyParams: (params) => {
+        demoApplyingRef.current = true;
+        try {
+          if (typeof params.blackHoleMass === "number") setBlackHoleMass(params.blackHoleMass);
+          else if (params.blackHoleMass != null) setBlackHoleMass(Number(params.blackHoleMass));
+          if (typeof params.particleLaunchRadius === "number") setParticleLaunchRadius(params.particleLaunchRadius);
+          else if (params.particleLaunchRadius != null) setParticleLaunchRadius(Number(params.particleLaunchRadius));
+          if (typeof params.particleTangentialVelocity === "number") setParticleTangentialVelocity(params.particleTangentialVelocity);
+          else if (params.particleTangentialVelocity != null) setParticleTangentialVelocity(Number(params.particleTangentialVelocity));
+          if (typeof params.particleRadialVelocity === "number") setParticleRadialVelocity(params.particleRadialVelocity);
+          else if (params.particleRadialVelocity != null) setParticleRadialVelocity(Number(params.particleRadialVelocity));
+          if (typeof params.photonImpactParam === "number") setPhotonImpactParam(params.photonImpactParam);
+          else if (params.photonImpactParam != null) setPhotonImpactParam(Number(params.photonImpactParam));
+        } finally {
+          queueMicrotask(() => {
+            demoApplyingRef.current = false;
+          });
+        }
+      },
+      setOnUserEdit: (fn) => {
+        userEditHandlerRef.current = fn;
+      },
+    }),
+    [],
+  );
 
   const rs = useMemo(() => schwarzschildRadius(blackHoleMass), [blackHoleMass]);
   const minR = useMemo(() => Math.ceil(rs * 1.08), [rs]);
@@ -75,6 +148,7 @@ export default function GeneralRelativityPage() {
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
+    notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(3);
@@ -91,8 +165,12 @@ export default function GeneralRelativityPage() {
           max={12}
           step={0.5}
           color="#ff6600"
-          onChange={setBlackHoleMass}
+          onChange={(v) => {
+            notifyUserEdit();
+            setBlackHoleMass(v);
+          }}
           decimals={1}
+          demoId="blackHoleMass"
         />
       </ControlGroup>
 
@@ -108,6 +186,7 @@ export default function GeneralRelativityPage() {
             <button
               key={p.label}
               onClick={() => {
+                notifyUserEdit();
                 setParticleLaunchRadius(p.r);
                 setParticleTangentialVelocity(p.vt);
                 setParticleRadialVelocity(p.vr);
@@ -126,7 +205,11 @@ export default function GeneralRelativityPage() {
           max={80}
           step={1}
           color="#88ccff"
-          onChange={(v) => setParticleLaunchRadius(Math.max(v, minR))}
+          onChange={(v) => {
+            notifyUserEdit();
+            setParticleLaunchRadius(Math.max(v, minR));
+          }}
+          demoId="particleLaunchRadius"
         />
         <ControlSlider
           label="切向速度"
@@ -136,8 +219,12 @@ export default function GeneralRelativityPage() {
           max={1.0}
           step={0.01}
           color="#44aaff"
-          onChange={setParticleTangentialVelocity}
+          onChange={(v) => {
+            notifyUserEdit();
+            setParticleTangentialVelocity(v);
+          }}
           decimals={2}
+          demoId="particleTangentialVelocity"
         />
         <ControlSlider
           label="径向速度（负=向内）"
@@ -147,8 +234,12 @@ export default function GeneralRelativityPage() {
           max={0.3}
           step={0.01}
           color="#ff8866"
-          onChange={setParticleRadialVelocity}
+          onChange={(v) => {
+            notifyUserEdit();
+            setParticleRadialVelocity(v);
+          }}
           decimals={2}
+          demoId="particleRadialVelocity"
         />
         <button
           onClick={() => setLaunchParticleTrigger((n) => n + 1)}
@@ -168,7 +259,11 @@ export default function GeneralRelativityPage() {
           max={50}
           step={1}
           color="#ffffff"
-          onChange={setPhotonImpactParam}
+          onChange={(v) => {
+            notifyUserEdit();
+            setPhotonImpactParam(v);
+          }}
+          demoId="photonImpactParam"
         />
         <button
           onClick={() => setLaunchPhotonTrigger((n) => n + 1)}
@@ -237,6 +332,7 @@ export default function GeneralRelativityPage() {
         experimentRoute="general-relativity"
         controls={parameterControls}
         dataPanel={hud}
+        demoAdapter={demoAdapter}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,
@@ -249,7 +345,7 @@ export default function GeneralRelativityPage() {
         enableFog={false}
       >
         <GeneralRelativitySceneComponent
-          onDataChange={setData}
+          onDataChange={onDataChange}
           blackHoleMass={blackHoleMass}
           particleLaunchRadius={Math.max(particleLaunchRadius, minR)}
           particleTangentialVelocity={particleTangentialVelocity}
@@ -267,32 +363,6 @@ export default function GeneralRelativityPage() {
           resetTrigger={resetTrigger}
         />
       </ExperimentContainer>
-
-      {/* 中文引导卡片 */}
-      {showGuide && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 max-w-lg w-[92%] sm:w-[480px]">
-          <div className="sx-overlay text-sm text-[#e8e8f0]/90 leading-relaxed">
-            <div className="sx-overlay-header">
-              <h3 className="font-bold text-white">🕳️ 你在看什么？</h3>
-              <button onClick={() => setShowGuide(false)} className="text-[#8a8a96] hover:text-white text-lg leading-none p-1">×</button>
-            </div>
-            <div className="sx-overlay-body-scroll max-h-[60vh]">
-              <ul className="space-y-2 text-xs sm:text-sm">
-                <li><span className="text-[#8a8a96]">蓝色网格</span> — Flamm 抛物面嵌入图</li>
-                <li><span className="text-[#8a8a96]">中心黑球</span> — 事件视界，坐在网格漏斗底部</li>
-                <li><span className="text-[#8a8a96]">橙色薄环</span> — 吸积盘（赤道面内旋转）</li>
-                <li><span className="text-white font-medium">青色曲线</span> — <strong>有质量粒子</strong>的测地线轨道（应绕黑洞弯成椭圆，贴网格表面）</li>
-                <li><span className="text-white font-medium">白色曲线</span> — <strong>光子</strong>路径（无质量，飞过黑洞时被弯向中心 = 引力透镜）</li>
-              </ul>
-              <div className="pt-3 mt-1 border-t border-[#45454f] text-xs text-[#8a8a96] space-y-2">
-                <p><strong className="text-[#e8e8f0]">粒子 vs 光子：</strong>粒子有质量，受引力束缚可形成轨道；光子没有质量，只能直线传播但被时空弯曲，路径呈弧线偏折。</p>
-                <p><strong className="text-[#e8e8f0]">坠入不必贴视界：</strong>r &lt; 3×rs（ISCO）时轨道在真实 GR 中不稳定，会螺旋落入；远处 r 要坠入需切向速度低于圆轨道速度，或给负径向速度。</p>
-                <p><strong className="text-[#e8e8f0]">时间尺度：</strong>画面为教学加速，非真实秒表；远距自由落体在坐标时间上本就很慢，可用底部速度滑块再加快。</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
     </>
   );

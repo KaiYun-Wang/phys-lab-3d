@@ -3425,6 +3425,25 @@ canvas {
   border-color: #22d3ee;
   background: rgba(14, 116, 144, 0.55);
 }
+.demo-caption__stop {
+  position: absolute;
+  top: 7px;
+  right: 12px;
+  pointer-events: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #f2b8b8;
+  border: 1px solid #5e3a3a;
+  border-radius: 6px;
+  background: rgba(110, 40, 40, 0.3);
+  cursor: pointer;
+}
+.demo-caption__stop:hover {
+  color: #fff;
+  border-color: #f87171;
+  background: rgba(140, 50, 50, 0.55);
+}
 @media (max-width: 720px) {
   .demo-caption {
     bottom: 88px;

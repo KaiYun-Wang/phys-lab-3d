@@ -1,6 +1,6 @@
 "use client";
 
-/** Center-bottom teaching caption with prev / next. */
+/** Center-bottom teaching caption with prev / next / stop. */
 export function DemoCaptionBar({
   label,
   text,
@@ -11,6 +11,7 @@ export function DemoCaptionBar({
   prevLabel = "‹ 上一步",
   onPrev,
   onNext,
+  onStop,
 }: {
   label?: string;
   text: string;
@@ -21,11 +22,17 @@ export function DemoCaptionBar({
   prevLabel?: string;
   onPrev?: () => void;
   onNext?: () => void;
+  onStop?: () => void;
 }) {
   if (!visible || !text.trim()) return null;
   const showNav = (showPrev && onPrev) || (showNext && onNext);
   return (
     <div className="demo-caption" role="status">
+      {onStop ? (
+        <button type="button" className="demo-caption__stop" onClick={onStop}>
+          ✕ 关闭讲解
+        </button>
+      ) : null}
       {label ? <small>{label}</small> : null}
       <p>{text}</p>
       {showNav ? (

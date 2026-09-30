@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DopplerSceneComponent,
   DopplerData,
@@ -12,9 +12,11 @@ import {
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
+import type { DemoAdapter } from "@/components/demo/DemoPanel";
 
 export default function DopplerPage() {
   const [data, setData] = useState<DopplerData | null>(null);
+  const dataRef = useRef<DopplerData | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -30,13 +32,86 @@ export default function DopplerPage() {
   const [sourceDirection, setSourceDirection] = useState(0);
   const [observerPosition, setObserverPosition] = useState(15);
 
+  const paramsRef = useRef({
+    sourceFrequency,
+    sourceVelocity,
+    waveSpeed,
+    autoOscillate,
+    sourceDirection,
+    observerPosition,
+  });
+  paramsRef.current = {
+    sourceFrequency,
+    sourceVelocity,
+    waveSpeed,
+    autoOscillate,
+    sourceDirection,
+    observerPosition,
+  };
+  const userEditHandlerRef = useRef<(() => void) | null>(null);
+  const demoApplyingRef = useRef(false);
+
+  const notifyUserEdit = useCallback(() => {
+    if (demoApplyingRef.current) return;
+    userEditHandlerRef.current?.();
+  }, []);
+
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
+    notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(1);
     setTimeElapsed(0);
   };
+
+  const onDataChange = useCallback((d: DopplerData) => {
+    dataRef.current = d;
+    setData(d);
+  }, []);
+
+  const demoAdapter: DemoAdapter = useMemo(
+    () => ({
+      experimentId: null,
+      getParams: () => ({ ...paramsRef.current }),
+      getReadings: () => {
+        const d = dataRef.current;
+        if (!d) return null;
+        return {
+          sourceFrequency: d.sourceFrequency,
+          observedFrequency: d.observedFrequency,
+          dopplerShiftRatio: d.dopplerShiftRatio,
+          machNumber: d.machNumber,
+          waveSpeed: d.waveSpeed,
+          shiftType: d.shiftType,
+        };
+      },
+      applyParams: (params) => {
+        demoApplyingRef.current = true;
+        try {
+          if (typeof params.sourceFrequency === "number") setSourceFrequency(params.sourceFrequency);
+          else if (params.sourceFrequency != null) setSourceFrequency(Number(params.sourceFrequency));
+          if (typeof params.sourceVelocity === "number") setSourceVelocity(params.sourceVelocity);
+          else if (params.sourceVelocity != null) setSourceVelocity(Number(params.sourceVelocity));
+          if (typeof params.waveSpeed === "number") setWaveSpeed(params.waveSpeed);
+          else if (params.waveSpeed != null) setWaveSpeed(Number(params.waveSpeed));
+          if (typeof params.sourceDirection === "number") setSourceDirection(params.sourceDirection);
+          else if (params.sourceDirection != null) setSourceDirection(Number(params.sourceDirection));
+          if (typeof params.observerPosition === "number") setObserverPosition(params.observerPosition);
+          else if (params.observerPosition != null) setObserverPosition(Number(params.observerPosition));
+          if (typeof params.autoOscillate === "boolean") setAutoOscillate(params.autoOscillate);
+        } finally {
+          queueMicrotask(() => {
+            demoApplyingRef.current = false;
+          });
+        }
+      },
+      setOnUserEdit: (fn) => {
+        userEditHandlerRef.current = fn;
+      },
+    }),
+    [],
+  );
 
   const parameterControls = (
     <div className="space-y-4">
@@ -49,8 +124,12 @@ export default function DopplerPage() {
           max={5}
           step={0.1}
           color="#f59e0b"
-          onChange={setSourceFrequency}
+          onChange={(v) => {
+            notifyUserEdit();
+            setSourceFrequency(v);
+          }}
           decimals={1}
+          demoId="sourceFrequency"
         />
         <ControlSlider
           label="源速度 (vₛ)"
@@ -60,8 +139,12 @@ export default function DopplerPage() {
           max={15}
           step={0.5}
           color="#3b82f6"
-          onChange={setSourceVelocity}
+          onChange={(v) => {
+            notifyUserEdit();
+            setSourceVelocity(v);
+          }}
           decimals={1}
+          demoId="sourceVelocity"
         />
         <ControlSlider
           label="波速 (v)"
@@ -71,17 +154,24 @@ export default function DopplerPage() {
           max={20}
           step={1}
           color="#22c55e"
-          onChange={setWaveSpeed}
+          onChange={(v) => {
+            notifyUserEdit();
+            setWaveSpeed(v);
+          }}
           decimals={0}
+          demoId="waveSpeed"
         />
       </ControlGroup>
 
       <ControlGroup title="声源运动">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-[#e8e8f0]/90">模式</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2" data-demo-id="autoOscillate">
             <button
-              onClick={() => setAutoOscillate(true)}
+              onClick={() => {
+                notifyUserEdit();
+                setAutoOscillate(true);
+              }}
               className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
                 autoOscillate
                   ? "border-white bg-white/15 text-white"
@@ -91,7 +181,10 @@ export default function DopplerPage() {
               自动
             </button>
             <button
-              onClick={() => setAutoOscillate(false)}
+              onClick={() => {
+                notifyUserEdit();
+                setAutoOscillate(false);
+              }}
               className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
                 !autoOscillate
                   ? "border-white bg-white/15 text-white"
@@ -119,8 +212,12 @@ export default function DopplerPage() {
               max={1}
               step={0.1}
               color="#f59e0b"
-              onChange={setSourceDirection}
+              onChange={(v) => {
+                notifyUserEdit();
+                setSourceDirection(v);
+              }}
               decimals={1}
+              demoId="sourceDirection"
             />
           </div>
         )}
@@ -133,8 +230,12 @@ export default function DopplerPage() {
           max={20}
           step={1}
           color="#8b5cf6"
-          onChange={setObserverPosition}
+          onChange={(v) => {
+            notifyUserEdit();
+            setObserverPosition(v);
+          }}
           decimals={0}
+          demoId="observerPosition"
         />
       </ControlGroup>
 
@@ -225,6 +326,7 @@ export default function DopplerPage() {
         backgroundColor="#000000"
         controls={parameterControls}
         dataPanel={hud}
+        demoAdapter={demoAdapter}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,
@@ -234,7 +336,7 @@ export default function DopplerPage() {
         }}
       >
         <DopplerSceneComponent
-          onDataChange={setData}
+          onDataChange={onDataChange}
           sourceFrequency={sourceFrequency}
           sourceVelocity={sourceVelocity}
           waveSpeed={waveSpeed}

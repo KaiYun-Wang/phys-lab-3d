@@ -74,6 +74,7 @@ export function DemoPanel({
   onEnsureLeftOpen,
   onSkipReady,
   onPrevReady,
+  onStopReady,
 }: {
   adapter: DemoAdapter;
   activeDemoId: number | null;
@@ -82,6 +83,7 @@ export function DemoPanel({
   onEnsureLeftOpen?: () => void;
   onSkipReady?: (skip: (() => void) | null) => void;
   onPrevReady?: (prev: (() => void) | null) => void;
+  onStopReady?: (stop: (() => void) | null) => void;
 }) {
   const [detail, setDetail] = useState<DemoSessionDetail | null>(null);
   const [history, setHistory] = useState<DemoSessionSummary[]>([]);
@@ -199,6 +201,26 @@ export function DemoPanel({
     return () => onPrevReady?.(null);
   }, [onPrevReady, requestPrev]);
 
+  const stopPlayback = useCallback(() => {
+    const d = detailRef.current;
+    runIdRef.current += 1;
+    abortRef.current?.abort();
+    skipRef.current?.abort();
+    stopSpeaking();
+    softPausedUiRef.current = false;
+    pauseSnapshotRef.current = null;
+    setPhase((p) => (p === "done" ? p : "idle"));
+    clearStage();
+    if (d) {
+      void updateDemoStatus(d.id, "aborted").catch(() => undefined);
+    }
+  }, [clearStage]);
+
+  useEffect(() => {
+    onStopReady?.(stopPlayback);
+    return () => onStopReady?.(null);
+  }, [onStopReady, stopPlayback]);
+
   useEffect(() => {
     adapter.setOnUserEdit?.(() => {
       if (phaseRef.current === "step") pauseRef.current();
@@ -296,7 +318,16 @@ export function DemoPanel({
     void loadHistory();
   };
 
-  useEffect(() => () => clearStage(), [clearStage]);
+  // 面板真正卸载（离开实验页）时中止播放，避免残留循环继续走步
+  useEffect(
+    () => () => {
+      runIdRef.current += 1;
+      abortRef.current?.abort();
+      skipRef.current?.abort();
+      clearStage();
+    },
+    [clearStage],
+  );
 
   const narrate = async (
     text: string,
@@ -425,13 +456,7 @@ export function DemoPanel({
       });
       await narrate(summary, ac.signal, skipSum, playDetail.plan.summaryAudioUrl);
       if (runId !== runIdRef.current) return;
-      pushUi({
-        canSkip: false,
-        canPrev: false,
-        caption: summary,
-        captionLabel: "演示小结",
-        highlightId: null,
-      });
+      clearStage();
       try {
         await updateDemoStatus(detail.id, "ready");
       } catch {

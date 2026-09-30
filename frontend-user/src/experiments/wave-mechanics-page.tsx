@@ -12,6 +12,7 @@ import {
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
+import type { DemoAdapter } from "@/components/demo/DemoPanel";
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -51,59 +52,6 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   );
 }
 
-function OnboardingOverlay({
-  step,
-  onNext,
-  onSkip,
-}: {
-  step: number;
-  onNext: () => void;
-  onSkip: () => void;
-}) {
-  const messages = [
-    { title: "这是横波", hint: "质点沿 Y 方向振动，垂直于传播方向 →" },
-    { title: "这是纵波", hint: "质点沿 X 方向疏密振动，平行于传播方向 →" },
-    { title: "拖动频率滑块", hint: "调节 f，观察两侧波形同步变化" },
-  ];
-  const msg = messages[step] ?? messages[0];
-
-  return (
-    <div className="fixed inset-0 z-[100] pointer-events-auto">
-      <div
-        className="absolute inset-0 bg-black/70"
-        style={{
-          clipPath:
-            step === 0
-              ? "polygon(45% 0, 100% 0, 100% 100%, 45% 100%)"
-              : step === 1
-                ? "polygon(0 0, 55% 0, 55% 100%, 0 100%)"
-                : "polygon(0 0, 100% 0, 100% 55%, 0 55%)",
-        }}
-      />
-      <div className="absolute bottom-32 left-1/2 -translate-x-1/2 glass rounded-xl p-6 max-w-md text-center border border-white/10">
-        <h3 className="text-lg font-semibold text-white mb-2">{msg.title}</h3>
-        <p className="text-sm text-gray-300 mb-4">{msg.hint}</p>
-        <div className="flex gap-3 justify-center">
-          <button
-            type="button"
-            onClick={onSkip}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-white"
-          >
-            跳过
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg"
-          >
-            {step >= 2 ? "开始探索" : "下一步"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function WaveMechanicsPage() {
   const [data, setData] = useState<WaveSnapshot | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -128,20 +76,81 @@ export default function WaveMechanicsPage() {
   const [mobileTab, setMobileTab] = useState<"transverse" | "longitudinal">(
     "transverse"
   );
-  const [onboardStep, setOnboardStep] = useState<number | null>(null);
-
   const waveSpeed = calculateWaveSpeed(frequency, wavelength);
+
+  const paramsRef = useRef({ frequency, amplitude, wavelength, viewMode });
+  paramsRef.current = { frequency, amplitude, wavelength, viewMode };
+  const dataRef = useRef<WaveSnapshot | null>(null);
+  const isMobileRef = useRef(false);
+  isMobileRef.current = isMobile;
+  const userEditHandlerRef = useRef<(() => void) | null>(null);
+  const demoApplyingRef = useRef(false);
+
+  const notifyUserEdit = useCallback(() => {
+    if (demoApplyingRef.current) return;
+    userEditHandlerRef.current?.();
+  }, []);
+
+  const onDataChange = useCallback((d: WaveSnapshot) => {
+    dataRef.current = d;
+    setData(d);
+  }, []);
+
+  const demoAdapter: DemoAdapter = useMemo(
+    () => ({
+      experimentId: null,
+      getParams: () => ({ ...paramsRef.current }),
+      getReadings: () => {
+        const d = dataRef.current;
+        if (!d) return null;
+        return {
+          time: d.time,
+          frequency: d.frequency,
+          amplitude: d.amplitude,
+          wavelength: d.wavelength,
+          waveSpeed: d.waveSpeed,
+          k: d.k,
+          omega: d.omega,
+          transverseYMax: d.transverseYMax,
+          transverseYMin: d.transverseYMin,
+          longitudinalRhoMax: d.longitudinalRhoMax,
+          longitudinalRhoMin: d.longitudinalRhoMin,
+        };
+      },
+      applyParams: (params) => {
+        demoApplyingRef.current = true;
+        try {
+          if (typeof params.frequency === "number") setFrequency(params.frequency);
+          else if (params.frequency != null) setFrequency(Number(params.frequency));
+          if (typeof params.amplitude === "number") setAmplitude(params.amplitude);
+          else if (params.amplitude != null) setAmplitude(Number(params.amplitude));
+          if (typeof params.wavelength === "number") setWavelength(params.wavelength);
+          else if (params.wavelength != null) setWavelength(Number(params.wavelength));
+          const vm = params.viewMode;
+          if (vm === "compare" || vm === "transverse" || vm === "longitudinal" || vm === "overlay") {
+            setViewMode(vm);
+            if (isMobileRef.current && (vm === "transverse" || vm === "longitudinal")) {
+              setMobileTab(vm);
+            }
+          }
+        } finally {
+          queueMicrotask(() => {
+            demoApplyingRef.current = false;
+          });
+        }
+      },
+      setOnUserEdit: (fn) => {
+        userEditHandlerRef.current = fn;
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
-
-  useEffect(() => {
-    setOnboardStep(0);
-    setSimulationSpeed(0.35);
   }, []);
 
   const effectiveViewMode: ViewMode = useMemo(() => {
@@ -151,14 +160,16 @@ export default function WaveMechanicsPage() {
 
   const handleWaveSpeedChange = useCallback(
     (v: number) => {
+      notifyUserEdit();
       if (frequency > 0) setWavelength(v / frequency);
     },
-    [frequency]
+    [frequency, notifyUserEdit]
   );
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
 
   const handleReset = () => {
+    notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(1);
@@ -166,34 +177,6 @@ export default function WaveMechanicsPage() {
     setTimeout(() => setResetFlash(false), 500);
     setParticleHistory([]);
     setSelectedSide(null);
-  };
-
-  useEffect(() => {
-    if (onboardStep === 0) {
-      setViewMode("compare");
-      if (isMobile) setMobileTab("transverse");
-    } else if (onboardStep === 1) {
-      setViewMode("compare");
-      if (isMobile) setMobileTab("longitudinal");
-    }
-  }, [onboardStep, isMobile]);
-
-  const startOnboarding = useCallback(() => {
-    setOnboardStep(0);
-    setSimulationSpeed(0.35);
-    setViewMode("compare");
-    setMobileTab("transverse");
-  }, []);
-
-  const finishOnboarding = useCallback(() => {
-    setOnboardStep(null);
-    setSimulationSpeed(1);
-  }, []);
-
-  const handleOnboardNext = () => {
-    if (onboardStep == null) return;
-    if (onboardStep >= 2) finishOnboarding();
-    else setOnboardStep(onboardStep + 1);
   };
 
   const parameterControls = (
@@ -207,8 +190,12 @@ export default function WaveMechanicsPage() {
           max={4}
           step={0.1}
           color="#4f8fff"
-          onChange={setFrequency}
+          onChange={(v) => {
+            notifyUserEdit();
+            setFrequency(v);
+          }}
           decimals={1}
+          demoId="frequency"
         />
         <ControlSlider
           label="振幅 A"
@@ -218,8 +205,12 @@ export default function WaveMechanicsPage() {
           max={2}
           step={0.1}
           color="#8b5cf6"
-          onChange={setAmplitude}
+          onChange={(v) => {
+            notifyUserEdit();
+            setAmplitude(v);
+          }}
           decimals={1}
+          demoId="amplitude"
         />
         <ControlSlider
           label="波长 λ"
@@ -229,8 +220,12 @@ export default function WaveMechanicsPage() {
           max={8}
           step={0.25}
           color="#06d6a0"
-          onChange={setWavelength}
+          onChange={(v) => {
+            notifyUserEdit();
+            setWavelength(v);
+          }}
           decimals={2}
+          demoId="wavelength"
         />
         <ControlSlider
           label="波速 v"
@@ -245,22 +240,13 @@ export default function WaveMechanicsPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="帮助">
-        <button
-          type="button"
-          onClick={startOnboarding}
-          className="w-full py-2 text-xs rounded-lg border border-cyan-500/40 text-cyan-700 hover:bg-cyan-500/10"
-        >
-          重新观看教学引导
-        </button>
-      </ControlGroup>
-
       {!isMobile && (
         <ControlGroup title="视图模式">
           <motion.div
             className="grid grid-cols-2 gap-2"
             layout
             transition={{ duration: 0.4, ease: "easeOut" }}
+            data-demo-id="viewMode"
           >
             {(
               [
@@ -273,7 +259,10 @@ export default function WaveMechanicsPage() {
               <button
                 key={id}
                 type="button"
-                onClick={() => setViewMode(id)}
+                onClick={() => {
+                  notifyUserEdit();
+                  setViewMode(id);
+                }}
                 className={`py-2 text-xs rounded-lg border ${
                   viewMode === id
                     ? "border-white bg-white/15 text-white"
@@ -339,6 +328,7 @@ export default function WaveMechanicsPage() {
         enableFog={false}
         controls={parameterControls}
         dataPanel={hud}
+        demoAdapter={demoAdapter}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,
@@ -359,7 +349,7 @@ export default function WaveMechanicsPage() {
           isMobile={isMobile}
           focusTarget={focusTarget}
           selectedParticle={null}
-          onDataChange={setData}
+          onDataChange={onDataChange}
           onParticleHistory={(side, vals) => {
             setParticleHistory(vals);
             setSelectedSide(side);
@@ -395,7 +385,10 @@ export default function WaveMechanicsPage() {
       </AnimatePresence>
 
       {isMobile && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex gap-1 glass rounded-lg p-1">
+        <div
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex gap-1 glass rounded-lg p-1"
+          data-demo-id="viewMode"
+        >
           {(
             [
               ["transverse", "横波"],
@@ -405,7 +398,10 @@ export default function WaveMechanicsPage() {
             <button
               key={id}
               type="button"
-              onClick={() => setMobileTab(id)}
+              onClick={() => {
+                notifyUserEdit();
+                setMobileTab(id);
+              }}
               className={`px-4 py-2 text-xs rounded-md ${
                 mobileTab === id ? "bg-cyan-600/40 text-white" : "text-gray-400"
               }`}
@@ -414,14 +410,6 @@ export default function WaveMechanicsPage() {
             </button>
           ))}
         </div>
-      )}
-
-      {onboardStep != null && (
-        <OnboardingOverlay
-          step={onboardStep}
-          onNext={handleOnboardNext}
-          onSkip={finishOnboarding}
-        />
       )}
     </>
   );

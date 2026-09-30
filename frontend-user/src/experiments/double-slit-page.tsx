@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DoubleSlitSceneComponent,
   DoubleSlitData,
@@ -12,9 +12,11 @@ import {
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
+import type { DemoAdapter } from "@/components/demo/DemoPanel";
 
 export default function DoubleSlitPage() {
   const [data, setData] = useState<DoubleSlitData | null>(null);
+  const dataRef = useRef<DoubleSlitData | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
@@ -28,12 +30,66 @@ export default function DoubleSlitPage() {
   const [showParticles, setShowParticles] = useState(true);
   const [observerMode, setObserverMode] = useState(true);
 
+  const paramsRef = useRef({ slitSeparation, slitWidth, particleRate, observerMode });
+  paramsRef.current = { slitSeparation, slitWidth, particleRate, observerMode };
+  const userEditHandlerRef = useRef<(() => void) | null>(null);
+  const demoApplyingRef = useRef(false);
+
+  const notifyUserEdit = useCallback(() => {
+    if (demoApplyingRef.current) return;
+    userEditHandlerRef.current?.();
+  }, []);
+
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
+    notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(1);
   };
+
+  const onDataChange = useCallback((d: DoubleSlitData) => {
+    dataRef.current = d;
+    setData(d);
+  }, []);
+
+  const demoAdapter: DemoAdapter = useMemo(
+    () => ({
+      experimentId: null,
+      getParams: () => ({ ...paramsRef.current }),
+      getReadings: () => {
+        const d = dataRef.current;
+        if (!d) return null;
+        return {
+          wavelength: d.wavelength,
+          slitSeparation: d.slitSeparation,
+          slitWidth: d.slitWidth,
+          fringeSpacing: d.fringeSpacing,
+          particleCount: d.particleCount,
+        };
+      },
+      applyParams: (params) => {
+        demoApplyingRef.current = true;
+        try {
+          if (typeof params.slitSeparation === "number") setSlitSeparation(params.slitSeparation);
+          else if (params.slitSeparation != null) setSlitSeparation(Number(params.slitSeparation));
+          if (typeof params.slitWidth === "number") setSlitWidth(params.slitWidth);
+          else if (params.slitWidth != null) setSlitWidth(Number(params.slitWidth));
+          if (typeof params.particleRate === "number") setParticleRate(params.particleRate);
+          else if (params.particleRate != null) setParticleRate(Number(params.particleRate));
+          if (typeof params.observerMode === "boolean") setObserverMode(params.observerMode);
+        } finally {
+          queueMicrotask(() => {
+            demoApplyingRef.current = false;
+          });
+        }
+      },
+      setOnUserEdit: (fn) => {
+        userEditHandlerRef.current = fn;
+      },
+    }),
+    [],
+  );
 
   const wavelengthColor = `hsl(${540 - wavelength * 0.6}, 100%, 50%)`;
 
@@ -48,8 +104,12 @@ export default function DoubleSlitPage() {
           max={5}
           step={0.1}
           color="#ec4899"
-          onChange={setSlitSeparation}
+          onChange={(v) => {
+            notifyUserEdit();
+            setSlitSeparation(v);
+          }}
           decimals={1}
+          demoId="slitSeparation"
         />
         <ControlSlider
           label="缝宽 (a)"
@@ -59,8 +119,12 @@ export default function DoubleSlitPage() {
           max={1}
           step={0.05}
           color="#22c55e"
-          onChange={setSlitWidth}
+          onChange={(v) => {
+            notifyUserEdit();
+            setSlitWidth(v);
+          }}
           decimals={2}
+          demoId="slitWidth"
         />
         <ControlSlider
           label="发射速率"
@@ -70,13 +134,17 @@ export default function DoubleSlitPage() {
           max={10}
           step={1}
           color="#8b5cf6"
-          onChange={setParticleRate}
+          onChange={(v) => {
+            notifyUserEdit();
+            setParticleRate(v);
+          }}
           decimals={0}
+          demoId="particleRate"
         />
       </ControlGroup>
 
       <ControlGroup title="显示选项">
-        <div className="p-3 rounded-lg border-2 transition-all" style={{
+        <div className="p-3 rounded-lg border-2 transition-all" data-demo-id="observerMode" style={{
           borderColor: observerMode ? "#ef4444" : "#22c55e",
           backgroundColor: observerMode ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)",
         }}>
@@ -90,7 +158,10 @@ export default function DoubleSlitPage() {
               </p>
             </div>
             <button
-              onClick={() => setObserverMode(!observerMode)}
+              onClick={() => {
+                notifyUserEdit();
+                setObserverMode(!observerMode);
+              }}
               className="relative w-12 h-6 rounded-full transition-all duration-300"
               style={{ backgroundColor: observerMode ? "#ef4444" : "#22c55e" }}
             >
@@ -149,6 +220,7 @@ export default function DoubleSlitPage() {
         backgroundColor="#000000"
         controls={parameterControls}
         dataPanel={hud}
+        demoAdapter={demoAdapter}
         simulationBar={{
           isPlaying,
           onPlayPause: handlePlayPause,
@@ -159,7 +231,7 @@ export default function DoubleSlitPage() {
       >
         <DoubleSlitSceneComponent
           observerMode={observerMode}
-          onDataChange={setData}
+          onDataChange={onDataChange}
           wavelength={wavelength}
           slitSeparation={slitSeparation}
           slitWidth={slitWidth}

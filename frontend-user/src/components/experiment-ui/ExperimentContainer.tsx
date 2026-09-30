@@ -128,6 +128,7 @@ export function ExperimentContainer({
   });
   const skipFnRef = useRef<(() => void) | null>(null);
   const prevFnRef = useRef<(() => void) | null>(null);
+  const stopFnRef = useRef<(() => void) | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [narrow, setNarrow] = useState(false);
@@ -256,11 +257,7 @@ export function ExperimentContainer({
   }, [resizing, persistWidth]);
 
   const toggleRight = (panel: Exclude<RightPanel, null>) => {
-    setRightPanel((cur) => {
-      if (cur === panel) return null;
-      if (panel === "demo") setActiveDemoId(null);
-      return panel;
-    });
+    setRightPanel((cur) => (cur === panel ? null : panel));
   };
 
   const openDemo = (demoId: number) => {
@@ -487,6 +484,7 @@ export function ExperimentContainer({
         prevLabel={demoUi.prevLabel}
         onPrev={() => prevFnRef.current?.()}
         onNext={() => skipFnRef.current?.()}
+        onStop={() => stopFnRef.current?.()}
       />
 
       {/* RIGHT RAIL */}
@@ -524,8 +522,8 @@ export function ExperimentContainer({
             </div>
           )}
 
-          {rightPanel === "demo" && demoAdapter && (
-            <div className="exp-panel-scroll">
+          {demoAdapter && (
+            <div className={`exp-panel-scroll${rightPanel === "demo" ? "" : " hidden"}`}>
               <DemoPanel
                 adapter={{ ...demoAdapter, experimentId }}
                 activeDemoId={activeDemoId}
@@ -537,6 +535,9 @@ export function ExperimentContainer({
                 }}
                 onPrevReady={(fn) => {
                   prevFnRef.current = fn;
+                }}
+                onStopReady={(fn) => {
+                  stopFnRef.current = fn;
                 }}
               />
             </div>
