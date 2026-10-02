@@ -73,6 +73,7 @@ export default function SpecialRelativityPage() {
           });
         }
       },
+      ensurePlaying: () => setIsPlaying(true),
       setOnUserEdit: (fn) => {
         userEditHandlerRef.current = fn;
       },

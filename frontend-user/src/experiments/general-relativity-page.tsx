@@ -35,6 +35,8 @@ export default function GeneralRelativityPage() {
   const [particleTangentialVelocity, setParticleTangentialVelocity] = useState(() => schwarzschildPlungePreset(10).vt);
   const [particleRadialVelocity, setParticleRadialVelocity] = useState(() => schwarzschildPlungePreset(10).vr);
   const [photonImpactParam, setPhotonImpactParam] = useState(25);
+  const [launchParticleTrigger, setLaunchParticleTrigger] = useState(0);
+  const [launchPhotonTrigger, setLaunchPhotonTrigger] = useState(0);
 
   const paramsRef = useRef({
     blackHoleMass,
@@ -102,6 +104,11 @@ export default function GeneralRelativityPage() {
           });
         }
       },
+      ensurePlaying: () => setIsPlaying(true),
+      runAction: (action) => {
+        if (action === "launchParticle") setLaunchParticleTrigger((n) => n + 1);
+        else if (action === "launchPhoton") setLaunchPhotonTrigger((n) => n + 1);
+      },
       setOnUserEdit: (fn) => {
         userEditHandlerRef.current = fn;
       },
@@ -142,9 +149,6 @@ export default function GeneralRelativityPage() {
   const [showStarfield, setShowStarfield] = useState(true);
   const [showPhotonPaths, setShowPhotonPaths] = useState(true);
   const [showParticleTrails, setShowParticleTrails] = useState(true);
-
-  const [launchParticleTrigger, setLaunchParticleTrigger] = useState(0);
-  const [launchPhotonTrigger, setLaunchPhotonTrigger] = useState(0);
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {

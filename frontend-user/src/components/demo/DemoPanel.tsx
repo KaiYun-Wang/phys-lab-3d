@@ -22,6 +22,7 @@ import {
   softPauseMedia,
   softResumeMedia,
   stopSpeaking,
+  unlockMedia,
   wait,
   warmVoices,
 } from "@/lib/demoSpeech";
@@ -32,6 +33,10 @@ export type DemoAdapter = {
   getParams: () => Record<string, unknown>;
   getReadings: () => Record<string, unknown> | null;
   applyParams: (params: Record<string, unknown>) => void;
+  /** Resume simulation if user paused the bottom play bar. */
+  ensurePlaying?: () => void;
+  /** Fire a named UI action after params settle (e.g. launchParticle). */
+  runAction?: (action: string) => void;
   setOnUserEdit?: (fn: (() => void) | null) => void;
 };
 
@@ -66,6 +71,27 @@ function stepCaptionLabel(i: number, total: number): string {
   return `讲解 · ${i + 1}/${total}`;
 }
 
+/** Prefer segments[]; legacy narration(+action) becomes one segment. */
+function resolveSegments(step: DemoStep): Array<{
+  narration: string;
+  action?: string;
+  audio?: { url?: string };
+}> {
+  if (step.segments?.length) {
+    return step.segments.filter((s) => !!(s.narration && s.narration.trim()));
+  }
+  const text = (step.narration || step.title || "").trim();
+  return text || step.action
+    ? [{ narration: text || step.title || "", action: step.action, audio: step.audio }]
+    : [];
+}
+
+/** Full-step caption: join all segment texts (one subtitle for the whole major step). */
+function stepCaptionText(step: DemoStep, segs: ReturnType<typeof resolveSegments>): string {
+  if (segs.length) return segs.map((s) => s.narration.trim()).filter(Boolean).join("");
+  return (step.narration || step.title || "").trim();
+}
+
 export function DemoPanel({
   adapter,
   activeDemoId,
@@ -75,6 +101,7 @@ export function DemoPanel({
   onSkipReady,
   onPrevReady,
   onStopReady,
+  onPauseReady,
 }: {
   adapter: DemoAdapter;
   activeDemoId: number | null;
@@ -84,6 +111,7 @@ export function DemoPanel({
   onSkipReady?: (skip: (() => void) | null) => void;
   onPrevReady?: (prev: (() => void) | null) => void;
   onStopReady?: (stop: (() => void) | null) => void;
+  onPauseReady?: (pause: (() => void) | null) => void;
 }) {
   const [detail, setDetail] = useState<DemoSessionDetail | null>(null);
   const [history, setHistory] = useState<DemoSessionSummary[]>([]);
@@ -174,7 +202,15 @@ export function DemoPanel({
     const now = Date.now();
     if (now - skipCooldownRef.current < 350) return;
     skipCooldownRef.current = now;
-    if (phaseRef.current === "paused" || softPausedUiRef.current) return;
+    // Soft-paused: next = leave pause and play the following step (or summary).
+    if (phaseRef.current === "paused" || softPausedUiRef.current) {
+      softPausedUiRef.current = false;
+      pauseSnapshotRef.current = null;
+      pauseUiRef.current = null;
+      const next = stepIndexRef.current + 1;
+      playFromRef.current?.(next);
+      return;
+    }
     skipRef.current?.abort();
   }, []);
 
@@ -182,7 +218,12 @@ export function DemoPanel({
 
   const requestPrev = useCallback(() => {
     const i = stepIndexRef.current;
-    const target = phaseRef.current === "step" && i > 0 ? i - 1 : i;
+    const inPlay =
+      phaseRef.current === "step" || phaseRef.current === "paused" || softPausedUiRef.current;
+    const target = inPlay && i > 0 ? i - 1 : i;
+    softPausedUiRef.current = false;
+    pauseSnapshotRef.current = null;
+    pauseUiRef.current = null;
     skipRef.current?.abort();
     abortRef.current?.abort();
     stopSpeaking();
@@ -221,6 +262,11 @@ export function DemoPanel({
     onStopReady?.(stopPlayback);
     return () => onStopReady?.(null);
   }, [onStopReady, stopPlayback]);
+
+  useEffect(() => {
+    onPauseReady?.(() => pauseRef.current());
+    return () => onPauseReady?.(null);
+  }, [onPauseReady]);
 
   useEffect(() => {
     adapter.setOnUserEdit?.(() => {
@@ -358,28 +404,58 @@ export function DemoPanel({
     stepTargetParamsRef.current = animate ? { ...step.params } : { ...adapter.getParams() };
     onEnsureLeftOpen?.();
 
-    const text = step.narration || step.title;
+    const segs = resolveSegments(step);
+    const caption = stepCaptionText(step, segs);
     const focusId = animate ? focusToDemoId(step.focus) : "readings";
     setPhase("step");
     const skip = freshSkip();
+    const label = stepCaptionLabel(i, playSteps.length);
+
+    // One caption for the whole major step; only audio/actions advance per segment.
     pushUi({
       highlightId: focusId,
-      captionLabel: stepCaptionLabel(i, playSteps.length),
-      caption: text,
+      captionLabel: label,
+      caption,
       canSkip: true,
       canPrev: true,
     });
 
+    const playSeg = async (seg: (typeof segs)[number]) => {
+      if (seg.action && adapter.runAction) {
+        adapter.ensurePlaying?.();
+        // Let applyParams from the previous beat commit into scene refs first.
+        await wait(120, ac, skip);
+        if (runId !== runIdRef.current) return;
+        adapter.runAction(seg.action);
+        await wait(80, ac, skip);
+        if (runId !== runIdRef.current) return;
+      }
+      await narrate(seg.narration, ac, skip, seg.audio?.url);
+    };
+
+    let fromSeg = 0;
     if (animate && step.params) {
       const fromParams = adapter.getParams();
-      await Promise.all([
-        narrate(text, ac, skip, step.audio?.url),
-        animateParams(fromParams, step.params, adapter.applyParams, 1600, ac, skip),
-      ]);
+      // Pure-say first segment can ride along with the param tween.
+      if (segs[0] && !segs[0].action) {
+        await Promise.all([
+          narrate(segs[0].narration, ac, skip, segs[0].audio?.url),
+          animateParams(fromParams, step.params, adapter.applyParams, 1600, ac, skip),
+        ]);
+        fromSeg = 1;
+      } else {
+        await animateParams(fromParams, step.params, adapter.applyParams, 1600, ac, skip);
+      }
       if (runId !== runIdRef.current) return "stop";
       adapter.applyParams(step.params);
-    } else {
-      await narrate(text, ac, skip, step.audio?.url);
+      // Flush React state so launch* refs see the target params.
+      await wait(120, ac, skip);
+      if (runId !== runIdRef.current) return "stop";
+    }
+
+    for (let s = fromSeg; s < segs.length; s++) {
+      if (runId !== runIdRef.current) return "stop";
+      await playSeg(segs[s]);
       if (runId !== runIdRef.current) return "stop";
     }
 
@@ -407,9 +483,13 @@ export function DemoPanel({
     if (!detail) return;
     softPausedUiRef.current = false;
     pauseSnapshotRef.current = null;
+    unlockMedia();
+    adapter.ensurePlaying?.();
     const runId = ++runIdRef.current;
     abortRef.current?.abort();
     stopSpeaking();
+    // Re-unlock after stopSpeaking cleared the element (still same click task if called sync from onClick).
+    unlockMedia();
     await wait(40);
     if (runId !== runIdRef.current) return;
 
@@ -422,7 +502,11 @@ export function DemoPanel({
         playDetail.plan.audioStatus === "failed" || playDetail.plan.audioStatus === "unavailable";
       const already =
         !!playDetail.plan.summaryAudioUrl ||
-        (playDetail.plan.steps ?? []).some((s) => s.audio?.url);
+        (playDetail.plan.steps ?? []).some(
+          (s) =>
+            !!s.audio?.url ||
+            (s.segments ?? []).some((seg) => !!seg.audio?.url),
+        );
       if (!already && !cloudBlocked) {
         setGeneratingAudio(true);
         try {
@@ -477,11 +561,13 @@ export function DemoPanel({
       }
       if (ac.signal.aborted) {
         setPhase("paused");
+        // Keep current teaching caption + prev/next (same as soft-pause).
         pushUi({
-          captionLabel: "已暂停",
-          caption: "你可以手动操作，或点继续接着讲。",
-          canSkip: false,
-          canPrev: false,
+          highlightId: stageUiRef.current.highlightId,
+          captionLabel: stageUiRef.current.captionLabel || stepCaptionLabel(stepIndexRef.current, steps.length),
+          caption: stageUiRef.current.caption,
+          canSkip: true,
+          canPrev: true,
         });
       } else {
         setPhase("error");
@@ -515,12 +601,13 @@ export function DemoPanel({
     softPausedUiRef.current = true;
     softPauseMedia();
     setPhase("paused");
+    // Keep teaching caption so user can read while paused; keep prev/next to continue.
     pushUi({
       highlightId: pauseUiRef.current.highlightId,
-      captionLabel: "已暂停",
-      caption: "你可以手动操作；继续时会回到本步目标参数并从语音断点接着讲。",
-      canSkip: false,
-      canPrev: false,
+      captionLabel: pauseUiRef.current.captionLabel,
+      caption: pauseUiRef.current.caption,
+      canSkip: true,
+      canPrev: true,
     });
   };
   pauseRef.current = pause;
@@ -542,12 +629,14 @@ export function DemoPanel({
       canSkip: true,
       canPrev: true,
     });
+    adapter.ensurePlaying?.();
     softResumeMedia();
   };
 
   /** 进度条任意跳转 */
   const jumpToStep = (i: number) => {
     if (i < 0 || i >= steps.length) return;
+    unlockMedia();
     void playFrom(i);
   };
 
@@ -722,8 +811,12 @@ export function DemoPanel({
                 disabled={generatingAudio}
                 onClick={() => {
                   if (generatingAudio) return;
-                  if (phase === "paused" && softPausedUiRef.current) resumeSoft();
-                  else if (phase === "paused") void playFrom(stepIndex);
+                  if (phase === "paused" && softPausedUiRef.current) {
+                    resumeSoft();
+                    return;
+                  }
+                  unlockMedia();
+                  if (phase === "paused") void playFrom(stepIndex);
                   else if (completed >= steps.length && steps.length > 0) void playFrom(0);
                   else void playFrom(nextToPlay);
                 }}

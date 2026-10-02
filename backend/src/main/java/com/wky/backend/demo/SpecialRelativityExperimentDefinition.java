@@ -30,6 +30,7 @@ public class SpecialRelativityExperimentDefinition implements ExperimentDefiniti
     @Override
     public String capabilityPrompt() {
         return "实验：狭义相对论实验室（route=special-relativity）\n"
+                + "界面：左侧控制栏主要是飞船速度滑块（自上而下）。口播勿说从左到右。\n"
                 + "可调参数（仅一个）：\n"
                 + "- velocity：飞船速度，单位为光速 c（v/c），范围 [0, 0.995]，步长 0.001；0.9 表示 0.9 倍光速\n"
                 + "理想模型（光速归一为 1）：gamma=1/sqrt(1-velocity^2)；"
@@ -58,7 +59,7 @@ public class SpecialRelativityExperimentDefinition implements ExperimentDefiniti
                 + "\"focus\":\"velocity\","
                 + "\"narration\":\"我们先让飞船保持静止，把飞船速度设为 0。"
                 + "此时洛伦兹因子等于 1，长度、时间与质量都没有任何变化。"
-                + "请盯住左侧的飞船速度滑块，我会先把它停在 0，建立一个干净的对照基线。\"},"
+                + "请盯住控制栏里的飞船速度滑块，我会先把它停在 0，建立一个干净的对照基线。\"},"
                 + "{\"title\":\"读静止读数\","
                 + "\"animate\":false,"
                 + "\"narration\":\"看读数面板：洛伦兹因子是 1，剩余长度是 100%，相对论质量倍数也是 1，"

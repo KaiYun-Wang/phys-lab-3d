@@ -139,6 +139,7 @@ export default function WaveMechanicsPage() {
           });
         }
       },
+      ensurePlaying: () => setIsPlaying(true),
       setOnUserEdit: (fn) => {
         userEditHandlerRef.current = fn;
       },

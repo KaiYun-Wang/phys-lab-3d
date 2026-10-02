@@ -30,6 +30,8 @@ public class VenturiExperimentDefinition implements ExperimentDefinition {
     @Override
     public String capabilityPrompt() {
         return "实验：伯努利文丘里管（route=bernoulli-venturi）\n"
+                + "界面：左侧控制栏自上而下为入口流速、截面积比、流体介质按钮。口播勿说从左到右。"
+                + "介质用水/甘油按钮切换，属于参数 fluid，不是一次性动作。\n"
                 + "可调参数（仅这些）：\n"
                 + "- v1：入口流速 m/s，范围 [0, 5]，步长 0.1\n"
                 + "- areaRatio：截面积比 A2/A1，范围 [0.2, 2.0]，步长 0.05\n"
@@ -59,7 +61,7 @@ public class VenturiExperimentDefinition implements ExperimentDefinition {
                 + "\"focus\":\"v1\","
                 + "\"narration\":\"我们先把入口流速调到 2.0 米每秒，面积比先保持 1，也就是等径管。"
                 + "这样可以建立一个干净的对照：等径时出口流速应该接近入口流速，压差几乎为零。"
-                + "请盯住左侧入口流速滑块，我会把它缓缓推到目标值。\"},"
+                + "请盯住控制栏里的入口流速滑块，我会把它缓缓推到目标值。\"},"
                 + "{\"title\":\"读等径对照\","
                 + "\"animate\":false,"
                 + "\"narration\":\"看读数：出口流速大约等于入口流速，压差接近 0。"

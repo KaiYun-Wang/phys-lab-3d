@@ -85,6 +85,60 @@ export function stopSpeaking() {
   }
 }
 
+/**
+ * Call synchronously inside a click handler (before any await).
+ * Browsers drop autoplay permission after setTimeout/await; unlock once per gesture.
+ */
+export function unlockMedia() {
+  const audio = getAudio();
+  const src = audio.currentSrc || audio.src || "";
+  const midClip = !!src && !src.startsWith("data:") && !audio.ended;
+  if (midClip) {
+    // Don't wipe a paused demo clip — resume under this click instead.
+    softPaused = false;
+    if (audio.paused) void audio.play().catch(() => undefined);
+    const ws = softWaiters.splice(0);
+    for (const w of ws) w();
+    return;
+  }
+  softPaused = false;
+  try {
+    // Tiny silent wav — enough to mark this element as user-activated.
+    audio.src =
+      "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+    audio.muted = true;
+    void audio
+      .play()
+      .then(() => {
+        audio.pause();
+        audio.muted = false;
+        try {
+          audio.removeAttribute("src");
+          audio.load();
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {
+        audio.muted = false;
+      });
+  } catch {
+    audio.muted = false;
+  }
+  if (canSpeak()) {
+    try {
+      // Touch speechSynthesis under the same user gesture.
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+      window.speechSynthesis.cancel();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 /** Prefer local Chinese voices — more stable than Edge Online neural. */
 function scoreVoice(v: SpeechSynthesisVoice): number {
   const s = `${v.name} ${v.lang} ${v.voiceURI}`;
@@ -182,8 +236,16 @@ export function playAudio(url: string, opts?: SpeakOpts): Promise<void> {
     };
 
     const src = mediaUrl(url);
-    if (audio.src !== src && !audio.src.endsWith(url)) {
-      audio.src = src;
+    const cur = audio.currentSrc || audio.src || "";
+    const already = cur === src || cur.endsWith(url);
+    if (!already) {
+      try {
+        audio.src = src;
+        audio.load();
+        audio.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
     }
 
     const tryPlay = () => {

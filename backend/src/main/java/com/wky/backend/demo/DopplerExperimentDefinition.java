@@ -32,6 +32,7 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
     @Override
     public String capabilityPrompt() {
         return "实验：多普勒效应（route=doppler）\n"
+                + "界面：左侧控制栏自上而下为波参数滑块与手动/自动模式开关等。口播勿说从左到右。\n"
                 + "可调参数（仅这些）：\n"
                 + "- sourceFrequency：声源频率 f0，单位 Hz，范围 [0.5, 5]，步长 0.1\n"
                 + "- sourceVelocity：声源运动速度，单位 m/s，范围 [0, 15]，步长 0.5；仅手动模式下生效\n"
@@ -72,7 +73,7 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
                 + "\"focus\":\"autoOscillate\","
                 + "\"narration\":\"多普勒效应讲的是：声源与观察者有相对运动时，听到的频率会变化。"
                 + "先把声源切到手动模式，并让它保持静止。观察者站在右侧 20 米处，此刻听到的频率应该和声源完全一样。"
-                + "请盯住左侧的模式开关，我会把它切到手动。\"}," 
+                + "请盯住控制栏里的模式开关，我会把它切到手动。\"}," 
                 + "{\"title\":\"读静止读数\","
                 + "\"animate\":false,"
                 + "\"narration\":\"看读数面板：观测频率等于声源频率 2.0 赫兹，多普勒比是 1.00，马赫数为 0。"

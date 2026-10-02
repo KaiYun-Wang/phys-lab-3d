@@ -483,12 +483,25 @@ export type AnnouncementPage = {
 
 /* ── AI 实验演示 ── */
 
+export type DemoSegment = {
+  /** Spoken text for this sub-beat. */
+  narration: string;
+  /** Optional one-shot UI action fired before this narration. */
+  action?: string;
+  audio?: { url?: string };
+};
+
 export type DemoStep = {
   title: string;
+  /** Legacy single narration (still OK if segments omitted). */
   narration?: string;
+  /** Sub-beats split by actions; pure-say segments must not be consecutive. */
+  segments?: DemoSegment[];
   animate?: boolean;
   params?: Record<string, unknown>;
   focus?: string;
+  /** Legacy single action when segments omitted. */
+  action?: string;
   audio?: { url?: string };
 };
 

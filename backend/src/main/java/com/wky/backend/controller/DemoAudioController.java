@@ -36,6 +36,8 @@ public class DemoAudioController {
             return;
         }
         response.setContentType("audio/mpeg");
+        // Demo clips are immutable once written; let the browser keep them across navigations.
+        response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         fileStorageService.download(fileInfo).outputStream(response.getOutputStream());
     }
 }

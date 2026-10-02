@@ -22,6 +22,11 @@ public interface ExperimentDefinition {
 
     Set<String> allowedFocuses();
 
+    /** Named UI actions the player may fire after a step settles (e.g. launchParticle). */
+    default Set<String> allowedActions() {
+        return Set.of();
+    }
+
     default int minSteps() {
         return 3;
     }

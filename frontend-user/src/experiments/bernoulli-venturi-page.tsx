@@ -88,6 +88,7 @@ export default function BernoulliVenturiPage() {
           });
         }
       },
+      ensurePlaying: () => setIsPlaying(true),
       setOnUserEdit: (fn) => {
         userEditHandlerRef.current = fn;
       },

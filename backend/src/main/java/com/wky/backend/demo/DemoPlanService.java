@@ -345,10 +345,10 @@ public class DemoPlanService {
         sys.append("你是物理实验演示的「老师剧本」生成器。只输出一个 JSON 对象，不要 markdown，不要解释。\n");
         if (english) {
             sys.append("【强制语言=English】用户目标为外语：title、overview、steps[].title、")
-                    .append("steps[].narration、summary、quizzes 的 question/options/explanation 必须全部是英文。")
+                    .append("steps[].narration 与 steps[].segments[].narration、summary、quizzes 的 question/options/explanation 必须全部是英文。")
                     .append("下方示例与实验说明里的中文只作结构/物理参考，禁止照抄中文句子。\n");
         } else {
-            sys.append("【强制语言=中文】title、overview、narration、summary、quizzes 全部用中文。\n");
+            sys.append("【强制语言=中文】title、overview、narration、segments[].narration、summary、quizzes 全部用中文。\n");
         }
         sys.append(def.capabilityPrompt()).append('\n')
                 .append("计划 JSON 结构示例（语言以强制语言为准，勿被示例中文带偏）：\n")
@@ -356,8 +356,16 @@ public class DemoPlanService {
                 .append("严格遵守参数范围与步长；steps 数量 ")
                 .append(def.minSteps()).append('～').append(def.maxSteps()).append("。\n")
                 .append("讲稿必须像老师当面讲解：口语、有引导、有原理，禁止一句话参数指令。\n")
-                .append("【口播可念——全实验通用】overview / narration / summary / quizzes 题干选项会进 TTS 或展示。\n")
-                .append("每步只有一层：title + narration + animate；不要再拆 action/result。\n")
+                .append("【口播可念——全实验通用】overview / segments[].narration / summary / quizzes 题干选项会进 TTS 或展示。\n")
+                .append("每步字段：title + animate；口播用 segments[]（推荐）或单字段 narration（无动作时）。\n")
+                .append("有 segments 时不要再写步骤级 narration（字幕由前端拼接各段，重复写无意义）。\n")
+                .append("segments 每项：narration（必填）+ 可选 action。播放：字幕整步一次展示；音频与 action 按段顺序执行。\n")
+                .append("纯口播段（无 action）禁止连续——应合并成一段；动作+口播可以连续。\n")
+                .append("禁止把一步再拆成嵌套的 action/result 子对象。\n")
+                .append("【界面布局】控件在屏幕左侧控制栏，自上而下排列（不是从左到右）。")
+                .append("口播指引方位时说「左侧控制栏从上到下…」「请盯住控制栏里的…」，禁止说「从左到右依次是」。\n")
+                .append("若实验支持 action：在 segments 里写 action，需要时先 animate 调参，再在同一步用带 action 的段发射。\n")
+                .append("禁止在口播里只叫用户手动点按钮却不写 action 字段（有自动点击能力时）。\n")
                 .append("随堂题：字段 quizzes 为数组，1～5 道四选一；由你按知识点选合适题量，勿凑数。\n")
                 .append("只允许中文或英文二选一（已在上方强制），禁止其它语言，禁止中英混写口播正文。\n")
                 .append("数值一律用阿拉伯数字（如 2.0、0.5、6000）；中文口播禁止中文数词")
@@ -411,12 +419,9 @@ public class DemoPlanService {
             if (!StringUtils.hasText(str(step.get("title"), null))) {
                 return "step[" + i + "] 缺少 title";
             }
-            if (!StringUtils.hasText(str(step.get("narration"), null))) {
-                return "step[" + i + "] 缺少 narration";
-            }
-            String narration = str(step.get("narration"), "");
-            if (narration.length() < 40) {
-                return "step[" + i + "] narration 过短（需教学口播，至少约 40 字）";
+            String segErr = validateSegments(def, step, i);
+            if (segErr != null) {
+                return segErr;
             }
             Boolean animate = asBoolean(step.get("animate"));
             if (animate == null) {
@@ -434,6 +439,15 @@ public class DemoPlanService {
                 String pe = def.validateParams(params);
                 if (pe != null) {
                     return "step[" + i + "] " + pe;
+                }
+            }
+            // Legacy top-level action only when segments omitted.
+            if (!(step.get("segments") instanceof List<?> segs) || segs.isEmpty()) {
+                String action = str(step.get("action"), null);
+                if (action != null) {
+                    if (!def.allowedActions().contains(action)) {
+                        return "step[" + i + "] action 非法（允许: " + def.allowedActions() + "）";
+                    }
                 }
             }
         }
@@ -470,6 +484,67 @@ public class DemoPlanService {
         }
         plan.put("quizzes", quizzes);
         plan.remove("quiz");
+        return null;
+    }
+
+    /**
+     * Prefer segments[]; legacy single narration(+action) still OK.
+     * Pure-say segments must not be consecutive (merge them instead).
+     */
+    @SuppressWarnings("unchecked")
+    private static String validateSegments(ExperimentDefinition def, Map<String, Object> step, int i) {
+        List<?> segs = listOf(step.get("segments"));
+        if (!segs.isEmpty()) {
+            int totalChars = 0;
+            boolean prevPure = false;
+            for (int j = 0; j < segs.size(); j++) {
+                if (!(segs.get(j) instanceof Map<?, ?> rawSeg)) {
+                    return "step[" + i + "].segments[" + j + "] 不是对象";
+                }
+                Map<String, Object> seg = (Map<String, Object>) rawSeg;
+                String narr = str(seg.get("narration"), null);
+                if (!StringUtils.hasText(narr)) {
+                    return "step[" + i + "].segments[" + j + "] 缺少 narration";
+                }
+                totalChars += narr.length();
+                String action = str(seg.get("action"), null);
+                if (action != null) {
+                    if (!def.allowedActions().contains(action)) {
+                        return "step[" + i + "].segments[" + j + "] action 非法（允许: "
+                                + def.allowedActions() + "）";
+                    }
+                    prevPure = false;
+                } else {
+                    if (prevPure) {
+                        return "step[" + i + "].segments 禁止连续纯口播（无 action 的段请合并）";
+                    }
+                    prevPure = true;
+                }
+            }
+            if (totalChars < 40) {
+                return "step[" + i + "] 口播合计过短（segments narration 合计至少约 40 字）";
+            }
+            if (StringUtils.hasText(str(step.get("narration"), null))) {
+                return "step[" + i + "] 已有 segments 时不要写步骤级 narration（字幕由前端拼接）";
+            }
+            StringBuilder joined = new StringBuilder();
+            for (Object o : segs) {
+                Map<String, Object> seg = (Map<String, Object>) o;
+                if (joined.length() > 0) {
+                    joined.append(' ');
+                }
+                joined.append(str(seg.get("narration"), ""));
+            }
+            step.put("narration", joined.toString());
+            return null;
+        }
+        if (!StringUtils.hasText(str(step.get("narration"), null))) {
+            return "step[" + i + "] 缺少 narration 或 segments";
+        }
+        String narration = str(step.get("narration"), "");
+        if (narration.length() < 40) {
+            return "step[" + i + "] narration 过短（需教学口播，至少约 40 字）";
+        }
         return null;
     }
 
@@ -661,9 +736,30 @@ public class DemoPlanService {
                 Map<String, Object> step = (Map<String, Object>) raw;
                 sb.append("  [").append(i + 1).append("] ")
                         .append(str(step.get("title"), "")).append('\n');
-                String narr = str(step.get("narration"), "");
-                if (StringUtils.hasText(narr)) {
-                    sb.append("      narration: ").append(narr).append('\n');
+                List<?> segs = listOf(step.get("segments"));
+                if (!segs.isEmpty()) {
+                    for (int j = 0; j < segs.size(); j++) {
+                        if (!(segs.get(j) instanceof Map<?, ?> rawSeg)) {
+                            continue;
+                        }
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> seg = (Map<String, Object>) rawSeg;
+                        sb.append("      seg").append(j + 1);
+                        String act = str(seg.get("action"), null);
+                        if (act != null) {
+                            sb.append(" action=").append(act);
+                        }
+                        sb.append(": ").append(str(seg.get("narration"), "")).append('\n');
+                    }
+                } else {
+                    String narr = str(step.get("narration"), "");
+                    if (StringUtils.hasText(narr)) {
+                        sb.append("      narration: ").append(narr).append('\n');
+                    }
+                    String act = str(step.get("action"), null);
+                    if (act != null) {
+                        sb.append("      action: ").append(act).append('\n');
+                    }
                 }
                 if (Boolean.TRUE.equals(asBoolean(step.get("animate")))) {
                     sb.append("      animate: true");

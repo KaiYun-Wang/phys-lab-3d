@@ -34,6 +34,7 @@ public class WaveMechanicsExperimentDefinition implements ExperimentDefinition {
     @Override
     public String capabilityPrompt() {
         return "实验：横波与纵波对比（route=wave-mechanics）\n"
+                + "界面：左侧控制栏自上而下为频率、振幅、波长与视图模式按钮。口播勿说从左到右。\n"
                 + "可调参数（仅这些）：\n"
                 + "- frequency：频率 f，单位 Hz，范围 [0.5, 4]，步长 0.1\n"
                 + "- amplitude：振幅 A，范围 [0.2, 2]，步长 0.1\n"

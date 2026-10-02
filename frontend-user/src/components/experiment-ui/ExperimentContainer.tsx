@@ -17,6 +17,7 @@ import { CommentsPanel } from "./CommentsPanel";
 import { DemoPanel, type DemoAdapter, type DemoStageUi } from "@/components/demo/DemoPanel";
 import { DemoSpotlight } from "@/components/demo/DemoSpotlight";
 import { DemoCaptionBar } from "@/components/demo/DemoCaptionBar";
+import { unlockMedia } from "@/lib/demoSpeech";
 import AiChatWidget from "@/components/AiChatWidget";
 import { fetchExperiment, type AiChatContext } from "@/lib/api";
 
@@ -129,6 +130,7 @@ export function ExperimentContainer({
   const skipFnRef = useRef<(() => void) | null>(null);
   const prevFnRef = useRef<(() => void) | null>(null);
   const stopFnRef = useRef<(() => void) | null>(null);
+  const pauseFnRef = useRef<(() => void) | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [narrow, setNarrow] = useState(false);
@@ -446,7 +448,11 @@ export function ExperimentContainer({
           <div className="exp-sim-bar">
             <button
               type="button"
-              onClick={simulationBar.onPlayPause}
+              onClick={() => {
+                // Pausing the experiment also soft-pauses an active demo narration.
+                if (simulationBar.isPlaying) pauseFnRef.current?.();
+                simulationBar.onPlayPause();
+              }}
               className="exp-sim-btn"
               title={simulationBar.isPlaying ? "Pause" : "Play"}
             >
@@ -482,8 +488,14 @@ export function ExperimentContainer({
         showNext={demoUi.canSkip}
         nextLabel={demoUi.nextLabel}
         prevLabel={demoUi.prevLabel}
-        onPrev={() => prevFnRef.current?.()}
-        onNext={() => skipFnRef.current?.()}
+        onPrev={() => {
+          unlockMedia();
+          prevFnRef.current?.();
+        }}
+        onNext={() => {
+          unlockMedia();
+          skipFnRef.current?.();
+        }}
         onStop={() => stopFnRef.current?.()}
       />
 
@@ -538,6 +550,9 @@ export function ExperimentContainer({
                 }}
                 onStopReady={(fn) => {
                   stopFnRef.current = fn;
+                }}
+                onPauseReady={(fn) => {
+                  pauseFnRef.current = fn;
                 }}
               />
             </div>

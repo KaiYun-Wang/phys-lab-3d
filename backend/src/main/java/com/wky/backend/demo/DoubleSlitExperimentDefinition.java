@@ -31,6 +31,8 @@ public class DoubleSlitExperimentDefinition implements ExperimentDefinition {
     @Override
     public String capabilityPrompt() {
         return "实验：双缝干涉（route=double-slit）\n"
+                + "界面：左侧控制栏自上而下依次为缝间距、缝宽、发射速率，然后是波动模式/观测开关与显示粒子。"
+                + "口播指引控件时说「控制栏从上到下…」，禁止说「从左到右依次是」。\n"
                 + "可调参数（仅这些）：\n"
                 + "- slitSeparation：缝间距 d，单位 mm，范围 [0.5, 5]，步长 0.1\n"
                 + "- slitWidth：缝宽 a，单位 mm，范围 [0.1, 1.0]，步长 0.05\n"
@@ -63,7 +65,7 @@ public class DoubleSlitExperimentDefinition implements ExperimentDefinition {
                 + "\"focus\":\"observerMode\","
                 + "\"narration\":\"我们要做量子力学里最著名的实验。先把观测开关关掉，让粒子不受测量干扰地通过双缝。"
                 + "屏幕上的亮纹会一条条积累出来，这就是干涉条纹。"
-                + "请盯住左侧的观测开关，我会把它切到关闭状态。\"}," 
+                + "请盯住控制栏里的观测开关，我会把它切到关闭状态。\"}," 
                 + "{\"title\":\"读干涉条纹的积累\","
                 + "\"animate\":false,"
                 + "\"narration\":\"看屏幕和读数面板：粒子一个一个通过狭缝，落点却不是随机的，而是逐渐累积出明暗相间的条纹。"

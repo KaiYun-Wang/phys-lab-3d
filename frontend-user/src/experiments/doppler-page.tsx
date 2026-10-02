@@ -106,6 +106,7 @@ export default function DopplerPage() {
           });
         }
       },
+      ensurePlaying: () => setIsPlaying(true),
       setOnUserEdit: (fn) => {
         userEditHandlerRef.current = fn;
       },

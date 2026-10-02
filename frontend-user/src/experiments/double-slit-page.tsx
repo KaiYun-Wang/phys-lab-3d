@@ -84,6 +84,7 @@ export default function DoubleSlitPage() {
           });
         }
       },
+      ensurePlaying: () => setIsPlaying(true),
       setOnUserEdit: (fn) => {
         userEditHandlerRef.current = fn;
       },

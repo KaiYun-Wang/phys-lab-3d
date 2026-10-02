@@ -26,6 +26,7 @@ import java.util.Map;
 /**
  * Sync pre-generate all demo narration MP3s → MinIO → then write URLs into plan_json.
  * All-or-nothing: any synth/upload failure leaves plan without audio (full browser fallback).
+ * One clip per segment (or legacy step.narration); summary separate.
  */
 @Slf4j
 @Service
@@ -91,24 +92,38 @@ public class DemoTtsService {
             }
         }
 
-        // Collect every (objectName, text) first — fail fast before any DB write
         List<PendingClip> clips = new ArrayList<>();
         for (int i = 0; i < steps.size(); i++) {
             if (!(steps.get(i) instanceof Map<?, ?>)) {
                 return fail(sessionId, "step " + i + " invalid");
             }
             Map<String, Object> step = (Map<String, Object>) steps.get(i);
-            String narration = str(step.get("narration"));
-            if (!StringUtils.hasText(narration)) {
-                return fail(sessionId, "step " + i + " missing narration");
+            List<?> segs = step.get("segments") instanceof List<?> list ? list : List.of();
+            if (!segs.isEmpty()) {
+                for (int j = 0; j < segs.size(); j++) {
+                    if (!(segs.get(j) instanceof Map<?, ?>)) {
+                        return fail(sessionId, "step " + i + " seg " + j + " invalid");
+                    }
+                    Map<String, Object> seg = new LinkedHashMap<>((Map<String, Object>) segs.get(j));
+                    String narration = str(seg.get("narration"));
+                    if (!StringUtils.hasText(narration)) {
+                        return fail(sessionId, "step " + i + " seg " + j + " missing narration");
+                    }
+                    clips.add(new PendingClip(i, j, sessionId + "_" + i + "_" + j + ".mp3", narration));
+                }
+            } else {
+                String narration = str(step.get("narration"));
+                if (!StringUtils.hasText(narration)) {
+                    return fail(sessionId, "step " + i + " missing narration");
+                }
+                clips.add(new PendingClip(i, -1, sessionId + "_" + i + ".mp3", narration));
             }
-            clips.add(new PendingClip(i, sessionId + "_" + i + ".mp3", narration));
         }
         String summary = str(plan.get("summary"));
         if (!StringUtils.hasText(summary)) {
             return fail(sessionId, "missing summary");
         }
-        clips.add(new PendingClip(-1, sessionId + "_summary.mp3", summary));
+        clips.add(new PendingClip(-1, -1, sessionId + "_summary.mp3", summary));
 
         Map<String, String> uploaded = new LinkedHashMap<>();
         for (PendingClip clip : clips) {
@@ -124,7 +139,6 @@ public class DemoTtsService {
             uploaded.put(clip.objectName, "/api/demos/" + clip.objectName);
         }
 
-        // All clips OK → mutate plan once
         for (PendingClip clip : clips) {
             String url = uploaded.get(clip.objectName);
             if (clip.stepIndex < 0) {
@@ -132,9 +146,24 @@ public class DemoTtsService {
                 continue;
             }
             Map<String, Object> step = (Map<String, Object>) steps.get(clip.stepIndex);
-            Map<String, Object> audio = new LinkedHashMap<>();
-            audio.put("url", url);
-            step.put("audio", audio);
+            if (clip.segIndex >= 0) {
+                List<Object> segs = new ArrayList<>();
+                if (step.get("segments") instanceof List<?> raw) {
+                    for (Object o : raw) {
+                        segs.add(o instanceof Map<?, ?> m ? new LinkedHashMap<>((Map<String, Object>) m) : o);
+                    }
+                }
+                Map<String, Object> seg = (Map<String, Object>) segs.get(clip.segIndex);
+                Map<String, Object> audio = new LinkedHashMap<>();
+                audio.put("url", url);
+                seg.put("audio", audio);
+                segs.set(clip.segIndex, seg);
+                step.put("segments", segs);
+            } else {
+                Map<String, Object> audio = new LinkedHashMap<>();
+                audio.put("url", url);
+                step.put("audio", audio);
+            }
             steps.set(clip.stepIndex, step);
         }
         plan.put("steps", steps);
@@ -182,7 +211,6 @@ public class DemoTtsService {
     }
 
     private boolean storeMp3(String objectName, byte[] mp3) {
-        // Prefer x-file-storage with explicit size (MinIO requires size for streams)
         try {
             FileInfo info = fileStorageService
                     .of(mp3, objectName, "audio/mpeg", (long) mp3.length)
@@ -193,7 +221,6 @@ public class DemoTtsService {
         } catch (Exception e) {
             log.warn("x-file-storage upload failed {}: {} — trying MinioClient", objectName, rootMessage(e));
         }
-        // Fallback: raw MinIO SDK (same bucket/creds as avatars)
         try {
             io.minio.MinioClient client = io.minio.MinioClient.builder()
                     .endpoint(minioEndpoint)
@@ -242,7 +269,6 @@ public class DemoTtsService {
 
     private byte[] callSpeechApi(String text) {
         AiProperties.Tts t = aiProperties.getTts();
-        // ponytail: base-url is the full speech endpoint
         String url = t.getBaseUrl() == null ? "" : t.getBaseUrl().replaceAll("/+$", "");
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", t.getModel());
@@ -275,9 +301,15 @@ public class DemoTtsService {
         if (!(plan.get("steps") instanceof List<?> steps) || steps.isEmpty()) return false;
         for (Object o : steps) {
             if (!(o instanceof Map<?, ?> step)) return false;
-            if (!(step.get("audio") instanceof Map<?, ?> audio)) return false;
-            if (!StringUtils.hasText(str(audio.get("url")))) {
-                return false;
+            if (step.get("segments") instanceof List<?> segs && !segs.isEmpty()) {
+                for (Object so : segs) {
+                    if (!(so instanceof Map<?, ?> seg)) return false;
+                    if (!(seg.get("audio") instanceof Map<?, ?> audio)) return false;
+                    if (!StringUtils.hasText(str(audio.get("url")))) return false;
+                }
+            } else {
+                if (!(step.get("audio") instanceof Map<?, ?> audio)) return false;
+                if (!StringUtils.hasText(str(audio.get("url")))) return false;
             }
         }
         return true;
@@ -300,5 +332,6 @@ public class DemoTtsService {
         return c.getClass().getSimpleName() + ": " + c.getMessage();
     }
 
-    private record PendingClip(int stepIndex, String objectName, String text) {}
+    /** segIndex=-1 means legacy step-level clip. */
+    private record PendingClip(int stepIndex, int segIndex, String objectName, String text) {}
 }
