@@ -92,6 +92,7 @@ export function DemoPanel({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [hoverTip, setHoverTip] = useState<{ i: number; left: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generatingAudio, setGeneratingAudio] = useState(false);
   const [error, setError] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [stepIndex, setStepIndex] = useState(0);
@@ -417,10 +418,13 @@ export function DemoPanel({
     setError("");
     let playDetail = detail;
     try {
+      const cloudBlocked =
+        playDetail.plan.audioStatus === "failed" || playDetail.plan.audioStatus === "unavailable";
       const already =
         !!playDetail.plan.summaryAudioUrl ||
         (playDetail.plan.steps ?? []).some((s) => s.audio?.url);
-      if (!already) {
+      if (!already && !cloudBlocked) {
+        setGeneratingAudio(true);
         try {
           await ensureDemoAudio(detail.id);
           playDetail = await fetchDemo(detail.id);
@@ -428,6 +432,8 @@ export function DemoPanel({
           detailRef.current = playDetail;
         } catch {
           /* browser fallback */
+        } finally {
+          setGeneratingAudio(false);
         }
       }
       const playSteps = playDetail.plan?.steps ?? [];
@@ -713,20 +719,24 @@ export function DemoPanel({
               <button
                 type="button"
                 className="demo-panel__btn primary"
+                disabled={generatingAudio}
                 onClick={() => {
+                  if (generatingAudio) return;
                   if (phase === "paused" && softPausedUiRef.current) resumeSoft();
                   else if (phase === "paused") void playFrom(stepIndex);
                   else if (completed >= steps.length && steps.length > 0) void playFrom(0);
                   else void playFrom(nextToPlay);
                 }}
               >
-                {phase === "paused"
-                  ? "▶ 继续讲解"
-                  : completed > 0 && completed < steps.length
-                    ? `▶ 从第 ${completed + 1} 步继续`
-                    : completed >= steps.length && steps.length > 0
-                      ? "↻ 再演示一次"
-                      : "▶ 开始演示"}
+                {generatingAudio
+                  ? "正在准备语音…"
+                  : phase === "paused"
+                    ? "▶ 继续讲解"
+                    : completed > 0 && completed < steps.length
+                      ? `▶ 从第 ${completed + 1} 步继续`
+                      : completed >= steps.length && steps.length > 0
+                        ? "↻ 再演示一次"
+                        : "▶ 开始演示"}
               </button>
             )}
             {playing && (

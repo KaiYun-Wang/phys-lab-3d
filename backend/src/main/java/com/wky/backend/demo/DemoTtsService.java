@@ -68,6 +68,20 @@ public class DemoTtsService {
         if (hasCompleteAudio(s.getPlanJson())) {
             return Map.of("ok", true, "tts", true, "ready", true, "made", 0);
         }
+        String audioStatus = str(s.getPlanJson().get("audioStatus"));
+        if ("failed".equals(audioStatus) || "unavailable".equals(audioStatus)) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("ok", true);
+            out.put("tts", true);
+            out.put("ready", false);
+            out.put("made", 0);
+            out.put("skipped", true);
+            String reason = str(s.getPlanJson().get("audioFailReason"));
+            if (StringUtils.hasText(reason)) {
+                out.put("reason", reason);
+            }
+            return out;
+        }
 
         Map<String, Object> plan = deepCopyPlan(s.getPlanJson());
         List<Object> steps = new ArrayList<>();
@@ -139,6 +153,7 @@ public class DemoTtsService {
 
     private Map<String, Object> fail(Long sessionId, String reason) {
         log.warn("demo TTS aborted id={} reason={}", sessionId, reason);
+        markAudioFailed(sessionId, reason);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ok", true);
         out.put("tts", true);
@@ -146,6 +161,24 @@ public class DemoTtsService {
         out.put("made", 0);
         out.put("reason", reason);
         return out;
+    }
+
+    /** Persist failure so later ensureAudio calls skip cloud TTS (browser fallback only). */
+    @SuppressWarnings("unchecked")
+    private void markAudioFailed(Long sessionId, String reason) {
+        DemoSession s = sessionMapper.selectById(sessionId);
+        if (s == null || s.getPlanJson() == null) {
+            return;
+        }
+        Map<String, Object> plan = deepCopyPlan(s.getPlanJson());
+        if ("ready".equals(str(plan.get("audioStatus"))) && hasCompleteAudio(plan)) {
+            return;
+        }
+        plan.put("audioStatus", "failed");
+        plan.put("audioFailReason", reason);
+        s.setPlanJson(plan);
+        s.setUpdateTime(LocalDateTime.now());
+        sessionMapper.updateById(s);
     }
 
     private boolean storeMp3(String objectName, byte[] mp3) {
