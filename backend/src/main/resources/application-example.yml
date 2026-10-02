@@ -54,6 +54,6 @@ phys-lab:
     tts:
       enabled: false
       api-key: sk-your-tts-api-key
-      base-url: https://api.siliconflow.cn/v1
+      base-url: https://api.siliconflow.cn/v1/audio/speech
       model: fnlp/MOSS-TTSD-v0.5
       voice: fnlp/MOSS-TTSD-v0.5:anna

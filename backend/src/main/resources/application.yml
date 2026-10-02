@@ -53,9 +53,9 @@ phys-lab:
     tts:
       enabled: ${PHYS_LAB_AI_TTS_ENABLED:false}
       api-key: ${PHYS_LAB_AI_TTS_API_KEY:}
-      base-url: ${PHYS_LAB_AI_TTS_BASE_URL:https://api.siliconflow.cn/v1}
-      model: ${PHYS_LAB_AI_TTS_MODEL:fnlp/MOSS-TTSD-v0.5}
-      voice: ${PHYS_LAB_AI_TTS_VOICE:fnlp/MOSS-TTSD-v0.5:anna}
+      base-url: ${PHYS_LAB_AI_TTS_BASE_URL}
+      model: ${PHYS_LAB_AI_TTS_MODEL}
+      voice: ${PHYS_LAB_AI_TTS_VOICE}
 
 dromara:
   x-file-storage:

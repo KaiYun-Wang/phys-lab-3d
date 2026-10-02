@@ -32,7 +32,7 @@ public class AiProperties {
     public static class Tts {
         private boolean enabled = false;
         private String apiKey = "";
-        private String baseUrl = "https://api.siliconflow.cn/v1";
+        private String baseUrl = "https://api.siliconflow.cn/v1/audio/speech";
         private String model = "fnlp/MOSS-TTSD-v0.5";
         private String voice = "fnlp/MOSS-TTSD-v0.5:anna";
     }

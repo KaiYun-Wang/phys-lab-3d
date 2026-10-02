@@ -242,7 +242,8 @@ public class DemoTtsService {
 
     private byte[] callSpeechApi(String text) {
         AiProperties.Tts t = aiProperties.getTts();
-        String base = t.getBaseUrl() == null ? "" : t.getBaseUrl().replaceAll("/+$", "");
+        // ponytail: base-url is the full speech endpoint
+        String url = t.getBaseUrl() == null ? "" : t.getBaseUrl().replaceAll("/+$", "");
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", t.getModel());
         body.put("input", text);
@@ -256,7 +257,7 @@ public class DemoTtsService {
                     .requestFactory(rf)
                     .build()
                     .post()
-                    .uri(base + "/audio/speech")
+                    .uri(url)
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("Authorization", "Bearer " + t.getApiKey())
                     .body(body)
