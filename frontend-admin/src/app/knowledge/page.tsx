@@ -80,9 +80,14 @@ export default function KnowledgeListPage() {
         <div className="page-toolbar__left">
           <h2 className="page-title">知识页</h2>
         </div>
-        <Link href="/knowledge/new" className="btn-pill btn-pill--primary btn-pill--sm">
-          + 新增知识页
-        </Link>
+        <div className="page-toolbar__actions">
+          <Link href="/knowledge/try" className="btn-pill btn-pill--outline btn-pill--sm">
+            试聊
+          </Link>
+          <Link href="/knowledge/new" className="btn-pill btn-pill--primary btn-pill--sm">
+            + 新增知识页
+          </Link>
+        </div>
       </section>
 
       <section className="card card--elevated">

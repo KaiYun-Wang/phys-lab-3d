@@ -21,6 +21,9 @@ public class AiChatSession {
 
     private CommentOwnerType ownerType;
 
+    /** 所属实验；NULL=首页/非实验页作用域 */
+    private Long experimentId;
+
     private String title;
 
     /** 滚动会话摘要 */

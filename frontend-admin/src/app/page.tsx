@@ -175,8 +175,8 @@ export default function DashboardPage() {
         <div className="card card--elevated section-card">
           <div className="section-card__head">
             <span className="heading-sm">AI 辅导</span>
-            <Link href="/ai-chat" className="pill-tag pill-tag--mint">
-              试聊
+            <Link href="/knowledge" className="pill-tag pill-tag--mint">
+              知识页
             </Link>
           </div>
           {!analytics ? (

@@ -225,6 +225,7 @@ CREATE TABLE "public"."ai_chat_sessions" (
   "id" bigint NOT NULL DEFAULT nextval('ai_chat_sessions_id_seq'::regclass),
   "owner_id" bigint NOT NULL,
   "owner_type" smallint NOT NULL,
+  "experiment_id" bigint,
   "title" character varying(200) NOT NULL DEFAULT '新对话'::character varying,
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -237,12 +238,13 @@ COMMENT ON TABLE "public"."ai_chat_sessions" IS 'AI 辅导会话';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."id" IS '会话 ID，自增主键';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."owner_id" IS '所有者 ID：owner_type=0 为 users.id；=1 为 admins.id';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."owner_type" IS '所有者类型：0=用户 USER，1=管理员 ADMIN';
+COMMENT ON COLUMN "public"."ai_chat_sessions"."experiment_id" IS '会话所属实验；NULL=首页/非实验页';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."title" IS '会话标题（可用首条用户消息截断）';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."create_time" IS '创建时间，插入时自动填充';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."update_time" IS '最近消息时间，插入/更新时自动填充';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."context_summary" IS '滚动会话摘要正文';
 COMMENT ON COLUMN "public"."ai_chat_sessions"."summary_until_msg_id" IS '摘要已覆盖到的消息 id（含），之后的对话原文仍可入模';
-CREATE INDEX "idx_ai_chat_sessions_owner_updated" ON "public"."ai_chat_sessions" USING btree ("owner_type", "owner_id", "update_time");
+CREATE INDEX "idx_ai_chat_sessions_owner_exp_updated" ON "public"."ai_chat_sessions" USING btree ("owner_type", "owner_id", "experiment_id", "update_time");
 
 CREATE SEQUENCE IF NOT EXISTS "public"."admins_id_seq"
   AS bigint

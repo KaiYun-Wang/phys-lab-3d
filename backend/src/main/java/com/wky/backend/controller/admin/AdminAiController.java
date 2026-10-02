@@ -20,8 +20,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.wky.backend.domain.dto.AiRenameSessionRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -80,13 +82,22 @@ public class AdminAiController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long size) {
-        return aiChatService.listSessions(requireAdmin(principal), CommentOwnerType.ADMIN, page, size);
+        return aiChatService.listSessions(requireAdmin(principal), CommentOwnerType.ADMIN, null, page, size);
     }
 
     @PostMapping("/ai/sessions")
     @ResponseStatus(HttpStatus.CREATED)
     public AiChatSessionResponse createSession(@AuthenticationPrincipal AuthPrincipal principal) {
-        return aiChatService.createSession(requireAdmin(principal), CommentOwnerType.ADMIN);
+        return aiChatService.createSession(requireAdmin(principal), CommentOwnerType.ADMIN, null);
+    }
+
+    @PatchMapping("/ai/sessions/{sessionId}")
+    public AiChatSessionResponse renameSession(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody AiRenameSessionRequest request) {
+        return aiChatService.renameSession(
+                requireAdmin(principal), CommentOwnerType.ADMIN, sessionId, request.getTitle());
     }
 
     @DeleteMapping("/ai/sessions/{sessionId}")

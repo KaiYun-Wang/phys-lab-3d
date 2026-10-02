@@ -623,7 +623,7 @@ export function deleteAdminCommentLike(id: number) {
   return apiFetch<void>(`/api/admin/comment-likes/${id}`, { method: "DELETE" });
 }
 
-/* ── 知识页 / AI 试聊 ── */
+/* ── 知识页 / 知识检索试测 ── */
 
 export type KnowledgePage = {
   id: number;
@@ -703,6 +703,13 @@ export function createAdminAiSession() {
   return apiFetch<AiChatSession>("/api/admin/ai/sessions", { method: "POST" });
 }
 
+export function renameAdminAiSession(sessionId: number, title: string) {
+  return apiFetch<AiChatSession>(`/api/admin/ai/sessions/${sessionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
 export function fetchAdminAiMessages(sessionId: number, limit = 50) {
   return apiFetch<AiChatMessage[]>(
     `/api/admin/ai/sessions/${sessionId}/messages?limit=${limit}`,
@@ -745,7 +752,7 @@ export async function streamAdminAiMessage(
     },
     body: JSON.stringify({
       content,
-      context: { path: "/admin/ai-chat", pageType: "admin_test" },
+      context: { path: "/admin/knowledge/try", pageType: "admin_knowledge_try" },
       enableThinking: !!opts.enableThinking,
     }),
   });

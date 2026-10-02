@@ -2251,65 +2251,8 @@ canvas {
 .ai-history-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
-}
-.ai-history-row {
-  display: flex;
-  align-items: stretch;
-  gap: 2px;
-  margin-bottom: 4px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-}
-.ai-history-row:hover,
-.ai-history-row.is-active {
-  background: var(--sx-elevated);
-  border-color: var(--sx-hairline);
-}
-.ai-history-item {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  border: none;
-  background: transparent;
-  color: var(--sx-mute);
-  border-radius: 10px;
-  padding: 10px 8px 10px 12px;
-  cursor: pointer;
-}
-.ai-history-item .htitle {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 4px;
-}
-.ai-history-item .hmeta {
-  font-size: 11px;
-  color: var(--sx-ink-mute);
-}
-.ai-history-delete {
-  flex: 0 0 auto;
-  width: 36px;
-  border: none;
-  background: transparent;
-  color: var(--sx-ink-mute);
-  border-radius: 8px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  opacity: 0.55;
-}
-.ai-history-delete:hover {
-  opacity: 1;
-  color: #b42318;
-  background: rgba(180, 35, 24, 0.08);
-}
-.ai-history-delete svg {
-  width: 16px;
-  height: 16px;
 }
 .ai-history-empty {
   padding: 32px 16px;
@@ -2317,6 +2260,157 @@ canvas {
   font-size: 12px;
   color: var(--sx-ink-mute);
   line-height: 1.55;
+}
+
+/* Doubao-style session rows */
+.ai-sess-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  margin-bottom: 2px;
+  border-radius: 10px;
+  padding: 2px 4px 2px 2px;
+}
+.ai-sess-row:hover,
+.ai-sess-row.is-active,
+.ai-sess-row.is-menu-open {
+  background: color-mix(in srgb, var(--sx-elevated) 88%, transparent);
+}
+.ai-sess-main {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--sx-mute);
+  padding: 8px 6px 8px 8px;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 8px;
+}
+.ai-sess-row.is-active .ai-sess-main {
+  color: var(--sx-mute);
+  font-weight: 600;
+}
+.ai-sess-icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--sx-ink-mute);
+  background:
+    linear-gradient(var(--sx-soft), var(--sx-soft)) padding-box,
+    linear-gradient(135deg, #f6c89a, #c9b6f2) border-box;
+  border: 1.5px solid transparent;
+}
+.ai-sess-icon svg {
+  width: 12px;
+  height: 12px;
+}
+.ai-sess-title-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.ai-sess-row.is-overflow .ai-sess-title-wrap {
+  -webkit-mask-image: linear-gradient(to right, #000 72%, transparent);
+  mask-image: linear-gradient(to right, #000 72%, transparent);
+}
+.ai-sess-row.is-overflow:hover .ai-sess-title-wrap,
+.ai-sess-row.is-overflow.is-menu-open .ai-sess-title-wrap {
+  -webkit-mask-image: linear-gradient(to right, #000 55%, transparent 88%);
+  mask-image: linear-gradient(to right, #000 55%, transparent 88%);
+}
+.ai-sess-title-track {
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.35;
+  will-change: transform;
+}
+.ai-sess-rename {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--sx-hairline);
+  background: var(--sx-elevated, #fff);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: inherit;
+  outline: none;
+}
+.ai-sess-more {
+  position: relative;
+  flex: 0 0 auto;
+  opacity: 0;
+  /* 保持可命中，避免移入按钮时因 pointer-events 切换导致 :hover 丢失而隐形 */
+  pointer-events: auto;
+  transition: opacity 0.15s ease;
+}
+.ai-sess-row:hover .ai-sess-more,
+.ai-sess-row:has(.ai-sess-more:hover) .ai-sess-more,
+.ai-sess-row.is-menu-open .ai-sess-more,
+.ai-sess-row.is-hot .ai-sess-more {
+  opacity: 1;
+}
+.ai-sess-more-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--sx-mute);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.ai-sess-more-btn:hover,
+.ai-sess-row.is-menu-open .ai-sess-more-btn {
+  background: color-mix(in srgb, var(--sx-mute) 12%, transparent);
+  color: #fff;
+}
+.ai-sess-more-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.ai-sess-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 112px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--sx-elevated, #fff);
+  border: 1px solid var(--sx-hairline);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ai-sess-menu button {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--sx-mute);
+  cursor: pointer;
+}
+.ai-sess-menu button:hover {
+  background: color-mix(in srgb, var(--sx-ink) 6%, transparent);
+}
+.ai-sess-menu button.is-danger {
+  color: #b42318;
 }
 
 .ai-messages {

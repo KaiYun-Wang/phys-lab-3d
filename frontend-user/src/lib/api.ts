@@ -276,6 +276,7 @@ export type AiChatContext = {
 
 export type AiChatSession = {
   id: number;
+  experimentId?: number | null;
   title: string;
   createTime: string;
   updateTime: string;
@@ -305,12 +306,22 @@ export type AiSessionPage = {
   pageSize: number;
 };
 
-export function fetchAiSessions(page = 1, size = 30) {
-  return apiFetch<AiSessionPage>(`/api/users/me/ai/sessions?page=${page}&size=${size}`);
+export function fetchAiSessions(page = 1, size = 30, experimentId?: number | null) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (experimentId != null) params.set("experimentId", String(experimentId));
+  return apiFetch<AiSessionPage>(`/api/users/me/ai/sessions?${params}`);
 }
 
-export function createAiSession() {
-  return apiFetch<AiChatSession>("/api/users/me/ai/sessions", { method: "POST" });
+export function createAiSession(experimentId?: number | null) {
+  const q = experimentId != null ? `?experimentId=${experimentId}` : "";
+  return apiFetch<AiChatSession>(`/api/users/me/ai/sessions${q}`, { method: "POST" });
+}
+
+export function renameAiSession(sessionId: number, title: string) {
+  return apiFetch<AiChatSession>(`/api/users/me/ai/sessions/${sessionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
 }
 
 export function deleteAiSession(sessionId: number) {

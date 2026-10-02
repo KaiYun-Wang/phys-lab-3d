@@ -11,6 +11,7 @@ import {
   fetchAiSessions,
   fetchDemos,
   parseCreatedDemo,
+  renameAiSession,
   streamAiMessage,
   type AiChatContext,
   type AiChatMessage,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { DemoPlanCard } from "@/components/demo/DemoPlanCard";
+import { SessionHistoryItem } from "@/components/SessionHistoryItem";
 
 const PANEL_W_KEY = "physlab.ai.panel.w";
 const PANEL_H_KEY = "physlab.ai.panel.h";
@@ -223,6 +225,8 @@ export default function AiChatWidget({
   const hideOnLogin = pathname === "/login";
   const experimentId = context.experimentId;
   const canRefDemos = isRail && experimentId != null;
+  // rail 必须等实验 id 到位，否则会误用首页（null）作用域
+  const scopeReady = !isRail || experimentId != null;
 
   useEffect(() => {
     if (isRail) return;
@@ -252,16 +256,16 @@ export default function AiChatWidget({
   }, []);
 
   const refreshSessionList = useCallback(async () => {
-    if (!loggedIn) return [] as AiChatSession[];
+    if (!loggedIn || !scopeReady) return [] as AiChatSession[];
     try {
-      const pageRes = await fetchAiSessions(1, 50);
+      const pageRes = await fetchAiSessions(1, 50, experimentId ?? null);
       const rows = pageRes.records ?? [];
       setSessions(rows);
       return rows;
     } catch {
       return [] as AiChatSession[];
     }
-  }, [loggedIn]);
+  }, [loggedIn, scopeReady, experimentId]);
 
   const loadDemos = useCallback(async () => {
     if (!canRefDemos || experimentId == null) {
@@ -277,15 +281,16 @@ export default function AiChatWidget({
 
   const ensureSession = useCallback(async () => {
     if (sessionId) return sessionId;
-    const s = await createAiSession();
+    if (!scopeReady) throw new Error("实验信息加载中，请稍后");
+    const s = await createAiSession(experimentId ?? null);
     setSessionId(s.id);
     setSessions((prev) => [s, ...prev.filter((x) => x.id !== s.id)]);
     return s.id;
-  }, [sessionId]);
+  }, [sessionId, scopeReady, experimentId]);
 
-  // 每次打开对话：进入最近一条；无历史则空着，等用户发消息或点「新对话」
+  // 每次打开对话 / 切换实验作用域：进入最近一条；无历史则空着
   useEffect(() => {
-    if (!open || !loggedIn) return;
+    if (!open || !loggedIn || !scopeReady) return;
     let cancelled = false;
     void (async () => {
       const rows = await refreshSessionList();
@@ -299,7 +304,7 @@ export default function AiChatWidget({
     return () => {
       cancelled = true;
     };
-  }, [open, loggedIn, refreshSessionList, loadMessages]);
+  }, [open, loggedIn, scopeReady, experimentId, refreshSessionList, loadMessages]);
 
   useEffect(() => {
     if (open && canRefDemos) void loadDemos();
@@ -393,21 +398,21 @@ export default function AiChatWidget({
     };
   }, [resizing, isRail]);
 
-  const startNew = async () => {
+  // ponytail: 空草稿只活在前端；落库交给 ensureSession（首条消息时）
+  const startNew = () => {
     if (!loggedIn) {
       window.location.href = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
       return;
     }
+    if (!scopeReady) {
+      setError("实验信息加载中，请稍后");
+      return;
+    }
     setError("");
     setHistoryOpen(false);
-    try {
-      const s = await createAiSession();
-      setSessionId(s.id);
-      setMessages([]);
-      setSessions((prev) => [s, ...prev]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "创建会话失败");
-    }
+    if (sessionId == null && messages.length === 0) return;
+    setSessionId(null);
+    setMessages([]);
   };
 
   const removeSession = async (id: number) => {
@@ -421,6 +426,17 @@ export default function AiChatWidget({
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除失败");
+    }
+  };
+
+  const renameSession = async (id: number, title: string) => {
+    setError("");
+    try {
+      const updated = await renameAiSession(id, title);
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title: updated.title } : s)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "重命名失败");
+      throw e;
     }
   };
 
@@ -695,33 +711,17 @@ export default function AiChatWidget({
                 <p className="ai-history-empty">暂无历史对话。发送第一条消息后会出现在这里。</p>
               ) : (
                 sessions.map((s) => (
-                  <div
+                  <SessionHistoryItem
                     key={s.id}
-                    className={`ai-history-row${s.id === sessionId ? " is-active" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      className="ai-history-item"
-                      onClick={() => {
-                        loadMessages(s.id);
-                        setHistoryOpen(false);
-                      }}
-                    >
-                      <span className="htitle">{s.title}</span>
-                      <span className="hmeta">{timeLabel(s.updateTime)}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="ai-history-delete"
-                      title="删除"
-                      aria-label="删除对话"
-                      onClick={() => removeSession(s.id)}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                        <path d="M5 7h14M10 11v6M14 11v6M8 7l1-2h6l1 2M9 7v12a1 1 0 001 1h4a1 1 0 001-1V7" />
-                      </svg>
-                    </button>
-                  </div>
+                    title={s.title}
+                    active={s.id === sessionId}
+                    onOpen={() => {
+                      void loadMessages(s.id);
+                      setHistoryOpen(false);
+                    }}
+                    onRename={(title) => renameSession(s.id, title)}
+                    onDelete={() => removeSession(s.id)}
+                  />
                 ))
               )}
             </div>

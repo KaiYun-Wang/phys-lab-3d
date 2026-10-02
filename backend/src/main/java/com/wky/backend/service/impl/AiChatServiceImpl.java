@@ -70,14 +70,16 @@ public class AiChatServiceImpl implements IAiChatService {
     private final DemoAiTools demoAiTools;
     private final ExperimentDefinitionRegistry experimentDefinitionRegistry;
 
-    /** Base tools always; demoTools = base + createDemo/lookupDemo. */
-    private ToolBundle baseTools;
-    private ToolBundle demoTools;
+    /** userBase=实验+知识; userDemo=+demo; admin=仅知识页. */
+    private ToolBundle userBaseTools;
+    private ToolBundle userDemoTools;
+    private ToolBundle adminTools;
 
     @PostConstruct
     void initTools() {
-        this.baseTools = buildToolBundle(List.of(experimentAiTools, knowledgeAiTools));
-        this.demoTools = buildToolBundle(List.of(experimentAiTools, knowledgeAiTools, demoAiTools));
+        this.userBaseTools = buildToolBundle(List.of(experimentAiTools, knowledgeAiTools));
+        this.userDemoTools = buildToolBundle(List.of(experimentAiTools, knowledgeAiTools, demoAiTools));
+        this.adminTools = buildToolBundle(List.of(knowledgeAiTools));
     }
 
     private static ToolBundle buildToolBundle(List<Object> tools) {
@@ -89,25 +91,48 @@ public class AiChatServiceImpl implements IAiChatService {
 
     @Override
     public PageResponse<AiChatSessionResponse> listSessions(
-            Long ownerId, CommentOwnerType ownerType, long page, long pageSize) {
-        Page<AiChatSession> p = sessionMapper.selectPage(
-                new Page<>(page, pageSize),
-                new LambdaQueryWrapper<AiChatSession>()
-                        .eq(AiChatSession::getOwnerId, ownerId)
-                        .eq(AiChatSession::getOwnerType, ownerType)
-                        .orderByDesc(AiChatSession::getUpdateTime));
+            Long ownerId, CommentOwnerType ownerType, Long experimentId, long page, long pageSize) {
+        LambdaQueryWrapper<AiChatSession> q = new LambdaQueryWrapper<AiChatSession>()
+                .eq(AiChatSession::getOwnerId, ownerId)
+                .eq(AiChatSession::getOwnerType, ownerType);
+        if (experimentId == null) {
+            q.isNull(AiChatSession::getExperimentId);
+        } else {
+            q.eq(AiChatSession::getExperimentId, experimentId);
+        }
+        q.orderByDesc(AiChatSession::getUpdateTime);
+        Page<AiChatSession> p = sessionMapper.selectPage(new Page<>(page, pageSize), q);
         List<AiChatSessionResponse> records = p.getRecords().stream().map(this::toSession).toList();
         return new PageResponse<>(records, p.getTotal(), page, pageSize);
     }
 
     @Override
     @Transactional
-    public AiChatSessionResponse createSession(Long ownerId, CommentOwnerType ownerType) {
+    public AiChatSessionResponse createSession(Long ownerId, CommentOwnerType ownerType, Long experimentId) {
         AiChatSession session = new AiChatSession();
         session.setOwnerId(ownerId);
         session.setOwnerType(ownerType);
+        session.setExperimentId(experimentId);
         session.setTitle("新对话");
         sessionMapper.insert(session);
+        return toSession(session);
+    }
+
+    @Override
+    @Transactional
+    public AiChatSessionResponse renameSession(
+            Long ownerId, CommentOwnerType ownerType, Long sessionId, String title) {
+        AiChatSession session = requireOwnedSession(ownerId, ownerType, sessionId);
+        String t = title == null ? "" : title.trim();
+        if (!StringUtils.hasText(t)) {
+            throw new ApiException(400, "标题不能为空");
+        }
+        if (t.length() > 200) {
+            t = t.substring(0, 200);
+        }
+        session.setTitle(t);
+        session.setUpdateTime(LocalDateTime.now());
+        sessionMapper.updateById(session);
         return toSession(session);
     }
 
@@ -306,8 +331,14 @@ public class AiChatServiceImpl implements IAiChatService {
         AiChatSession session = requireOwnedSession(ownerId, ownerType, sessionId);
         String content = request.getContent().trim();
         Map<String, Object> context = request.getContext();
-        boolean demoEnabled = demoToolsAvailable(context);
-        ToolBundle tools = demoEnabled ? demoTools : baseTools;
+        Long contextExperimentId = extractExperimentId(context);
+        if (!java.util.Objects.equals(session.getExperimentId(), contextExperimentId)) {
+            throw new ApiException(400, "会话与当前页面不匹配，请刷新后重试");
+        }
+
+        boolean admin = ownerType == CommentOwnerType.ADMIN;
+        boolean demoEnabled = !admin && demoToolsAvailable(context);
+        ToolBundle tools = admin ? adminTools : (demoEnabled ? userDemoTools : userBaseTools);
 
         AiChatMessage userMsg = new AiChatMessage();
         userMsg.setSessionId(session.getId());
@@ -327,12 +358,13 @@ public class AiChatServiceImpl implements IAiChatService {
         boolean busy = summaryService.checkAndMaybeEnqueue(session);
         boolean enableThinking = Boolean.TRUE.equals(request.getEnableThinking());
         if (busy) {
-            return new PreparedChat(session, userMsg, List.of(), true, enableThinking, context, demoEnabled, tools);
+            return new PreparedChat(
+                    session, userMsg, List.of(), true, enableThinking, context, demoEnabled, tools);
         }
         return new PreparedChat(
                 session,
                 userMsg,
-                buildChatMessages(session, context, demoEnabled),
+                buildChatMessages(session, context, demoEnabled, admin),
                 false,
                 enableThinking,
                 context,
@@ -532,9 +564,9 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     private List<ChatMessage> buildChatMessages(
-            AiChatSession session, Map<String, Object> context, boolean demoEnabled) {
+            AiChatSession session, Map<String, Object> context, boolean demoEnabled, boolean admin) {
         List<ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(buildSystemPrompt(context, demoEnabled)));
+        messages.add(SystemMessage.from(buildSystemPrompt(context, demoEnabled, admin)));
         if (StringUtils.hasText(session.getContextSummary())) {
             messages.add(SystemMessage.from("此前对话摘要：\n" + session.getContextSummary().trim()));
         }
@@ -612,8 +644,20 @@ public class AiChatServiceImpl implements IAiChatService {
         return window;
     }
 
-    private String buildSystemPrompt(Map<String, Object> context, boolean demoEnabled) {
+    private String buildSystemPrompt(Map<String, Object> context, boolean demoEnabled, boolean admin) {
         StringBuilder sb = new StringBuilder();
+        if (admin) {
+            sb.append("你是 PhysLab 3D 管理端的知识助手，只根据知识页工具回答。\n")
+                    .append("回答语言：跟随用户——用户用中文则中文回复；用户用英文（或其它外语）则用英文回复。\n")
+                    .append("回答规则：\n")
+                    .append("1. 涉及平台文档、实验原理说明、操作说明时：先调用 listKnowledgePages（可带关键词或留空看全目录），")
+                    .append("根据 description 选出相关文档，再调用 getKnowledgePageContents 拉取必要正文；不要一次拉取全部正文。\n")
+                    .append("2. 一般性问题可用自身可靠知识回答，但不要假装来自知识页。\n")
+                    .append("3. 不要编造知识页中没有的内容；资料不足时直接说不知道。\n")
+                    .append("4. 对用户只说人话：禁止在回复里出现程序内部字段、tool 名、JSON 键名等。\n");
+            return sb.toString();
+        }
+
         sb.append("你是 PhysLab 3D 交互物理实验平台的实验助手。\n")
                 .append("回答语言：跟随用户——用户用中文则中文回复；用户用英文（或其它外语）则用英文回复。不要擅自把用户的外语请求改成中文。\n")
                 .append("回答规则：\n")
@@ -685,6 +729,18 @@ public class AiChatServiceImpl implements IAiChatService {
         return sb.toString();
     }
 
+    /** 从请求 context 解析实验作用域；无则视为首页/非实验页（null）。 */
+    static Long extractExperimentId(Map<String, Object> context) {
+        if (context == null || context.get("experimentId") == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(String.valueOf(context.get("experimentId")).trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private AiChatSession requireOwnedSession(Long ownerId, CommentOwnerType ownerType, Long sessionId) {
         AiChatSession session = sessionMapper.selectById(sessionId);
         if (session == null) {
@@ -699,6 +755,7 @@ public class AiChatServiceImpl implements IAiChatService {
     private AiChatSessionResponse toSession(AiChatSession s) {
         return AiChatSessionResponse.builder()
                 .id(s.getId())
+                .experimentId(s.getExperimentId())
                 .title(s.getTitle())
                 .createTime(s.getCreateTime())
                 .updateTime(s.getUpdateTime())

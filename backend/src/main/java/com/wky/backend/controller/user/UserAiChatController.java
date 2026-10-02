@@ -17,8 +17,10 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.wky.backend.domain.dto.AiRenameSessionRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,16 +45,28 @@ public class UserAiChatController {
     @GetMapping("/sessions")
     public PageResponse<AiChatSessionResponse> listSessions(
             @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(required = false) Long experimentId,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long size) {
         Long userId = requireUser(principal);
-        return aiChatService.listSessions(userId, CommentOwnerType.USER, page, size);
+        return aiChatService.listSessions(userId, CommentOwnerType.USER, experimentId, page, size);
     }
 
     @PostMapping("/sessions")
     @ResponseStatus(HttpStatus.CREATED)
-    public AiChatSessionResponse createSession(@AuthenticationPrincipal AuthPrincipal principal) {
-        return aiChatService.createSession(requireUser(principal), CommentOwnerType.USER);
+    public AiChatSessionResponse createSession(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(required = false) Long experimentId) {
+        return aiChatService.createSession(requireUser(principal), CommentOwnerType.USER, experimentId);
+    }
+
+    @PatchMapping("/sessions/{sessionId}")
+    public AiChatSessionResponse renameSession(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable Long sessionId,
+            @Valid @RequestBody AiRenameSessionRequest request) {
+        return aiChatService.renameSession(
+                requireUser(principal), CommentOwnerType.USER, sessionId, request.getTitle());
     }
 
     @DeleteMapping("/sessions/{sessionId}")

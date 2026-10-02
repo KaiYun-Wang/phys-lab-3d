@@ -10,6 +10,8 @@ import java.util.Map;
 @Builder
 public class AiChatSessionResponse {
     private Long id;
+    /** 所属实验；null=首页/非实验页 */
+    private Long experimentId;
     private String title;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

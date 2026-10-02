@@ -12,9 +12,12 @@ import java.util.function.Consumer;
 
 public interface IAiChatService {
 
-    PageResponse<AiChatSessionResponse> listSessions(Long ownerId, CommentOwnerType ownerType, long page, long pageSize);
+    PageResponse<AiChatSessionResponse> listSessions(
+            Long ownerId, CommentOwnerType ownerType, Long experimentId, long page, long pageSize);
 
-    AiChatSessionResponse createSession(Long ownerId, CommentOwnerType ownerType);
+    AiChatSessionResponse createSession(Long ownerId, CommentOwnerType ownerType, Long experimentId);
+
+    AiChatSessionResponse renameSession(Long ownerId, CommentOwnerType ownerType, Long sessionId, String title);
 
     void deleteSession(Long ownerId, CommentOwnerType ownerType, Long sessionId);
 
