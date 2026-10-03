@@ -37,6 +37,7 @@ export default function ExperimentsPage() {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [subjectFilter, setSubjectFilter] = useState<number | "all">("all");
   const [deleteTarget, setDeleteTarget] = useState<Experiment | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [subjectTypes, setSubjectTypes] = useState<SubjectTypeRecord[]>([]);
@@ -48,6 +49,7 @@ export default function ExperimentsPage() {
       const data = await fetchExperiments({
         q: query || undefined,
         status: statusFilter,
+        subjectTypeId: subjectFilter,
         page,
         pageSize: PAGE_SIZE,
       });
@@ -64,7 +66,7 @@ export default function ExperimentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, statusFilter, page]);
+  }, [query, statusFilter, subjectFilter, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -135,6 +137,23 @@ export default function ExperimentsPage() {
               搜索
             </button>
           </form>
+          <select
+            className="text-input table-toolbar__select"
+            value={subjectFilter === "all" ? "all" : String(subjectFilter)}
+            onChange={(e) => {
+              setPage(1);
+              const v = e.target.value;
+              setSubjectFilter(v === "all" ? "all" : Number(v));
+            }}
+            aria-label="学科筛选"
+          >
+            <option value="all">全部学科</option>
+            {subjectTypes.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
           <select
             className="text-input table-toolbar__select"
             value={statusFilter}

@@ -82,7 +82,7 @@ export default function LoginPage() {
                 className="sx-input"
                 minLength={3}
                 maxLength={20}
-                placeholder="3–20 个字符"
+                placeholder={tab === "register" ? "3–20 个字符" : undefined}
                 required
               />
             </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 className="sx-input"
                 minLength={5}
                 maxLength={20}
-                placeholder="5–20 个字符"
+                placeholder={tab === "register" ? "5–20 个字符" : undefined}
                 required
               />
             </div>

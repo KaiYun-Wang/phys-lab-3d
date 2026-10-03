@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import { useToast } from "@/components/Toast";
 import {
   fetchAdminUsers,
@@ -25,7 +26,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+  const [range, setRange] = useState<DateRangeValue>({ from: "", to: "" });
+  const [filters, setFilters] = useState({ q: "", from: "", to: "" });
   const [statusFilter, setStatusFilter] = useState<"all" | UserStatus>("all");
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -34,7 +36,9 @@ export default function UsersPage() {
     setError("");
     try {
       const data = await fetchAdminUsers({
-        q: query || undefined,
+        q: filters.q || undefined,
+        from: filters.from || undefined,
+        to: filters.to || undefined,
         status: statusFilter,
         page,
         size: PAGE_SIZE,
@@ -47,7 +51,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, statusFilter, page]);
+  }, [filters, statusFilter, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -88,33 +92,45 @@ export default function UsersPage() {
             onSubmit={(e) => {
               e.preventDefault();
               setPage(1);
-              setQuery(search.trim());
+              setFilters({
+                q: search.trim(),
+                from: range.from,
+                to: range.to,
+              });
             }}
           >
             <input
               className="text-input search-form__input"
               type="search"
-              placeholder="搜索用户名 / 昵称…"
+              placeholder="用户 / 昵称"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <select
-              className="text-input"
-              style={{ width: 140 }}
-              value={statusFilter}
-              onChange={(e) => {
+            <DateRangePicker
+              value={range}
+              onChange={(next) => {
+                setRange(next);
                 setPage(1);
-                setStatusFilter(e.target.value as "all" | UserStatus);
+                setFilters((f) => ({ ...f, from: next.from, to: next.to }));
               }}
-            >
-              <option value="all">全部状态</option>
-              <option value="ENABLED">正常</option>
-              <option value="DISABLED">已禁用</option>
-            </select>
+            />
             <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
               搜索
             </button>
           </form>
+          <select
+            className="text-input table-toolbar__select"
+            value={statusFilter}
+            onChange={(e) => {
+              setPage(1);
+              setStatusFilter(e.target.value as "all" | UserStatus);
+            }}
+            aria-label="状态筛选"
+          >
+            <option value="all">全部状态</option>
+            <option value="ENABLED">正常</option>
+            <option value="DISABLED">已禁用</option>
+          </select>
         </div>
 
         {error ? <p className="form-error table-message">{error}</p> : null}
@@ -135,7 +151,8 @@ export default function UsersPage() {
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>用户</th>
+                    <th>用户名</th>
+                    <th>昵称</th>
                     <th>状态</th>
                     <th>注册时间</th>
                     <th aria-label="操作" />
@@ -148,8 +165,9 @@ export default function UsersPage() {
                       <tr key={row.id}>
                         <td className="data-table__num">{row.id}</td>
                         <td>
-                          <span className="data-table__title">{row.nickname || row.username}</span>
+                          <span className="data-table__title">{row.username}</span>
                         </td>
+                        <td>{row.nickname || "—"}</td>
                         <td>
                           <span className={`pill-tag ${enabled ? "pill-tag--mint" : "pill-tag--shade"}`}>
                             {enabled ? "正常" : "已禁用"}

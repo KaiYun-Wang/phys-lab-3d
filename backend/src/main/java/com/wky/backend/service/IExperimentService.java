@@ -15,7 +15,7 @@ public interface IExperimentService extends IService<Experiment> {
 
     ExperimentResponse getPublishedByRoute(String route, Long userId);
 
-    PageResponse<ExperimentResponse> adminPage(String q, String status, long page, long pageSize);
+    PageResponse<ExperimentResponse> adminPage(String q, String status, Long subjectTypeId, long page, long pageSize);
 
     ExperimentResponse adminGetById(Long id);
 

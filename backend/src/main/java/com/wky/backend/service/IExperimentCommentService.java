@@ -9,6 +9,8 @@ import com.wky.backend.domain.dto.CreateCommentRequest;
 import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.domain.entity.ExperimentComment;
 
+import java.time.LocalDate;
+
 public interface IExperimentCommentService extends IService<ExperimentComment> {
 
     PageResponse<CommentResponse> listComments(
@@ -27,14 +29,14 @@ public interface IExperimentCommentService extends IService<ExperimentComment> {
 
     PageResponse<AdminCommentResponse> adminPage(
             Long experimentId, Long ownerId, Integer ownerType, String status, String keyword,
-            long page, long pageSize);
+            LocalDate from, LocalDate to, long page, long pageSize);
 
     void adminUpdateStatus(Long commentId, String status);
 
     void adminDelete(Long commentId);
 
     PageResponse<AdminCommentLikeResponse> adminLikePage(
-            Long commentId, Long userId, Long experimentId, long page, long pageSize);
+            String keyword, LocalDate from, LocalDate to, long page, long pageSize);
 
     void adminDeleteLike(Long likeId);
 }

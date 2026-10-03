@@ -67,11 +67,15 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
     }
 
     @Override
-    public PageResponse<ExperimentResponse> adminPage(String q, String status, long page, long pageSize) {
+    public PageResponse<ExperimentResponse> adminPage(
+            String q, String status, Long subjectTypeId, long page, long pageSize) {
         LambdaQueryWrapper<Experiment> wrapper = new LambdaQueryWrapper<>();
         applySearch(wrapper, q);
         if (StringUtils.hasText(status)) {
             wrapper.eq(Experiment::getStatus, ExperimentStatus.fromValue(status));
+        }
+        if (subjectTypeId != null) {
+            wrapper.eq(Experiment::getSubjectTypeId, subjectTypeId);
         }
         wrapper.orderByDesc(Experiment::getUpdateTime).orderByDesc(Experiment::getId);
 

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +125,8 @@ public class ExperimentFavoriteServiceImpl extends ServiceImpl<ExperimentFavorit
 
     @Override
     public PageResponse<AdminFavoriteResponse> adminPage(
-            String keyword, Long experimentId, Long userId, long page, long pageSize) {
+            String keyword, Long experimentId, Long userId,
+            LocalDate from, LocalDate to, long page, long pageSize) {
         Set<Long> userIdFilter = null;
         Set<Long> experimentIdFilter = null;
 
@@ -147,6 +149,8 @@ public class ExperimentFavoriteServiceImpl extends ServiceImpl<ExperimentFavorit
         LambdaQueryWrapper<ExperimentFavorite> wrapper = new LambdaQueryWrapper<ExperimentFavorite>()
                 .eq(experimentId != null, ExperimentFavorite::getExperimentId, experimentId)
                 .eq(userId != null, ExperimentFavorite::getUserId, userId)
+                .ge(from != null, ExperimentFavorite::getCreateTime, from != null ? from.atStartOfDay() : null)
+                .lt(to != null, ExperimentFavorite::getCreateTime, to != null ? to.plusDays(1).atStartOfDay() : null)
                 .orderByDesc(ExperimentFavorite::getCreateTime);
 
         if (userIdFilter != null) {

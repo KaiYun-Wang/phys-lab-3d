@@ -373,6 +373,7 @@ export function getExperimentSubjectLabel(
 export type ExperimentListParams = {
   q?: string;
   status?: ExperimentStatus | "all";
+  subjectTypeId?: number | "all";
   page?: number;
   pageSize?: number;
 };
@@ -412,6 +413,10 @@ export function fetchExperiments(params: ExperimentListParams = {}) {
   const query = buildQuery({
     q: params.q,
     status: params.status && params.status !== "all" ? params.status : undefined,
+    subjectTypeId:
+      params.subjectTypeId != null && params.subjectTypeId !== "all"
+        ? String(params.subjectTypeId)
+        : undefined,
     page: String(params.page ?? 1),
     pageSize: String(params.pageSize ?? 20),
   });
@@ -508,6 +513,8 @@ export function fetchAdminFavorites(params: {
   keyword?: string;
   experimentId?: string;
   userId?: string;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
 } = {}) {
@@ -515,6 +522,8 @@ export function fetchAdminFavorites(params: {
     keyword: params.keyword,
     experimentId: params.experimentId,
     userId: params.userId,
+    from: params.from,
+    to: params.to,
     page: String(params.page ?? 1),
     size: String(params.size ?? 20),
   });
@@ -540,12 +549,16 @@ export type AdminUser = {
 export function fetchAdminUsers(params: {
   q?: string;
   status?: string;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
 } = {}) {
   const query = buildQuery({
     q: params.q,
     status: params.status && params.status !== "all" ? params.status : undefined,
+    from: params.from,
+    to: params.to,
     page: String(params.page ?? 1),
     size: String(params.size ?? 20),
   });
@@ -565,6 +578,8 @@ export function fetchAdminComments(params: {
   ownerType?: string;
   status?: string;
   keyword?: string;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
 } = {}) {
@@ -574,6 +589,8 @@ export function fetchAdminComments(params: {
     ownerType: params.ownerType,
     status: params.status && params.status !== "all" ? params.status : undefined,
     keyword: params.keyword,
+    from: params.from,
+    to: params.to,
     page: String(params.page ?? 1),
     size: String(params.size ?? 20),
   });
@@ -603,16 +620,16 @@ export function deleteAdminComment(id: number) {
 }
 
 export function fetchAdminCommentLikes(params: {
-  commentId?: string;
-  userId?: string;
-  experimentId?: string;
+  keyword?: string;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
 } = {}) {
   const query = buildQuery({
-    commentId: params.commentId,
-    userId: params.userId,
-    experimentId: params.experimentId,
+    keyword: params.keyword,
+    from: params.from,
+    to: params.to,
     page: String(params.page ?? 1),
     size: String(params.size ?? 20),
   });

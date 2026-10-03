@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -124,7 +125,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     }
 
     @Override
-    public PageResponse<AdminUserResponse> adminPage(String q, String status, long page, long pageSize) {
+    public PageResponse<AdminUserResponse> adminPage(
+            String q, String status, LocalDate from, LocalDate to, long page, long pageSize) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(q)) {
             String keyword = q.trim();
@@ -135,6 +137,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         if (StringUtils.hasText(status)) {
             wrapper.eq(User::getStatus, UserStatus.fromValue(status));
+        }
+        if (from != null) {
+            wrapper.ge(User::getCreateTime, from.atStartOfDay());
+        }
+        if (to != null) {
+            wrapper.lt(User::getCreateTime, to.plusDays(1).atStartOfDay());
         }
         wrapper.orderByDesc(User::getCreateTime).orderByDesc(User::getId);
 

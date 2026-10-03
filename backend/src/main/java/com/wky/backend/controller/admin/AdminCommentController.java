@@ -10,6 +10,7 @@ import com.wky.backend.security.AuthPrincipal;
 import com.wky.backend.service.IExperimentCommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/admin/comments")
@@ -37,9 +40,12 @@ public class AdminCommentController {
             @RequestParam(required = false) Integer ownerType,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long size) {
-        return commentService.adminPage(experimentId, ownerId, ownerType, status, keyword, page, size);
+        return commentService.adminPage(
+                experimentId, ownerId, ownerType, status, keyword, from, to, page, size);
     }
 
     @PostMapping("/reply")

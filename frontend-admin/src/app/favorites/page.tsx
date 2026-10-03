@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
   deleteAdminFavorite,
   fetchAdminFavorites,
@@ -25,7 +26,8 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+  const [range, setRange] = useState<DateRangeValue>({ from: "", to: "" });
+  const [filters, setFilters] = useState({ keyword: "", from: "", to: "" });
   const [deleteTarget, setDeleteTarget] = useState<AdminFavorite | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -33,7 +35,13 @@ export default function FavoritesPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchAdminFavorites({ keyword: query || undefined, page, size: PAGE_SIZE });
+      const data = await fetchAdminFavorites({
+        keyword: filters.keyword || undefined,
+        from: filters.from || undefined,
+        to: filters.to || undefined,
+        page,
+        size: PAGE_SIZE,
+      });
       const rows = data.records ?? [];
       if (rows.length === 0 && page > 1) {
         setPage((p) => Math.max(1, p - 1));
@@ -47,7 +55,7 @@ export default function FavoritesPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, page]);
+  }, [filters, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -90,15 +98,27 @@ export default function FavoritesPage() {
             onSubmit={(e) => {
               e.preventDefault();
               setPage(1);
-              setQuery(search.trim());
+              setFilters({
+                keyword: search.trim(),
+                from: range.from,
+                to: range.to,
+              });
             }}
           >
             <input
               className="text-input search-form__input"
               type="search"
-              placeholder="搜索用户名/昵称/实验标题/路由…"
+              placeholder="用户 / 实验"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+            />
+            <DateRangePicker
+              value={range}
+              onChange={(next) => {
+                setRange(next);
+                setPage(1);
+                setFilters((f) => ({ ...f, from: next.from, to: next.to }));
+              }}
             />
             <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
               搜索
@@ -123,7 +143,8 @@ export default function FavoritesPage() {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>用户</th>
+                  <th>用户名</th>
+                  <th>昵称</th>
                   <th>实验</th>
                   <th>路由</th>
                   <th>收藏时间</th>
@@ -134,9 +155,8 @@ export default function FavoritesPage() {
                 {items.map((row) => (
                   <tr key={row.id}>
                     <td className="data-table__num">{row.id}</td>
-                    <td>
-                      <span className="data-table__title">{row.nickname || row.username || "匿名用户"}</span>
-                    </td>
+                    <td>{row.username || "—"}</td>
+                    <td>{row.nickname || "—"}</td>
                     <td>
                       {row.experimentId ? (
                         <Link href={`/experiments/${row.experimentId}/edit`} className="data-table__title">

@@ -34,9 +34,10 @@ public class AdminExperimentController {
     public PageResponse<ExperimentResponse> list(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long subjectTypeId,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize) {
-        return experimentService.adminPage(q, status, page, pageSize);
+        return experimentService.adminPage(q, status, subjectTypeId, page, pageSize);
     }
 
     @GetMapping("/{id}")

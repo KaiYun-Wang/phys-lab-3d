@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
   deleteAdminComment,
   fetchAdminComments,
@@ -26,6 +27,11 @@ function ownerLabel(row: AdminComment) {
   return name;
 }
 
+function usernameCell(row: AdminComment) {
+  const name = row.username || "—";
+  return row.ownerType === 1 ? `${name}（管理员）` : name;
+}
+
 export default function CommentsPage() {
   const toast = useToast();
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
@@ -35,7 +41,8 @@ export default function CommentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+  const [range, setRange] = useState<DateRangeValue>({ from: "", to: "" });
+  const [filters, setFilters] = useState({ keyword: "", from: "", to: "" });
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<AdminComment | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -48,7 +55,9 @@ export default function CommentsPage() {
     setError("");
     try {
       const data = await fetchAdminComments({
-        keyword: query || undefined,
+        keyword: filters.keyword || undefined,
+        from: filters.from || undefined,
+        to: filters.to || undefined,
         status: statusFilter,
         page,
         size: PAGE_SIZE,
@@ -66,7 +75,7 @@ export default function CommentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, statusFilter, page]);
+  }, [filters, statusFilter, page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -145,15 +154,27 @@ export default function CommentsPage() {
             onSubmit={(e) => {
               e.preventDefault();
               setPage(1);
-              setQuery(search.trim());
+              setFilters({
+                keyword: search.trim(),
+                from: range.from,
+                to: range.to,
+              });
             }}
           >
             <input
               className="text-input search-form__input"
               type="search"
-              placeholder="搜索评论内容…"
+              placeholder="用户 / 昵称"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+            />
+            <DateRangePicker
+              value={range}
+              onChange={(next) => {
+                setRange(next);
+                setPage(1);
+                setFilters((f) => ({ ...f, from: next.from, to: next.to }));
+              }}
             />
             <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
               搜索
@@ -193,12 +214,13 @@ export default function CommentsPage() {
                 <tr>
                   <th>ID</th>
                   <th>内容</th>
-                  <th>作者</th>
+                  <th>用户名</th>
+                  <th>昵称</th>
                   <th>实验</th>
                   <th>楼/回复</th>
                   <th>赞</th>
                   <th>状态</th>
-                  <th>时间</th>
+                  <th>评论时间</th>
                   <th aria-label="操作" />
                 </tr>
               </thead>
@@ -211,7 +233,8 @@ export default function CommentsPage() {
                         {row.content.length > 60 ? `${row.content.slice(0, 60)}…` : row.content}
                       </span>
                     </td>
-                    <td>{ownerLabel(row)}</td>
+                    <td>{usernameCell(row)}</td>
+                    <td>{row.nickname || "—"}</td>
                     <td>
                       {row.experimentId ? (
                         <Link href={`/experiments/${row.experimentId}/edit`}>

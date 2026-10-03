@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
   deleteAdminCommentLike,
   fetchAdminCommentLikes,
@@ -23,10 +24,9 @@ export default function CommentLikesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [commentId, setCommentId] = useState("");
-  const [userId, setUserId] = useState("");
-  const [experimentId, setExperimentId] = useState("");
-  const [filters, setFilters] = useState({ commentId: "", userId: "", experimentId: "" });
+  const [search, setSearch] = useState("");
+  const [range, setRange] = useState<DateRangeValue>({ from: "", to: "" });
+  const [filters, setFilters] = useState({ keyword: "", from: "", to: "" });
   const [deleteTarget, setDeleteTarget] = useState<AdminCommentLike | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -35,9 +35,9 @@ export default function CommentLikesPage() {
     setError("");
     try {
       const data = await fetchAdminCommentLikes({
-        commentId: filters.commentId || undefined,
-        userId: filters.userId || undefined,
-        experimentId: filters.experimentId || undefined,
+        keyword: filters.keyword || undefined,
+        from: filters.from || undefined,
+        to: filters.to || undefined,
         page,
         size: PAGE_SIZE,
       });
@@ -86,47 +86,43 @@ export default function CommentLikesPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <h2 className="page-title">评论点赞管理</h2>
+          <h2 className="page-title">点赞管理</h2>
         </div>
       </section>
 
       <section className="card card--elevated">
-        <div className="table-toolbar" style={{ flexWrap: "wrap", gap: 8 }}>
-          <input
-            className="text-input"
-            style={{ width: 120 }}
-            placeholder="评论 ID"
-            value={commentId}
-            onChange={(e) => setCommentId(e.target.value)}
-          />
-          <input
-            className="text-input"
-            style={{ width: 120 }}
-            placeholder="用户 ID"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          />
-          <input
-            className="text-input"
-            style={{ width: 120 }}
-            placeholder="实验 ID"
-            value={experimentId}
-            onChange={(e) => setExperimentId(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn-pill btn-pill--outline btn-pill--sm"
-            onClick={() => {
+        <div className="table-toolbar">
+          <form
+            className="search-form"
+            onSubmit={(e) => {
+              e.preventDefault();
               setPage(1);
               setFilters({
-                commentId: commentId.trim(),
-                userId: userId.trim(),
-                experimentId: experimentId.trim(),
+                keyword: search.trim(),
+                from: range.from,
+                to: range.to,
               });
             }}
           >
-            筛选
-          </button>
+            <input
+              className="text-input search-form__input"
+              type="search"
+              placeholder="用户 / 实验"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <DateRangePicker
+              value={range}
+              onChange={(next) => {
+                setRange(next);
+                setPage(1);
+                setFilters((f) => ({ ...f, from: next.from, to: next.to }));
+              }}
+            />
+            <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
+              搜索
+            </button>
+          </form>
         </div>
 
         {error ? <p className="form-error table-message">{error}</p> : null}
@@ -146,10 +142,11 @@ export default function CommentLikesPage() {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>用户</th>
+                  <th>用户名</th>
+                  <th>昵称</th>
                   <th>评论</th>
                   <th>实验</th>
-                  <th>时间</th>
+                  <th>点赞时间</th>
                   <th aria-label="操作" />
                 </tr>
               </thead>
@@ -157,7 +154,8 @@ export default function CommentLikesPage() {
                 {items.map((row) => (
                   <tr key={row.id}>
                     <td className="data-table__num">{row.id}</td>
-                    <td>{row.nickname || row.username || "匿名用户"}</td>
+                    <td>{row.username || "—"}</td>
+                    <td>{row.nickname || "—"}</td>
                     <td style={{ maxWidth: 280 }}>
                       <div className="data-table__title" title={row.commentContent ?? ""}>
                         {row.commentContent || "—"}

@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -233,15 +234,59 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
     @Override
     public PageResponse<AdminCommentResponse> adminPage(
             Long experimentId, Long ownerId, Integer ownerType, String status, String keyword,
-            long page, long pageSize) {
+            LocalDate from, LocalDate to, long page, long pageSize) {
         CommentOwnerType type = ownerType != null ? CommentOwnerType.fromValue(ownerType) : null;
+
+        Set<Long> matchedUserIds = null;
+        Set<Long> matchedAdminIds = null;
+        if (StringUtils.hasText(keyword)) {
+            String kw = keyword.trim();
+            matchedUserIds = userService.list(new LambdaQueryWrapper<User>()
+                            .like(User::getUsername, kw)
+                            .or()
+                            .like(User::getNickname, kw))
+                    .stream()
+                    .map(User::getId)
+                    .collect(Collectors.toSet());
+            matchedAdminIds = adminMapper.selectList(new LambdaQueryWrapper<Admin>()
+                            .like(Admin::getUsername, kw)
+                            .or()
+                            .like(Admin::getDisplayName, kw))
+                    .stream()
+                    .map(Admin::getId)
+                    .collect(Collectors.toSet());
+            if (matchedUserIds.isEmpty() && matchedAdminIds.isEmpty()) {
+                return new PageResponse<>(List.of(), 0, page, pageSize);
+            }
+        }
+
         LambdaQueryWrapper<ExperimentComment> wrapper = new LambdaQueryWrapper<ExperimentComment>()
                 .eq(experimentId != null, ExperimentComment::getExperimentId, experimentId)
                 .eq(ownerId != null, ExperimentComment::getOwnerId, ownerId)
                 .eq(type != null, ExperimentComment::getOwnerType, type)
                 .eq(StringUtils.hasText(status), ExperimentComment::getStatus, status)
-                .like(StringUtils.hasText(keyword), ExperimentComment::getContent, keyword)
+                .ge(from != null, ExperimentComment::getCreateTime, from != null ? from.atStartOfDay() : null)
+                .lt(to != null, ExperimentComment::getCreateTime, to != null ? to.plusDays(1).atStartOfDay() : null)
                 .orderByDesc(ExperimentComment::getCreateTime);
+
+        if (matchedUserIds != null) {
+            Set<Long> uids = matchedUserIds;
+            Set<Long> aids = matchedAdminIds;
+            wrapper.and(w -> {
+                if (!uids.isEmpty() && !aids.isEmpty()) {
+                    w.and(u -> u.eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
+                                    .in(ExperimentComment::getOwnerId, uids))
+                            .or(a -> a.eq(ExperimentComment::getOwnerType, CommentOwnerType.ADMIN)
+                                    .in(ExperimentComment::getOwnerId, aids));
+                } else if (!uids.isEmpty()) {
+                    w.eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
+                            .in(ExperimentComment::getOwnerId, uids);
+                } else {
+                    w.eq(ExperimentComment::getOwnerType, CommentOwnerType.ADMIN)
+                            .in(ExperimentComment::getOwnerId, aids);
+                }
+            });
+        }
 
         Page<ExperimentComment> result = page(new Page<>(page, pageSize), wrapper);
         return new PageResponse<>(
@@ -302,23 +347,48 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
 
     @Override
     public PageResponse<AdminCommentLikeResponse> adminLikePage(
-            Long commentId, Long userId, Long experimentId, long page, long pageSize) {
+            String keyword, LocalDate from, LocalDate to, long page, long pageSize) {
         LambdaQueryWrapper<ExperimentCommentLike> wrapper = new LambdaQueryWrapper<ExperimentCommentLike>()
-                .eq(commentId != null, ExperimentCommentLike::getCommentId, commentId)
-                .eq(userId != null, ExperimentCommentLike::getUserId, userId)
+                .ge(from != null, ExperimentCommentLike::getCreateTime, from != null ? from.atStartOfDay() : null)
+                .lt(to != null, ExperimentCommentLike::getCreateTime, to != null ? to.plusDays(1).atStartOfDay() : null)
                 .orderByDesc(ExperimentCommentLike::getCreateTime);
 
-        if (experimentId != null) {
-            List<Long> commentIds = list(new LambdaQueryWrapper<ExperimentComment>()
-                    .eq(ExperimentComment::getExperimentId, experimentId)
-                    .select(ExperimentComment::getId))
+        if (StringUtils.hasText(keyword)) {
+            String kw = keyword.trim();
+            List<Long> userIds = userService.list(new LambdaQueryWrapper<User>()
+                            .like(User::getUsername, kw)
+                            .or()
+                            .like(User::getNickname, kw))
+                    .stream()
+                    .map(User::getId)
+                    .toList();
+            List<Long> expIds = experimentService.list(new LambdaQueryWrapper<Experiment>()
+                            .like(Experiment::getTitle, kw))
+                    .stream()
+                    .map(Experiment::getId)
+                    .toList();
+            List<Long> commentIds = expIds.isEmpty()
+                    ? List.of()
+                    : list(new LambdaQueryWrapper<ExperimentComment>()
+                            .in(ExperimentComment::getExperimentId, expIds)
+                            .select(ExperimentComment::getId))
                     .stream()
                     .map(ExperimentComment::getId)
                     .toList();
-            if (commentIds.isEmpty()) {
+            if (userIds.isEmpty() && commentIds.isEmpty()) {
                 return new PageResponse<>(List.of(), 0, page, pageSize);
             }
-            wrapper.in(ExperimentCommentLike::getCommentId, commentIds);
+            wrapper.and(w -> {
+                if (!userIds.isEmpty() && !commentIds.isEmpty()) {
+                    w.in(ExperimentCommentLike::getUserId, userIds)
+                            .or()
+                            .in(ExperimentCommentLike::getCommentId, commentIds);
+                } else if (!userIds.isEmpty()) {
+                    w.in(ExperimentCommentLike::getUserId, userIds);
+                } else {
+                    w.in(ExperimentCommentLike::getCommentId, commentIds);
+                }
+            });
         }
 
         Page<ExperimentCommentLike> result = likeMapper.selectPage(new Page<>(page, pageSize), wrapper);

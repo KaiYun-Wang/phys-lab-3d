@@ -49,7 +49,6 @@ export default function LoginPage() {
                 className="text-input"
                 id="username"
                 type="text"
-                placeholder="admin"
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -62,7 +61,6 @@ export default function LoginPage() {
                 className="text-input"
                 id="password"
                 type="password"
-                placeholder="••••••••"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

@@ -33,8 +33,6 @@ export default function ExampleQuestionsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ExampleQuestionRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<ExampleQuestionInput>(EMPTY_FORM);
@@ -46,7 +44,7 @@ export default function ExampleQuestionsPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchExampleQuestions({ q: query || undefined, page, size: PAGE_SIZE });
+      const data = await fetchExampleQuestions({ page, size: PAGE_SIZE });
       const rows = data.records ?? [];
       if (rows.length === 0 && page > 1) {
         setPage((p) => Math.max(1, p - 1));
@@ -60,7 +58,7 @@ export default function ExampleQuestionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, page]);
+  }, [page]);
 
   useEffect(() => {
     fetchMe().then(setAdmin).catch(() => setAdmin(null));
@@ -149,35 +147,6 @@ export default function ExampleQuestionsPage() {
       </section>
 
       <section className="card card--elevated">
-        <div className="table-toolbar">
-          <form
-            className="search-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setPage(1);
-              setQuery(search.trim());
-            }}
-          >
-            <input
-              className="text-input search-form__input"
-              type="search"
-              placeholder="搜索标题 / 描述 / 问题…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
-              搜索
-            </button>
-            <button
-              type="button"
-              className="btn-pill btn-pill--ghost btn-pill--sm"
-              onClick={() => loadList()}
-            >
-              刷新
-            </button>
-          </form>
-        </div>
-
         {error ? <p className="form-error table-message">{error}</p> : null}
 
         {loading ? (

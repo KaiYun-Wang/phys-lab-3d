@@ -10,6 +10,8 @@ import com.wky.backend.domain.entity.User;
 import com.wky.backend.enums.UserStatus;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+
 public interface IUserService extends IService<User> {
 
     User requireUser(Long userId);
@@ -24,7 +26,8 @@ public interface IUserService extends IService<User> {
 
     UserProfileResponse resetAvatar(Long userId);
 
-    PageResponse<AdminUserResponse> adminPage(String q, String status, long page, long pageSize);
+    PageResponse<AdminUserResponse> adminPage(
+            String q, String status, LocalDate from, LocalDate to, long page, long pageSize);
 
     AdminUserResponse adminUpdateStatus(Long userId, UserStatus status);
 }
