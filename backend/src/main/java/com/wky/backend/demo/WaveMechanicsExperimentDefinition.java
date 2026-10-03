@@ -1,10 +1,10 @@
 package com.wky.backend.demo;
 
-import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.springframework.stereotype.Component;
 
 /** Transverse / longitudinal wave demo adapter. */
 @Component
@@ -38,7 +38,7 @@ public class WaveMechanicsExperimentDefinition implements ExperimentDefinition {
                 + "可调参数（仅这些）：\n"
                 + "- frequency：频率 f，单位 Hz，范围 [0.5, 4]，步长 0.1\n"
                 + "- amplitude：振幅 A，范围 [0.2, 2]，步长 0.1\n"
-                + "- wavelength：波长 λ，单位 m，范围 [2, 8]，步长 0.25\n"
+                + "- wavelength：波长 λ，单位 m，范围 [2, 8]，步长 0.1\n"
                 + "- viewMode：视图模式，仅 compare（左右对比）| transverse（只显示横波）| "
                 + "longitudinal（只显示纵波）| overlay（叠加）\n"
                 + "理想模型：波速 v = frequency * wavelength；波数 k = 2π / wavelength；"
@@ -155,8 +155,8 @@ public class WaveMechanicsExperimentDefinition implements ExperimentDefinition {
         if (!onStep(amplitude, 0.2, 2, 0.1)) {
             return "amplitude 须在 [0.2,2] 且步长 0.1";
         }
-        if (!onStep(wavelength, 2, 8, 0.25)) {
-            return "wavelength 须在 [2,8] 且步长 0.25";
+        if (!onStep(wavelength, 2, 8, 0.1)) {
+            return "wavelength 须在 [2,8] 且步长 0.1";
         }
         return null;
     }

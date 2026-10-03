@@ -1,10 +1,10 @@
 package com.wky.backend.demo;
 
-import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.springframework.stereotype.Component;
 
 /** Doppler effect demo adapter. */
 @Component
@@ -35,11 +35,11 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
                 + "界面：左侧控制栏自上而下为波参数滑块与手动/自动模式开关等。口播勿说从左到右。\n"
                 + "可调参数（仅这些）：\n"
                 + "- sourceFrequency：声源频率 f0，单位 Hz，范围 [0.5, 5]，步长 0.1\n"
-                + "- sourceVelocity：声源运动速度，单位 m/s，范围 [0, 15]，步长 0.5；仅手动模式下生效\n"
-                + "- waveSpeed：声波波速，单位 m/s，范围 [5, 20]，步长 1\n"
+                + "- sourceVelocity：声源运动速度，单位 m/s，范围 [0, 15]，步长 0.1；仅手动模式下生效\n"
+                + "- waveSpeed：声波波速，单位 m/s，范围 [5, 20]，步长 0.1\n"
                 + "- sourceDirection：手动模式下声源方向，范围 [-1, 1]，步长 0.1；"
                 + "1=向右（朝向右侧观察者），-1=向左（远离），0=静止\n"
-                + "- observerPosition：观察者位置，单位 m，范围 [-20, 20]，步长 1\n"
+                + "- observerPosition：观察者位置，单位 m，范围 [-20, 20]，步长 0.1\n"
                 + "- autoOscillate：自动振荡开关，布尔值；true=声源自动往返，false=手动控制。"
                 + "演示建议全程用 false（结果可控）\n"
                 + "理想模型（手动模式）：朝向速度 vs = sourceDirection * sourceVelocity；"
@@ -161,17 +161,17 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
         if (!onStep(sourceFrequency, 0.5, 5, 0.1)) {
             return "sourceFrequency 须在 [0.5,5] 且步长 0.1";
         }
-        if (!onStep(sourceVelocity, 0, 15, 0.5)) {
-            return "sourceVelocity 须在 [0,15] 且步长 0.5";
+        if (!onStep(sourceVelocity, 0, 15, 0.1)) {
+            return "sourceVelocity 须在 [0,15] 且步长 0.1";
         }
-        if (!onStep(waveSpeed, 5, 20, 1)) {
-            return "waveSpeed 须在 [5,20] 且步长 1";
+        if (!onStep(waveSpeed, 5, 20, 0.1)) {
+            return "waveSpeed 须在 [5,20] 且步长 0.1";
         }
         if (!onStep(sourceDirection, -1, 1, 0.1)) {
             return "sourceDirection 须在 [-1,1] 且步长 0.1";
         }
-        if (!onStep(observerPosition, -20, 20, 1)) {
-            return "observerPosition 须在 [-20,20] 且步长 1";
+        if (!onStep(observerPosition, -20, 20, 0.1)) {
+            return "observerPosition 须在 [-20,20] 且步长 0.1";
         }
         return null;
     }

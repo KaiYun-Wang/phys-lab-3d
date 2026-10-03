@@ -138,7 +138,7 @@ export default function DopplerPage() {
           unit="m/s"
           min={0}
           max={15}
-          step={0.5}
+          step={0.1}
           color="#3b82f6"
           onChange={(v) => {
             notifyUserEdit();
@@ -153,13 +153,13 @@ export default function DopplerPage() {
           unit="m/s"
           min={5}
           max={20}
-          step={1}
+          step={0.1}
           color="#22c55e"
           onChange={(v) => {
             notifyUserEdit();
             setWaveSpeed(v);
           }}
-          decimals={0}
+          decimals={1}
           demoId="waveSpeed"
         />
       </ControlGroup>
@@ -229,13 +229,13 @@ export default function DopplerPage() {
           unit="m"
           min={-20}
           max={20}
-          step={1}
+          step={0.1}
           color="#8b5cf6"
           onChange={(v) => {
             notifyUserEdit();
             setObserverPosition(v);
           }}
-          decimals={0}
+          decimals={1}
           demoId="observerPosition"
         />
       </ControlGroup>

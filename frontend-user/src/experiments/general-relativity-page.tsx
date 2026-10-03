@@ -167,7 +167,7 @@ export default function GeneralRelativityPage() {
           unit="M☉"
           min={2}
           max={12}
-          step={0.5}
+          step={0.1}
           color="#ff6600"
           onChange={(v) => {
             notifyUserEdit();
@@ -207,7 +207,7 @@ export default function GeneralRelativityPage() {
           unit=""
           min={minR}
           max={80}
-          step={1}
+          step={0.1}
           color="#88ccff"
           onChange={(v) => {
             notifyUserEdit();
@@ -261,7 +261,7 @@ export default function GeneralRelativityPage() {
           unit=""
           min={8}
           max={50}
-          step={1}
+          step={0.1}
           color="#ffffff"
           onChange={(v) => {
             notifyUserEdit();

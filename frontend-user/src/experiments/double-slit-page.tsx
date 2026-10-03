@@ -133,13 +133,13 @@ export default function DoubleSlitPage() {
           unit="个/秒"
           min={1}
           max={10}
-          step={1}
+          step={0.1}
           color="#8b5cf6"
           onChange={(v) => {
             notifyUserEdit();
             setParticleRate(v);
           }}
-          decimals={0}
+          decimals={1}
           demoId="particleRate"
         />
       </ControlGroup>

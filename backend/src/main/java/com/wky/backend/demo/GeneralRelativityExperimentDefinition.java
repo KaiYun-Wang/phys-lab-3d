@@ -1,10 +1,10 @@
 package com.wky.backend.demo;
 
-import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.springframework.stereotype.Component;
 
 /** Schwarzschild black hole / general relativity demo adapter. */
 @Component
@@ -37,11 +37,11 @@ public class GeneralRelativityExperimentDefinition implements ExperimentDefiniti
                 + "界面：左侧控制栏自上而下依次为黑洞质量、粒子发射距离/切向速度/径向速度与「发射粒子」、"
                 + "光子碰撞参数与「发射光子」、显示图层。口播勿说从左到右。\n"
                 + "可调参数（仅这些）：\n"
-                + "- blackHoleMass：黑洞质量 M，范围 [2, 12]，步长 0.5\n"
-                + "- particleLaunchRadius：粒子发射距离 r，范围 [ceil(1.08*2M), 80]，步长 1；下限随质量变化\n"
+                + "- blackHoleMass：黑洞质量 M，范围 [2, 12]，步长 0.1\n"
+                + "- particleLaunchRadius：粒子发射距离 r，范围 [ceil(1.08*2M), 80]，步长 0.1；下限随质量变化\n"
                 + "- particleTangentialVelocity：粒子切向速度（以光速为单位），范围 [0.05, 1.0]，步长 0.01\n"
                 + "- particleRadialVelocity：粒子径向速度，负值向内，范围 [-0.3, 0.3]，步长 0.01\n"
-                + "- photonImpactParam：光子碰撞参数 b，范围 [8, 50]，步长 1\n"
+                + "- photonImpactParam：光子碰撞参数 b，范围 [8, 50]，步长 0.1\n"
                 + "一次性动作（写在 segments[].action，勿只口播让用户手点）：\n"
                 + "- launchParticle：发射测试粒子\n"
                 + "- launchPhoton：发射光子\n"
@@ -170,12 +170,12 @@ public class GeneralRelativityExperimentDefinition implements ExperimentDefiniti
         if (photonImpactParam == null) {
             return "缺少 photonImpactParam";
         }
-        if (!onStep(blackHoleMass, 2, 12, 0.5)) {
-            return "blackHoleMass 须在 [2,12] 且步长 0.5";
+        if (!onStep(blackHoleMass, 2, 12, 0.1)) {
+            return "blackHoleMass 须在 [2,12] 且步长 0.1";
         }
         double minR = Math.ceil(2 * blackHoleMass * 1.08);
-        if (!onStep(particleLaunchRadius, minR, 80, 1)) {
-            return "particleLaunchRadius 须在 [" + (long) minR + ",80] 且步长 1";
+        if (!onStep(particleLaunchRadius, minR, 80, 0.1)) {
+            return "particleLaunchRadius 须在 [" + (long) minR + ",80] 且步长 0.1";
         }
         if (!onStep(particleTangentialVelocity, 0.05, 1.0, 0.01)) {
             return "particleTangentialVelocity 须在 [0.05,1.0] 且步长 0.01";
@@ -183,8 +183,8 @@ public class GeneralRelativityExperimentDefinition implements ExperimentDefiniti
         if (!onStep(particleRadialVelocity, -0.3, 0.3, 0.01)) {
             return "particleRadialVelocity 须在 [-0.3,0.3] 且步长 0.01";
         }
-        if (!onStep(photonImpactParam, 8, 50, 1)) {
-            return "photonImpactParam 须在 [8,50] 且步长 1";
+        if (!onStep(photonImpactParam, 8, 50, 0.1)) {
+            return "photonImpactParam 须在 [8,50] 且步长 0.1";
         }
         return null;
     }

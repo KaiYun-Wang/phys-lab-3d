@@ -1,10 +1,10 @@
 package com.wky.backend.demo;
 
-import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.springframework.stereotype.Component;
 
 /** Double-slit interference demo adapter. */
 @Component
@@ -36,7 +36,7 @@ public class DoubleSlitExperimentDefinition implements ExperimentDefinition {
                 + "可调参数（仅这些）：\n"
                 + "- slitSeparation：缝间距 d，单位 mm，范围 [0.5, 5]，步长 0.1\n"
                 + "- slitWidth：缝宽 a，单位 mm，范围 [0.1, 1.0]，步长 0.05\n"
-                + "- particleRate：粒子发射速率，单位个每秒，范围 [1, 10]，步长 1\n"
+                + "- particleRate：粒子发射速率，单位个每秒，范围 [1, 10]，步长 0.1\n"
                 + "- observerMode：观测开关，布尔值；true=开观测（粒子坍缩，只剩两条亮带），"
                 + "false=关观测（波动干涉，出现明暗条纹）\n"
                 + "波长固定 500 nm，不可调。\n"
@@ -143,8 +143,8 @@ public class DoubleSlitExperimentDefinition implements ExperimentDefinition {
         if (!onStep(slitWidth, 0.1, 1.0, 0.05)) {
             return "slitWidth 须在 [0.1,1.0] 且步长 0.05";
         }
-        if (!onStep(particleRate, 1, 10, 1)) {
-            return "particleRate 须在 [1,10] 且步长 1";
+        if (!onStep(particleRate, 1, 10, 0.1)) {
+            return "particleRate 须在 [1,10] 且步长 0.1";
         }
         return null;
     }

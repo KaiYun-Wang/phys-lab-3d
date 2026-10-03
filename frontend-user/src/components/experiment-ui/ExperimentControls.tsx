@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 
 export interface ControlGroupProps {
   title: string;
@@ -58,6 +58,13 @@ export interface ControlSliderProps {
   demoId?: string;
 }
 
+/** 对齐到步长并消除浮点尾差 */
+function snapToStep(raw: number, min: number, max: number, step: number): number {
+  const clamped = Math.min(max, Math.max(min, raw));
+  const stepped = min + Math.round((clamped - min) / step) * step;
+  return parseFloat(Math.min(max, Math.max(min, stepped)).toFixed(6));
+}
+
 /**
  * Interactive slider control
  */
@@ -74,26 +81,99 @@ export function ControlSlider({
   disabled = false,
   demoId,
 }: ControlSliderProps) {
+  const displayText = decimals === 0 ? value.toFixed(0) : value.toFixed(decimals);
+  /** 编辑中的文本；null 表示未编辑，直接显示实时值 */
+  const [draft, setDraft] = useState<string | null>(null);
+  const cancelRef = useRef(false);
+
+  const nudge = (direction: 1 | -1) => {
+    const next = snapToStep(value + direction * step, min, max, step);
+    if (next !== value) onChange(next);
+  };
+
+  const commitDraft = (raw: string) => {
+    const parsed = parseFloat(raw.trim());
+    if (Number.isFinite(parsed)) {
+      const next = snapToStep(parsed, min, max, step);
+      if (next !== value) onChange(next);
+    }
+    setDraft(null);
+  };
+
+  const canDec = !disabled && value > min + 1e-9;
+  const canInc = !disabled && value < max - 1e-9;
+  const stepBtnClass =
+    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[15px] font-medium leading-none text-[#c4c4ce] transition-all hover:border-white/25 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30";
+
   return (
-    <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`} data-demo-id={demoId || undefined}>
-      <div className="flex justify-between text-xs">
+    <div
+      className={`space-y-1.5 ${disabled ? "opacity-50" : ""}`}
+      data-demo-id={demoId || undefined}
+    >
+      <div className="flex items-center justify-between text-xs">
         <span className="text-[#e8e8f0]/90">{label}</span>
-        <span className="font-mono text-xs" style={{ color }}>
-          {decimals === 0 ? value.toFixed(0) : value.toFixed(decimals)}
-          {unit && <span className="text-xs text-[#8a8a96] ml-1">{unit}</span>}
+        <span className="flex items-baseline">
+          <input
+            type="text"
+            inputMode="decimal"
+            aria-label={label}
+            value={draft ?? displayText}
+            disabled={disabled}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                cancelRef.current = true;
+                e.currentTarget.blur();
+              }
+            }}
+            onBlur={(e) => {
+              if (cancelRef.current) {
+                cancelRef.current = false;
+                setDraft(null);
+                return;
+              }
+              commitDraft(e.target.value);
+            }}
+            className="w-16 rounded border border-transparent bg-transparent px-1 text-right font-mono text-xs outline-none transition-colors hover:border-white/15 hover:bg-white/5 focus:border-current focus:bg-white/5 disabled:cursor-not-allowed"
+            style={{ color }}
+          />
+          {unit && <span className="ml-1 text-xs text-[#8a8a96]">{unit}</span>}
         </span>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        disabled={disabled}
-        className="w-full h-2 bg-[#45454f] rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 touch-none"
-        style={{ accentColor: color }}
-      />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label={`${label} 减少`}
+          disabled={!canDec}
+          onClick={() => nudge(-1)}
+          className={stepBtnClass}
+        >
+          −
+        </button>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          disabled={disabled}
+          className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-[#45454f] disabled:cursor-not-allowed disabled:opacity-50 touch-none"
+          style={{ accentColor: color }}
+        />
+        <button
+          type="button"
+          aria-label={`${label} 增加`}
+          disabled={!canInc}
+          onClick={() => nudge(1)}
+          className={stepBtnClass}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

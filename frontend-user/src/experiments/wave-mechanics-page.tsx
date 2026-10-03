@@ -219,7 +219,7 @@ export default function WaveMechanicsPage() {
           unit="m"
           min={2}
           max={8}
-          step={0.25}
+          step={0.1}
           color="#06d6a0"
           onChange={(v) => {
             notifyUserEdit();
@@ -234,7 +234,7 @@ export default function WaveMechanicsPage() {
           unit="m/s"
           min={1}
           max={32}
-          step={0.5}
+          step={0.1}
           color="#06d6a0"
           onChange={handleWaveSpeedChange}
           decimals={1}

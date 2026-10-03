@@ -20,6 +20,15 @@ export const experimentRegistry = {
       description: "交互式 3D 双缝实验，可视化干涉条纹与强度分布。",
     },
   },
+  "convex-lens": {
+    loadPage: () => import("@/experiments/convex-lens-page"),
+    loadDetails: () => import("@/experiments/details/convex-lens-details"),
+    metadata: {
+      title: "凸透镜成像 - 交互式物理实验室",
+      description:
+        "交互式 3D 凸透镜成像实验，调节物距与焦距，实时观察特征光线、成像规律与像距变化。",
+    },
+  },
   "wave-mechanics": {
     loadPage: () => import("@/experiments/wave-mechanics-page"),
     loadDetails: () => import("@/experiments/details/wave-mechanics-details"),
