@@ -54,6 +54,8 @@ export interface ControlSliderProps {
   onChange: (value: number) => void;
   decimals?: number;
   disabled?: boolean;
+  /** 自定义轨道背景（CSS background 值，如光谱渐变）；不传则为默认深灰轨道 */
+  trackBackground?: string;
   /** AI 演示高亮目标，对应 data-demo-id */
   demoId?: string;
 }
@@ -79,6 +81,7 @@ export function ControlSlider({
   onChange,
   decimals = 2,
   disabled = false,
+  trackBackground,
   demoId,
 }: ControlSliderProps) {
   const displayText = decimals === 0 ? value.toFixed(0) : value.toFixed(decimals);
@@ -162,7 +165,7 @@ export function ControlSlider({
           onChange={(e) => onChange(parseFloat(e.target.value))}
           disabled={disabled}
           className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-[#45454f] disabled:cursor-not-allowed disabled:opacity-50 touch-none"
-          style={{ accentColor: color }}
+          style={{ accentColor: color, ...(trackBackground ? { background: trackBackground } : null) }}
         />
         <button
           type="button"

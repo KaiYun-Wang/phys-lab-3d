@@ -10,4 +10,5 @@ Roo-Code/
 backend/target
 backend/org/
 backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-aliyun.yml
 docs

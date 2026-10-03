@@ -29,6 +29,15 @@ export const experimentRegistry = {
         "交互式 3D 凸透镜成像实验，调节物距与焦距，实时观察特征光线、成像规律与像距变化。",
     },
   },
+  "photoelectric": {
+    loadPage: () => import("@/experiments/photoelectric-page"),
+    loadDetails: () => import("@/experiments/details/photoelectric-details"),
+    metadata: {
+      title: "光电效应 - 交互式物理实验室",
+      description:
+        "交互式 3D 光电效应实验，调节波长、光强与材料，观察光电子逸出、截止电压与饱和光电流的量子规律。",
+    },
+  },
   "wave-mechanics": {
     loadPage: () => import("@/experiments/wave-mechanics-page"),
     loadDetails: () => import("@/experiments/details/wave-mechanics-details"),
