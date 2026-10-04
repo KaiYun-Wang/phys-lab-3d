@@ -248,7 +248,7 @@ export default function WaveMechanicsPage() {
                 className={`py-2 text-xs rounded-lg border ${
                   viewMode === id
                     ? "border-white bg-white/15 text-white"
-                    : "border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
+                    : "border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
                 }`}
               >
                 {label}
@@ -259,7 +259,7 @@ export default function WaveMechanicsPage() {
       )}
 
       <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
           <p className="font-mono text-[11px]">横波：y = A sin(kx − ωt)</p>
           <p className="font-mono text-[11px]">纵波：Δx = A sin(kx − ωt)</p>
           {selectedSide && particleHistory.length > 1 ? (

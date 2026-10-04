@@ -193,21 +193,21 @@ export default function ConvexLensPage() {
       </ControlGroup>
 
       <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
           <p>
-            <strong className="text-[#e8e8f0]">薄透镜成像公式：</strong>
+            <strong className="text-[#dfe2f1]">薄透镜成像公式：</strong>
             1/f = 1/u + 1/v
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">像距：</strong>
+            <strong className="text-[#dfe2f1]">像距：</strong>
             v = uf/(u − f)，虚像时 v 为负，像与物同侧
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">放大率：</strong>
+            <strong className="text-[#dfe2f1]">放大率：</strong>
             m = |v|/u = |h′|/h
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">规律：</strong>
+            <strong className="text-[#dfe2f1]">规律：</strong>
             一倍焦距分虚实，二倍焦距分大小；物近像远像变大。
           </p>
           {statusLine ? <p className="text-[#c4c4ce]">{statusLine}</p> : null}

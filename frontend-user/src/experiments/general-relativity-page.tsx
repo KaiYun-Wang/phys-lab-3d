@@ -293,7 +293,7 @@ export default function GeneralRelativityPage() {
       </ControlGroup>
 
       <ControlGroup title="读数提示">
-        <p className="text-xs text-[#8a8a96] leading-relaxed">
+        <p className="text-xs text-[#8d90a0] leading-relaxed">
           左上角为实时轨道与红移读数。r &lt; 3rs（ISCO）时有质量轨道不稳定；光子路径偏折体现引力透镜。
         </p>
       </ControlGroup>
@@ -312,7 +312,7 @@ export default function GeneralRelativityPage() {
         偏折角: {
           value: (data.deflectionAngle * 180) / Math.PI,
           unit: "°",
-          color: "#e8e8f0",
+          color: "#dfe2f1",
           decimals: 2,
         },
         进动: {

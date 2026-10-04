@@ -4,8 +4,10 @@ export function computeCoverZoom(mediaSize: MediaSize, cropSize: Size): number {
   return Math.max(cropSize.width / mediaSize.width, cropSize.height / mediaSize.height);
 }
 
+/** 封面输出尺寸：与用户端实验卡预览窗的宽扁比例一致（2:1） */
+export const COVER_ASPECT = 2 / 1;
 const OUTPUT_WIDTH = 800;
-const OUTPUT_HEIGHT = 600;
+const OUTPUT_HEIGHT = 400;
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

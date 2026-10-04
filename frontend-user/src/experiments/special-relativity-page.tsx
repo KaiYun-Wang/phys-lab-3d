@@ -132,23 +132,23 @@ export default function SpecialRelativityPage() {
       </ControlGroup>
 
       <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
           <p>
-            <strong className="text-[#e8e8f0]">时间膨胀</strong>
+            <strong className="text-[#dfe2f1]">时间膨胀</strong>
             <span className="font-mono text-[#a855f7]"> Δt′ = γ Δt₀</span>
             {data ? ` · ${data.gamma.toFixed(2)}× 变慢` : ""}
             <br />
             飞船上 1 秒 ≈ 地球上 γ 秒
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">长度收缩</strong>
+            <strong className="text-[#dfe2f1]">长度收缩</strong>
             <span className="font-mono text-[#06d6a0]"> L′ = L₀ / γ</span>
             {data ? ` · ${data.lengthPercent.toFixed(1)}% 原长` : ""}
             <br />
             运动方向长度按 1/γ 收缩
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">相对论质量</strong>
+            <strong className="text-[#dfe2f1]">相对论质量</strong>
             <span className="font-mono text-[#f59e0b]"> m = γ m₀</span>
             {data ? ` · ${data.relativisticMass.toFixed(2)}× 增重` : ""}
             <br />

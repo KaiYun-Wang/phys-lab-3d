@@ -56,7 +56,7 @@ export default function DoubleSlitDetailsPage() {
             ["2012", "单分子实验：观察到单个分子的干涉条纹。"],
           ].map(([year, text]) => (
             <li key={year} className="flex gap-3">
-              <span className="text-[#8a8a96] shrink-0 w-12">{year}</span>
+              <span className="text-[#8d90a0] shrink-0 w-12">{year}</span>
               <span>{text}</span>
             </li>
           ))}

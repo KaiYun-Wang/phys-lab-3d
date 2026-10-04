@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Bell } from "lucide-react";
 import { fetchAnnouncements, type Announcement } from "@/lib/api";
 import AnnouncementDetailModal from "@/components/AnnouncementDetailModal";
 
@@ -62,10 +63,13 @@ export default function AnnouncementMenu() {
       <div className="announcement-menu" ref={rootRef}>
         <button
           type="button"
-          className="sx-eyebrow text-white hover:opacity-80 transition-opacity bg-transparent border-0 cursor-pointer p-0"
+          className={`kh-announce${open ? " is-open" : ""}`}
+          aria-haspopup="dialog"
+          aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >
-          公告
+          <Bell size={16} className="kh-announce__icon" aria-hidden />
+          <span>公告</span>
         </button>
         {open ? (
           <div className="announcement-popover" role="dialog" aria-label="公告">

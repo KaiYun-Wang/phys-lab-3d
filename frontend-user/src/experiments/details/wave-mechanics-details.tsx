@@ -34,22 +34,22 @@ export default function WaveMechanicsDetailsPage() {
       </DetailsSection>
 
       <DetailsSection title="横波与纵波的对比">
-        <div className="overflow-x-auto rounded-xl border border-[#45454f]">
+        <div className="overflow-x-auto rounded-xl border border-[#232838]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#45454f] bg-black/30 text-left">
+              <tr className="border-b border-[#232838] bg-black/30 text-left">
                 <th className="py-2.5 px-4 text-white">对比项</th>
                 <th className="py-2.5 px-4 text-white">横波</th>
                 <th className="py-2.5 px-4 text-white">纵波</th>
               </tr>
             </thead>
-            <tbody className="text-[#e8e8f0]/85">
-              <tr className="border-b border-[#45454f]/60">
+            <tbody className="text-[#dfe2f1]/85">
+              <tr className="border-b border-[#232838]/60">
                 <td className="py-2.5 px-4">振动方向</td>
                 <td className="py-2.5 px-4">⊥ 传播方向</td>
                 <td className="py-2.5 px-4">∥ 传播方向</td>
               </tr>
-              <tr className="border-b border-[#45454f]/60">
+              <tr className="border-b border-[#232838]/60">
                 <td className="py-2.5 px-4">典型实例</td>
                 <td className="py-2.5 px-4">绳波、电磁波</td>
                 <td className="py-2.5 px-4">声波、弹簧疏密波</td>

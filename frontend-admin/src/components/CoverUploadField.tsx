@@ -4,7 +4,7 @@ import { ChangeEvent, useCallback, useEffect, useId, useRef, useState } from "re
 import Cropper, { type Area, type MediaSize, type Size } from "react-easy-crop";
 import { uploadExperimentCover } from "@/lib/api";
 import { resolveCoverUrl } from "@/lib/covers";
-import { computeCoverZoom, cropImageToBlob } from "@/lib/cropImage";
+import { computeCoverZoom, cropImageToBlob, COVER_ASPECT } from "@/lib/cropImage";
 import { useToast } from "@/components/Toast";
 
 type CoverUploadFieldProps = {
@@ -122,7 +122,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
           <img src={previewSrc} alt="" className="cover-upload__img" />
         ) : (
           <div className="cover-upload__placeholder">
-            <span>4:3</span>
+            <span>2:1</span>
             <span className="caption">暂无封面</span>
           </div>
         )}
@@ -138,9 +138,9 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
           {uploading ? "上传中…" : value ? "更换封面" : "上传封面"}
         </button>
         <p className="field-hint">
-          JPG / PNG / WebP，不超过 2MB
+          JPG / PNG / WebP，原图不超过 10MB
           <br />
-          固定 4:3 比例裁剪
+          固定 2:1 裁剪，输出 800 × 400（约 200KB 内）
         </p>
         {error && !imageSrc ? <p className="form-error">{error}</p> : null}
       </div>
@@ -155,14 +155,14 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="heading-sm" id="cover-crop-title">
-              裁剪封面（4:3）
+              裁剪封面（2:1 · 800 × 400）
             </h3>
             <div className="cover-cropper">
               <Cropper
                 image={imageSrc}
                 crop={crop}
                 zoom={zoom}
-                aspect={4 / 3}
+                aspect={COVER_ASPECT}
                 objectFit="cover"
                 minZoom={minZoom}
                 maxZoom={maxZoom}

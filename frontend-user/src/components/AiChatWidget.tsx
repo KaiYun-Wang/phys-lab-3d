@@ -25,6 +25,8 @@ import { SessionHistoryItem } from "@/components/SessionHistoryItem";
 
 const PANEL_W_KEY = "physlab.ai.panel.w";
 const PANEL_H_KEY = "physlab.ai.panel.h";
+/** 悬浮球引导气泡只看一次 */
+const AI_TIP_KEY = "physlab.ai.tipSeen";
 const DEFAULT_W = 380;
 const DEFAULT_H = 560;
 const MIN_W = 300;
@@ -192,7 +194,15 @@ export default function AiChatWidget({
   };
 
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [sessions, setSessions] = useState<AiChatSession[]>([]);
+  /** 悬浮球旁的一次性引导气泡：看过一次就不再出现 */
+  const [showTip, setShowTip] = useState(false);
+  useEffect(() => {
+    try {
+      setShowTip(localStorage.getItem(AI_TIP_KEY) !== "1");
+    } catch {
+      setShowTip(false);
+    }
+  }, []);  const [sessions, setSessions] = useState<AiChatSession[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
   const [examples, setExamples] = useState<AiExampleQuestion[]>([]);
@@ -224,6 +234,11 @@ export default function AiChatWidget({
   );
   const hideOnLogin = pathname === "/login";
   const experimentId = context.experimentId;
+  /** 遥测快照转为可渲染条目 */
+  const telemetryEntries = useMemo(
+    () => Object.entries(contextOverride?.telemetry ?? {}),
+    [contextOverride?.telemetry],
+  );
   const canRefDemos = isRail && experimentId != null;
   // rail 必须等实验 id 到位，否则会误用首页（null）作用域
   const scopeReady = !isRail || experimentId != null;
@@ -611,19 +626,40 @@ export default function AiChatWidget({
   return (
     <>
       {!isRail && (
-        <button
-          type="button"
-          className={`ai-fab${open ? " is-hidden" : ""}`}
-          aria-label="打开 AI 助手"
-          onClick={() => setOpen(true)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-            <circle cx="9" cy="11" r="0.9" fill="currentColor" stroke="none" />
-            <circle cx="12.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
-            <circle cx="16" cy="11" r="0.9" fill="currentColor" stroke="none" />
-          </svg>
-        </button>
+        <>
+          <button
+            type="button"
+            className={`ai-fab${open ? " is-hidden" : ""}`}
+            aria-label="打开 AI 助手"
+            onClick={() => {
+              setOpen(true);
+              setShowTip(false);
+              try {
+                localStorage.setItem(AI_TIP_KEY, "1");
+              } catch {
+                /* 隐私模式下忽略 */
+              }
+            }}
+          >
+            <span className="ai-fab__inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                <circle cx="9" cy="11" r="0.9" fill="currentColor" stroke="none" />
+                <circle cx="12.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
+                <circle cx="16" cy="11" r="0.9" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
+            <span className="ai-fab__ring" aria-hidden />
+          </button>
+
+          {showTip && loggedIn && !open && (
+            <span className="ai-fab-tip" aria-hidden>
+              <span className="ai-fab-tip__ping" />
+              <span className="ai-fab-tip__text">解答任何物理推导与实验参数疑难</span>
+              <span className="ai-fab-tip__tag">PHY-GPT</span>
+            </span>
+          )}
+        </>
       )}
 
       <div
@@ -635,6 +671,33 @@ export default function AiChatWidget({
         aria-hidden={!open && !isRail}
         style={isRail ? undefined : { width: panelW, height: panelH }}
       >
+        {/* 实验页：已挂载的实时遥测上下文 */}
+        {isRail && telemetryEntries.length > 0 && (
+          <div className="ai-telemetry">
+            <span className="ai-telemetry__dot" aria-hidden />
+            <span className="ai-telemetry__label">已挂载实时遥测</span>
+            <span className="ai-telemetry__values">
+              {telemetryEntries.map(([k, v]) => (
+                <span key={k} className="ai-telemetry__chip">
+                  {k}=<b>{v}</b>
+                </span>
+              ))}
+            </span>
+            <button
+              type="button"
+              className="ai-telemetry__quote"
+              title="把当前工况写进输入框"
+              onClick={() => {
+                const line = `当前工况：${telemetryEntries
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join("，")}。请结合该工况`;
+                setDraft((d) => (d.trim() ? `${d}\n${line}` : line));
+              }}
+            >
+              引用数据
+            </button>
+          </div>
+        )}
         {!isRail && (
           <>
             <div className="ai-resize ai-resize--w" title="拖动调整宽度" onPointerDown={onResizePointerDown("w")} />

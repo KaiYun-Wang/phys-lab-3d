@@ -173,7 +173,7 @@ export function SimulationController({
             className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border font-bold text-sm transition-colors flex-shrink-0 ${
               isPlaying
                 ? "border-white text-white bg-white/10"
-                : "border-[#45454f] text-white hover:border-white"
+                : "border-[#232838] text-white hover:border-white"
             }`}
             title={isPlaying ? "Pause" : "Play"}
           >
@@ -183,19 +183,19 @@ export function SimulationController({
           {/* Reset */}
           <button
             onClick={onReset}
-            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-[#45454f] text-white text-sm hover:border-white transition-colors flex-shrink-0"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-[#232838] text-white text-sm hover:border-white transition-colors flex-shrink-0"
             title="Reset"
           >
             🔄
           </button>
 
           {/* Divider */}
-          <div className="w-px h-6 bg-[#45454f] flex-shrink-0" />
+          <div className="w-px h-6 bg-[#232838] flex-shrink-0" />
 
           {/* Time Elapsed */}
           {timeElapsed !== undefined && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[10px] sm:text-xs text-[#8a8a96] hidden sm:inline">{timeLabel}</span>
+              <span className="text-[10px] sm:text-xs text-[#8d90a0] hidden sm:inline">{timeLabel}</span>
               <span className="text-xs sm:text-sm font-mono text-white min-w-16 text-center">
                 {formatTime(timeElapsed)}
               </span>
@@ -203,10 +203,10 @@ export function SimulationController({
           )}
 
           {/* Divider */}
-          {timeElapsed !== undefined && <div className="w-px h-6 bg-[#45454f] flex-shrink-0" />}
+          {timeElapsed !== undefined && <div className="w-px h-6 bg-[#232838] flex-shrink-0" />}
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-            <span className="text-[10px] sm:text-xs text-[#8a8a96] hidden sm:inline">{speedLabel}</span>
+            <span className="text-[10px] sm:text-xs text-[#8d90a0] hidden sm:inline">{speedLabel}</span>
             <input
               type="range"
               min="0.1"
@@ -214,7 +214,7 @@ export function SimulationController({
               step="0.1"
               value={speed}
               onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-              className="w-full h-2 bg-[#45454f] rounded-full appearance-none cursor-pointer touch-none"
+              className="w-full h-2 bg-[#232838] rounded-full appearance-none cursor-pointer touch-none"
               style={{ accentColor: "#ffffff" }}
             />
             <span className="text-xs font-mono text-white min-w-10 text-center flex-shrink-0">

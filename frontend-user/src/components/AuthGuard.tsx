@@ -57,8 +57,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="sx-eyebrow text-[#8a8a96]">加载中…</p>
+      <div className="min-h-screen bg-[var(--sx-void)] flex items-center justify-center">
+        <p className="sx-eyebrow text-[#8d90a0]">加载中…</p>
       </div>
     );
   }

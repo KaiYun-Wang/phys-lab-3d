@@ -24,6 +24,11 @@ interface BernoulliVenturiSceneProps {
   isPlaying?: boolean;
   simulationSpeed?: number;
   resetTrigger?: number;
+  /**
+   * 单帧步进信号：每次自增即让场景推进一个固定时间步（1/60 s）。
+   * 与 isPlaying 独立 —— 暂停状态下也能逐帧观察。
+   */
+  stepSignal?: number;
   onDataChange?: (data: BernoulliData) => void;
 }
 
@@ -138,6 +143,7 @@ export function BernoulliVenturiSceneComponent({
   isPlaying = true,
   simulationSpeed = 1,
   resetTrigger = 0,
+  stepSignal = 0,
   onDataChange,
 }: BernoulliVenturiSceneProps) {
   const rho = FLUID_DENSITIES[fluid];
@@ -198,8 +204,13 @@ export function BernoulliVenturiSceneComponent({
   );
 
   const particleRef = useRef<THREE.InstancedMesh>(null);
+  /** 已消费到的单帧步进信号值；初值取当前 prop，避免挂载时误触发一步 */
+  const consumedStep = useRef(stepSignal);
   const leftLiquidRef = useRef<THREE.Mesh>(null);
   const rightLiquidRef = useRef<THREE.Mesh>(null);
+  /** 液面弯月高光，跟随液柱高度 */
+  const leftMeniscusRef = useRef<THREE.Mesh>(null);
+  const rightMeniscusRef = useRef<THREE.Mesh>(null);
   const leftConnectorRef = useRef<THREE.Mesh>(null);
   const rightConnectorRef = useRef<THREE.Mesh>(null);
   const deltaLabelRef = useRef<THREE.Sprite>(null);
@@ -244,7 +255,15 @@ export function BernoulliVenturiSceneComponent({
   }, [fluid]);
 
   useFrame((_, delta) => {
-    const dt = Math.min(delta, 0.033) * simulationSpeed;
+    // 单帧步进：stepSignal 变化时推进一个固定时间步（1/60 s），与播放状态无关
+    const stepped = stepSignal !== consumedStep.current;
+    if (stepped) consumedStep.current = stepSignal;
+
+    const dt = stepped
+      ? (1 / 60) * simulationSpeed
+      : isPlaying
+        ? Math.min(delta, 0.033) * simulationSpeed
+        : 0;
 
     currentHeights.current.left = lerp(
       currentHeights.current.left,
@@ -266,6 +285,13 @@ export function BernoulliVenturiSceneComponent({
       const h = currentHeights.current.right;
       rightLiquidRef.current.scale.set(1, h, 1);
       rightLiquidRef.current.position.y = h / 2;
+    }
+    // 弯月面贴在液柱顶端
+    if (leftMeniscusRef.current) {
+      leftMeniscusRef.current.position.y = currentHeights.current.left;
+    }
+    if (rightMeniscusRef.current) {
+      rightMeniscusRef.current.position.y = currentHeights.current.right;
     }
     if (leftConnectorRef.current) {
       const h = currentHeights.current.left;
@@ -305,7 +331,7 @@ export function BernoulliVenturiSceneComponent({
       deltaLabelRef.current.position.set(5.9, (hL_world + hR_world) / 2, 0);
     }
 
-    if (particleRef.current && isPlaying) {
+    if (particleRef.current && (isPlaying || stepped)) {
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const p = particles[i];
         p.t +=
@@ -354,7 +380,8 @@ export function BernoulliVenturiSceneComponent({
     const positions = new Float32Array(12);
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     const material = new THREE.LineDashedMaterial({
-      color: "#f87171",
+      // 设计稿中 ΔP 标注为琥珀色动能高亮
+      color: "#f59e0b",
       dashSize: 0.3,
       gapSize: 0.15,
       scale: 1,
@@ -393,6 +420,31 @@ export function BernoulliVenturiSceneComponent({
             <mesh position={[0, 3, 0]} material={glassMat}>
               <cylinderGeometry args={[0.5, 0.5, 6, 24]} />
             </mesh>
+
+            {/* 玻璃管刻度：右侧 5 道短横线 */}
+            {[1, 2, 3, 4, 5].map((tick) => (
+              <mesh key={tick} position={[0.46, tick, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <boxGeometry args={[0.02, tick === 3 ? 0.34 : 0.2, 0.02]} />
+                <meshBasicMaterial color={isLeft ? "#7dd3fc" : "#c4b5fd"} transparent opacity={tick === 3 ? 0.85 : 0.5} />
+              </mesh>
+            ))}
+
+            {/* 液面弯月高光 */}
+            <mesh
+              ref={isLeft ? leftMeniscusRef : rightMeniscusRef}
+              position={[0, 0, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
+            >
+              <ringGeometry args={[0.24, 0.38, 28]} />
+              <meshBasicMaterial
+                color="#e0f2fe"
+                transparent
+                opacity={0.9}
+                side={THREE.DoubleSide}
+                depthWrite={false}
+              />
+            </mesh>
+
             <mesh
               ref={isLeft ? leftLiquidRef : rightLiquidRef}
               position={[0, 0.5, 0]}

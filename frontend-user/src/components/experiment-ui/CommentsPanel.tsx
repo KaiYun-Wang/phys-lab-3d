@@ -4,15 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   API_BASE,
+  addCommentReaction,
   createComment,
   deleteComment,
   fetchComments,
   fetchMe,
-  likeComment,
-  unlikeComment,
+  removeCommentReaction,
   type Comment,
+  type CommentReaction,
+  type CommentSort,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
+import { Flame, Lightbulb, Star, ThumbsUp } from "lucide-react";
 
 type Filter = "all" | "mine";
 
@@ -37,6 +40,36 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString("zh-CN");
 }
 
+function hasReaction(c: Comment, type: CommentReaction) {
+  if (c.myReactions?.length) return c.myReactions.includes(type);
+  // 回退：旧数据只有 liked 标记，语义等同 HELPFUL
+  return type === "HELPFUL" && !!c.liked;
+}
+
+/** 乐观更新：切换某个反应并同步计数 */
+function patchReaction(item: Comment, id: number, type: CommentReaction, on: boolean): Comment {
+  if (item.id === id) {
+    const current = new Set<CommentReaction>(item.myReactions ?? (item.liked ? ["HELPFUL"] : []));
+    if (on) current.add(type);
+    else current.delete(type);
+
+    const helpful = item.helpfulCount ?? item.likeCount ?? 0;
+    const inspire = item.inspireCount ?? 0;
+    return {
+      ...item,
+      myReactions: [...current],
+      liked: current.has("HELPFUL"),
+      helpfulCount: Math.max(0, helpful + (type === "HELPFUL" ? (on ? 1 : -1) : 0)),
+      inspireCount: Math.max(0, inspire + (type === "INSPIRE" ? (on ? 1 : -1) : 0)),
+      likeCount: Math.max(0, helpful + (type === "HELPFUL" ? (on ? 1 : -1) : 0)),
+    };
+  }
+  return {
+    ...item,
+    replies: item.replies?.map((r) => patchReaction(r, id, type, on)),
+  };
+}
+
 export function CommentsPanel({
   experimentId,
   onCountChange,
@@ -46,7 +79,9 @@ export function CommentsPanel({
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<CommentSort>("hot");
   const [comments, setComments] = useState<Comment[]>([]);
+  const [featuredCount, setFeaturedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
@@ -66,15 +101,16 @@ export function CommentsPanel({
     setLoading(true);
     setError("");
     try {
-      const data = await fetchComments(experimentId, { filter, page: 1, size: 50 });
+      const data = await fetchComments(experimentId, { filter, sort, page: 1, size: 50 });
       setComments(data.records ?? []);
+      setFeaturedCount(data.featuredCount ?? 0);
     } catch (err) {
       setComments([]);
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
-  }, [experimentId, filter]);
+  }, [experimentId, filter, sort]);
 
   useEffect(() => {
     load();
@@ -112,18 +148,18 @@ export function CommentsPanel({
     }
   };
 
-  const handleLike = async (c: Comment) => {
+  const handleReact = async (c: Comment, type: CommentReaction) => {
     if (!loggedIn) {
       requireLogin();
       return;
     }
-    const liked = !!c.liked;
-    setComments((prev) => prev.map((item) => patchLike(item, c.id, !liked)));
+    const on = !hasReaction(c, type);
+    setComments((prev) => prev.map((item) => patchReaction(item, c.id, type, on)));
     try {
-      if (liked) await unlikeComment(experimentId, c.id);
-      else await likeComment(experimentId, c.id);
+      if (on) await addCommentReaction(experimentId, c.id, type);
+      else await removeCommentReaction(experimentId, c.id, type);
     } catch {
-      setComments((prev) => prev.map((item) => patchLike(item, c.id, liked)));
+      setComments((prev) => prev.map((item) => patchReaction(item, c.id, type, !on)));
     }
   };
 
@@ -142,6 +178,34 @@ export function CommentsPanel({
 
   return (
     <div className="exp-comments">
+      <div className="exp-comments-sortbar">
+        <div className="exp-sort-group" role="group" aria-label="排序">
+          <button
+            type="button"
+            className={`exp-sort-btn${sort === "hot" ? " is-on" : ""}`}
+            aria-pressed={sort === "hot"}
+            onClick={() => setSort("hot")}
+          >
+            <Flame size={12} aria-hidden />
+            最热
+          </button>
+          <button
+            type="button"
+            className={`exp-sort-btn${sort === "new" ? " is-on" : ""}`}
+            aria-pressed={sort === "new"}
+            onClick={() => setSort("new")}
+          >
+            最新
+          </button>
+        </div>
+
+        {featuredCount > 0 && (
+          <span className="exp-featured-count">
+            已精选 {featuredCount} 条高质量回答
+          </span>
+        )}
+      </div>
+
       <div className="exp-comments-tabs">
         {(
           [
@@ -174,7 +238,7 @@ export function CommentsPanel({
               comment={c}
               myId={myId}
               onReply={setReplyTo}
-              onLike={handleLike}
+              onReact={handleReact}
               onDelete={handleDelete}
             />
           ))
@@ -194,7 +258,9 @@ export function CommentsPanel({
           <textarea
             rows={3}
             value={draft}
-            placeholder={loggedIn ? "写下你的想法、提问或建议…" : "登录后即可评论…"}
+            placeholder={
+              loggedIn ? "记录实验心得、讨论推导异常或提出疑问…" : "登录后即可评论…"
+            }
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -205,14 +271,14 @@ export function CommentsPanel({
             maxLength={1000}
           />
           <div className="exp-composer-foot">
-            <span className="exp-composer-hint">Ctrl + Enter 发送</span>
+            <span className="exp-composer-hint">Ctrl + Enter 快速提交</span>
             <button
               type="button"
               className="exp-btn-send"
               disabled={!draft.trim() || sending}
               onClick={handleSend}
             >
-              {sending ? "…" : "发送"}
+              {sending ? "…" : "发布心得"}
             </button>
           </div>
         </div>
@@ -221,41 +287,33 @@ export function CommentsPanel({
   );
 }
 
-function patchLike(item: Comment, id: number, liked: boolean): Comment {
-  if (item.id === id) {
-    return {
-      ...item,
-      liked,
-      likeCount: Math.max(0, (item.likeCount ?? 0) + (liked ? 1 : -1)),
-    };
-  }
-  return {
-    ...item,
-    replies: item.replies?.map((r) => patchLike(r, id, liked)),
-  };
-}
-
 function Thread({
   comment,
   myId,
   onReply,
-  onLike,
+  onReact,
   onDelete,
   isReply,
 }: {
   comment: Comment;
   myId: number | null;
   onReply: (c: Comment) => void;
-  onLike: (c: Comment) => void;
+  onReact: (c: Comment, type: CommentReaction) => void;
   onDelete: (c: Comment) => void;
   isReply?: boolean;
 }) {
   const src = avatarSrc(comment.avatarUrl);
   const isAdmin = comment.ownerType === 1;
-  const canDelete =
-    myId != null && comment.ownerType === 0 && comment.ownerId === myId;
+  const canDelete = myId != null && comment.ownerType === 0 && comment.ownerId === myId;
+  const helpful = comment.helpfulCount ?? comment.likeCount ?? 0;
+  const inspire = comment.inspireCount ?? 0;
+
   return (
-    <article className={`exp-thread${isReply ? " reply" : ""}${isAdmin ? " official" : ""}`}>
+    <article
+      className={`exp-thread${isReply ? " reply" : ""}${isAdmin ? " official" : ""}${
+        comment.featured ? " is-featured" : ""
+      }`}
+    >
       <div className="exp-thread-head">
         <div className={`exp-avatar${isAdmin ? " official" : ""}`}>
           {src ? (
@@ -269,29 +327,55 @@ function Thread({
           <div className="name">
             {comment.nickname || (isAdmin ? "管理员" : "用户")}
             {isAdmin ? <span className="exp-official-tag">官方</span> : null}
+            {comment.featured ? (
+              <span className="exp-featured-badge">
+                <Star size={9} fill="currentColor" aria-hidden />
+                精选
+              </span>
+            ) : null}
           </div>
           <div className="time">{timeAgo(comment.createTime)}</div>
         </div>
       </div>
+
       <p className="exp-thread-body">
         {comment.replyToNickname ? (
           <span className="exp-reply-at">@{comment.replyToNickname} </span>
         ) : null}
         {comment.content}
       </p>
+
       <div className="exp-thread-actions">
-        <button type="button" onClick={() => onReply(comment)}>
+        <button
+          type="button"
+          className={`exp-react-btn${hasReaction(comment, "HELPFUL") ? " is-on" : ""}`}
+          aria-pressed={hasReaction(comment, "HELPFUL")}
+          onClick={() => onReact(comment, "HELPFUL")}
+        >
+          <ThumbsUp size={11} aria-hidden />
+          有帮助
+          <span className="exp-react-count">{helpful}</span>
+        </button>
+        <button
+          type="button"
+          className={`exp-react-btn inspire${hasReaction(comment, "INSPIRE") ? " is-on" : ""}`}
+          aria-pressed={hasReaction(comment, "INSPIRE")}
+          onClick={() => onReact(comment, "INSPIRE")}
+        >
+          <Lightbulb size={11} aria-hidden />
+          启发思路
+          <span className="exp-react-count">{inspire}</span>
+        </button>
+        <button type="button" className="exp-react-reply" onClick={() => onReply(comment)}>
           回复
         </button>
-        <button type="button" onClick={() => onLike(comment)}>
-          {comment.liked ? "已赞" : "有帮助"} · {comment.likeCount ?? 0}
-        </button>
         {canDelete && (
-          <button type="button" onClick={() => onDelete(comment)}>
+          <button type="button" className="exp-react-delete" onClick={() => onDelete(comment)}>
             删除
           </button>
         )}
       </div>
+
       {!isReply && (comment.replies?.length ?? 0) > 0 && (
         <div className="exp-replies">
           {comment.replies!.map((r) => (
@@ -301,7 +385,7 @@ function Thread({
               myId={myId}
               isReply
               onReply={onReply}
-              onLike={onLike}
+              onReact={onReact}
               onDelete={onDelete}
             />
           ))}

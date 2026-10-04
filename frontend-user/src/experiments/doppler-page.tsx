@@ -166,7 +166,7 @@ export default function DopplerPage() {
 
       <ControlGroup title="声源运动">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-[#e8e8f0]/90">模式</span>
+          <span className="text-sm font-medium text-[#dfe2f1]/90">模式</span>
           <div className="flex gap-2" data-demo-id="autoOscillate">
             <button
               onClick={() => {
@@ -176,7 +176,7 @@ export default function DopplerPage() {
               className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
                 autoOscillate
                   ? "border-white bg-white/15 text-white"
-                  : "border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
+                  : "border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
               }`}
             >
               自动
@@ -189,7 +189,7 @@ export default function DopplerPage() {
               className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
                 !autoOscillate
                   ? "border-white bg-white/15 text-white"
-                  : "border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
+                  : "border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
               }`}
             >
               手动
@@ -200,7 +200,7 @@ export default function DopplerPage() {
         {!autoOscillate && (
           <div className="mb-3 sx-note-box">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#8a8a96]">方向</span>
+              <span className="text-xs text-[#8d90a0]">方向</span>
               <span className="text-xs font-mono text-white">
                 {sourceDirection > 0.1 ? "→ 向右" : sourceDirection < -0.1 ? "← 向左" : "● 静止"}
               </span>
@@ -253,11 +253,11 @@ export default function DopplerPage() {
       </ControlGroup>
 
       <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
           {data ? (
             <>
               <p>
-                <strong className="text-[#e8e8f0]">频移类型：</strong>
+                <strong className="text-[#dfe2f1]">频移类型：</strong>
                 <span
                   className={
                     data.shiftType === "blueshift"

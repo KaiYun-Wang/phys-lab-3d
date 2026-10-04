@@ -264,25 +264,25 @@ export default function PhotoelectricPage() {
       </ControlGroup>
 
       <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
           <p>
-            <strong className="text-[#e8e8f0]">光子能量：</strong>
+            <strong className="text-[#dfe2f1]">光子能量：</strong>
             E = hν = 1239.84 / λ（eV·nm）
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">光电方程：</strong>
+            <strong className="text-[#dfe2f1]">光电方程：</strong>
             Kmax = E − φ，只有 E &gt; φ 才能逸出光电子
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">截止电压：</strong>
+            <strong className="text-[#dfe2f1]">截止电压：</strong>
             eUc = Kmax，反向电压达到 Uc 时光电流为零
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">极限波长：</strong>
+            <strong className="text-[#dfe2f1]">极限波长：</strong>
             λ₀ = 1239.84 / φ，λ &gt; λ₀ 时无论光强多大都无逸出
           </p>
           <p>
-            <strong className="text-[#e8e8f0]">饱和电流：</strong>
+            <strong className="text-[#dfe2f1]">饱和电流：</strong>
             与光强成正比，与电压无关（正向电压下）
           </p>
           {statusLine ? <p className="text-[#c4c4ce]">{statusLine}</p> : null}

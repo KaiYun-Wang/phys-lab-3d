@@ -68,6 +68,18 @@ export type UserProfile = {
   username: string;
   nickname: string;
   avatarUrl: string | null;
+  /** 个性签名 / 研学方向 */
+  bio?: string | null;
+  /** 绑定学术邮箱 */
+  academicEmail?: string | null;
+  /** 学术邮箱是否已验证（验证流程待审批后实现） */
+  emailVerified?: boolean;
+  /** 学术头衔 */
+  roleTitle?: string | null;
+  /** 系统权限层级 */
+  permissionLevel?: string | null;
+  /** 最近登录时间 */
+  lastLoginTime?: string | null;
 };
 
 export type LoginResponse = {
@@ -121,10 +133,15 @@ export function register(username: string, password: string) {
   );
 }
 
-export function login(username: string, password: string) {
+/**
+ * 登录。
+ * `rememberMe` 目前由后端忽略（JWT 固定 24h），传上去是为了对接后端
+ * 新增的「保持登录 7 天」TTL 逻辑；Spring 默认忽略未知属性，因此向后兼容。
+ */
+export function login(username: string, password: string, rememberMe = false) {
   return apiFetch<LoginResponse>(
     "/api/auth/login",
-    { method: "POST", body: JSON.stringify({ username, password }) },
+    { method: "POST", body: JSON.stringify({ username, password, rememberMe }) },
     false,
   );
 }
@@ -133,10 +150,17 @@ export function fetchMe() {
   return apiFetch<UserProfile>("/api/users/me");
 }
 
-export function updateProfile(nickname: string) {
+/** 学术档案字段：仅传需要修改的项（nickname 必传，后端为部分更新语义）。 */
+export type ProfilePatch = {
+  nickname: string;
+  bio?: string;
+  academicEmail?: string;
+};
+
+export function updateProfile(patch: ProfilePatch) {
   return apiFetch<UserProfile>("/api/users/me", {
     method: "PATCH",
-    body: JSON.stringify({ nickname }),
+    body: JSON.stringify(patch),
   });
 }
 
@@ -178,6 +202,8 @@ export function removeFavorite(experimentId: number) {
   return apiFetch<void>(`/api/users/me/favorites/${experimentId}`, { method: "DELETE" });
 }
 
+export type CommentReaction = "HELPFUL" | "INSPIRE";
+
 export type Comment = {
   id: number;
   experimentId: number;
@@ -192,8 +218,17 @@ export type Comment = {
   replyToOwnerType?: number | null;
   replyToNickname?: string | null;
   content: string;
+  /** 历史点赞总数（等价 helpfulCount） */
   likeCount: number;
+  /** 👍 有帮助 */
+  helpfulCount?: number;
+  /** 💡 启发思路 */
+  inspireCount?: number;
+  /** 当前用户已给出的反应 */
+  myReactions?: CommentReaction[];
   liked?: boolean;
+  /** 管理员精选 */
+  featured?: boolean;
   createTime: string;
   replies?: Comment[];
 };
@@ -203,14 +238,19 @@ export type CommentPage = {
   total: number;
   page: number;
   pageSize: number;
+  /** 该实验被精选的可见评论条数 */
+  featuredCount?: number;
 };
+
+export type CommentSort = "new" | "hot";
 
 export function fetchComments(
   experimentId: number,
-  opts: { filter?: string; page?: number; size?: number } = {},
+  opts: { filter?: string; sort?: CommentSort; page?: number; size?: number } = {},
 ) {
   const params = new URLSearchParams();
   if (opts.filter) params.set("filter", opts.filter);
+  params.set("sort", opts.sort ?? "new");
   params.set("page", String(opts.page ?? 1));
   params.set("size", String(opts.size ?? 20));
   return apiFetch<CommentPage>(
@@ -235,6 +275,58 @@ export function deleteComment(experimentId: number, commentId: number) {
     method: "DELETE",
   });
 }
+
+/**
+ * 👍 有帮助 / 💡 启发思路（幂等）。
+ *
+ * 灰度兼容：后端尚未部署反应接口时（404/405），HELPFUL 回退到旧的点赞接口，
+ * 保证前端可以先上线。INSPIRE 无旧接口可退，按失败处理由调用方回滚。
+ */
+export async function addCommentReaction(
+  experimentId: number,
+  commentId: number,
+  type: CommentReaction,
+) {
+  try {
+    await apiFetch<void>(
+      `/api/experiments/${experimentId}/comments/${commentId}/reactions/${type}`,
+      { method: "POST" },
+    );
+  } catch (e) {
+    if (type === "HELPFUL" && isEndpointMissing(e)) {
+      await likeComment(experimentId, commentId);
+      return;
+    }
+    throw e;
+  }
+}
+
+export async function removeCommentReaction(
+  experimentId: number,
+  commentId: number,
+  type: CommentReaction,
+) {
+  try {
+    await apiFetch<void>(
+      `/api/experiments/${experimentId}/comments/${commentId}/reactions/${type}`,
+      { method: "DELETE" },
+    );
+  } catch (e) {
+    if (type === "HELPFUL" && isEndpointMissing(e)) {
+      await unlikeComment(experimentId, commentId);
+      return;
+    }
+    throw e;
+  }
+}
+
+/** 旧后端没有该路由时抛出的错误特征 */
+function isEndpointMissing(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : "";
+  return /404|not\s*found|不存在|请求失败/i.test(msg);
+}
+
+/* ── 兼容旧「点赞」接口（等价 HELPFUL 反应） ── */
 
 export function likeComment(experimentId: number, commentId: number) {
   return apiFetch<void>(`/api/experiments/${experimentId}/comments/${commentId}/likes`, {
@@ -272,6 +364,11 @@ export type AiChatContext = {
   experimentRoute?: string;
   /** 用户在输入区勾选引用的演示 id */
   referencedDemoIds?: number[];
+  /**
+   * 当前工况的实时遥测快照（如 { v₁: "2.0 m/s", "A₂/A₁": 0.5 }）。
+   * 会随提问一起落到 ai_chat_messages.context，供助手结合工况推导。
+   */
+  telemetry?: Record<string, string | number>;
 };
 
 export type AiChatSession = {

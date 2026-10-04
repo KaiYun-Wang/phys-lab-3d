@@ -5,15 +5,20 @@ import { ReactNode, useRef, useState } from "react";
 export interface ControlGroupProps {
   title: string;
   children: ReactNode;
+  /** 右侧状态胶囊，如「实时计算就绪」「动态同步」 */
+  status?: string;
 }
 
 /**
  * Grouped controls section
  */
-export function ControlGroup({ title, children }: ControlGroupProps) {
+export function ControlGroup({ title, children, status }: ControlGroupProps) {
   return (
-    <div className="mb-5 last:mb-0">
-      <h3 className="sx-control-group-title">{title}</h3>
+    <div className="sx-control-group">
+      <div className="sx-control-group-head">
+        <h3 className="sx-control-group-title">{title}</h3>
+        {status && <span className="sx-control-group-status">{status}</span>}
+      </div>
       <div className="sx-control-stack">{children}</div>
     </div>
   );
@@ -37,7 +42,7 @@ export function ControlItem({ label, value, unit, color = "#a855f7" }: ControlIt
       <span className="text-sm">{label}</span>
       <span className="text-sm font-mono font-bold" style={{ color }}>
         {displayValue}
-        {unit && <span className="text-xs text-[#8a8a96] ml-1">{unit}</span>}
+        {unit && <span className="text-xs text-[#8d90a0] ml-1">{unit}</span>}
       </span>
     </div>
   );
@@ -58,6 +63,10 @@ export interface ControlSliderProps {
   trackBackground?: string;
   /** AI 演示高亮目标，对应 data-demo-id */
   demoId?: string;
+  /** 滑轨下方的等分刻度标注，如 ["0.20 (细喉管)", "0.50", "1.00 (等径)"] */
+  tickLabels?: string[];
+  /** 快捷档位按钮，如 [{label:"2.0 (标态)", value:2}] */
+  presets?: { label: string; value: number }[];
 }
 
 /** 对齐到步长并消除浮点尾差 */
@@ -83,6 +92,8 @@ export function ControlSlider({
   disabled = false,
   trackBackground,
   demoId,
+  tickLabels,
+  presets,
 }: ControlSliderProps) {
   const displayText = decimals === 0 ? value.toFixed(0) : value.toFixed(decimals);
   /** 编辑中的文本；null 表示未编辑，直接显示实时值 */
@@ -114,7 +125,7 @@ export function ControlSlider({
       data-demo-id={demoId || undefined}
     >
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[#e8e8f0]/90">{label}</span>
+        <span className="text-[#dfe2f1]/90">{label}</span>
         <span className="flex items-baseline">
           <input
             type="text"
@@ -143,7 +154,7 @@ export function ControlSlider({
             className="w-16 rounded border border-transparent bg-transparent px-1 text-right font-mono text-xs outline-none transition-colors hover:border-white/15 hover:bg-white/5 focus:border-current focus:bg-white/5 disabled:cursor-not-allowed"
             style={{ color }}
           />
-          {unit && <span className="ml-1 text-xs text-[#8a8a96]">{unit}</span>}
+          {unit && <span className="ml-1 text-xs text-[#8d90a0]">{unit}</span>}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -164,7 +175,7 @@ export function ControlSlider({
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           disabled={disabled}
-          className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-[#45454f] disabled:cursor-not-allowed disabled:opacity-50 touch-none"
+          className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-[#232838] disabled:cursor-not-allowed disabled:opacity-50 touch-none"
           style={{ accentColor: color, ...(trackBackground ? { background: trackBackground } : null) }}
         />
         <button
@@ -177,6 +188,34 @@ export function ControlSlider({
           +
         </button>
       </div>
+
+      {tickLabels && tickLabels.length > 0 && (
+        <div className="sx-control-ticks">
+          {tickLabels.map((t) => (
+            <span key={t}>{t}</span>
+          ))}
+        </div>
+      )}
+
+      {presets && presets.length > 0 && (
+        <div className="sx-control-presets">
+          {presets.map((p) => {
+            const on = Math.abs(p.value - value) < 1e-9;
+            return (
+              <button
+                key={p.label}
+                type="button"
+                className={`sx-control-preset${on ? " is-on" : ""}`}
+                disabled={disabled}
+                aria-pressed={on}
+                onClick={() => onChange(snapToStep(p.value, min, max, step))}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -201,12 +240,12 @@ export function DataGrid({ data, columns = 1 }: DataGridProps) {
     <div className={`grid ${colClasses[columns] || "grid-cols-1"} gap-2`}>
       {Object.entries(data).map(([key, item]) => (
         <div key={key} className="sx-data-cell">
-          <span className="text-xs text-[#e8e8f0]/80 capitalize">
+          <span className="text-xs text-[#dfe2f1]/80 capitalize">
             {key.replace(/([A-Z])/g, " $1").trim()}
           </span>
           <span
             className="text-xs font-mono font-medium"
-            style={{ color: item.color || "#e8e8f0" }}
+            style={{ color: item.color || "#dfe2f1" }}
           >
             {item.value.toFixed(item.decimals ?? 2)} {item.unit}
           </span>
@@ -227,7 +266,7 @@ export interface HudReadingsProps {
   data: Record<string, HudReading>;
 }
 
-/** 场景左上角玻璃风实时读数（无卡片）。 */
+/** 场景左上角浮空实时读数（无卡片、无标题，保持原生叠加效果）。 */
 export function HudReadings({ data }: HudReadingsProps) {
   return (
     <div className="exp-hud" data-demo-id="readings">
@@ -343,7 +382,7 @@ export function ControlDropdown<T extends string = string>({
   return (
     <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`}>
       <div className="flex justify-between text-xs">
-        <span className="text-[#e8e8f0]/90">{label}</span>
+        <span className="text-[#dfe2f1]/90">{label}</span>
       </div>
       <div className="relative">
         <button
@@ -358,7 +397,7 @@ export function ControlDropdown<T extends string = string>({
               {selectedOption?.label || value}
             </span>
           </span>
-          <span className="text-[#8a8a96]">{isOpen ? "▲" : "▼"}</span>
+          <span className="text-[#8d90a0]">{isOpen ? "▲" : "▼"}</span>
         </button>
 
         {isOpen && (
@@ -556,7 +595,7 @@ export function ControlPresetButtons({
   return (
     <div className="mt-2 space-y-2" data-demo-id={demoId || undefined}>
       <div className="flex justify-between text-sm">
-        <span className="text-[#e8e8f0]/90">{label}</span>
+        <span className="text-[#dfe2f1]/90">{label}</span>
         <span className="font-mono text-white">
           {displayValue ? displayValue(value) : String(value)}
         </span>
@@ -570,7 +609,7 @@ export function ControlPresetButtons({
               px-2 py-1 text-xs rounded-md border transition-all
               ${isActive(preset.value)
                 ? "bg-white/15 border-white text-white"
-                : "bg-black/25 border-[#45454f] text-[#8a8a96] hover:border-[#62626e] hover:text-white"
+                : "bg-black/25 border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
               }
             `}
           >
@@ -604,14 +643,14 @@ export function ControlProgressBar({
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
-        <span className="text-[#e8e8f0]/90">{label}</span>
+        <span className="text-[#dfe2f1]/90">{label}</span>
         {showPercentage && (
           <span className="font-mono text-xs" style={{ color }}>
             {percentage}%
           </span>
         )}
       </div>
-      <div className="h-2 bg-[#45454f] rounded-full overflow-hidden">
+      <div className="h-2 bg-[#232838] rounded-full overflow-hidden">
         <div
           className="h-full transition-all duration-300 rounded-full"
           style={{

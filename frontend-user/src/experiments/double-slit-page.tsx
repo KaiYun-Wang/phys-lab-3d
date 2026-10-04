@@ -183,14 +183,14 @@ export default function DoubleSlitPage() {
       </ControlGroup>
 
       <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8a8a96] leading-relaxed">
+        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
           <p>
-            <strong className="text-[#e8e8f0]">波粒二象性：</strong>
+            <strong className="text-[#dfe2f1]">波粒二象性：</strong>
             {observerMode
               ? "开启观测时，粒子逐个通过狭缝——波函数坍缩为粒子行为。"
               : "无观测时，每个粒子同时处于通过两缝的叠加态——形成波干涉条纹。"}
           </p>
-          <p className="font-mono text-[11px] text-[#62626e]">
+          <p className="font-mono text-[11px] text-[#3a4256]">
             I(y) = cos²(π·d·y/λ·L) · sinc²(π·a·y/λ·L)
           </p>
         </div>

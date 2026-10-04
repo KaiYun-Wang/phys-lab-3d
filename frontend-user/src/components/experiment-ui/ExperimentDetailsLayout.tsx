@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
+import { ArrowLeft, Play } from "lucide-react";
+import { BrandLockup } from "@/components/BrandLogo";
 
 export interface ExperimentDetailsLayoutProps {
   title: string;
@@ -9,31 +11,53 @@ export interface ExperimentDetailsLayoutProps {
 
 export function ExperimentDetailsLayout({ title, backHref, children }: ExperimentDetailsLayoutProps) {
   return (
-    <main className="min-h-screen w-full bg-black">
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-[#45454f]">
-        <div className="page-shell flex items-center justify-between gap-4 py-4">
-          <div className="min-w-0">
-            <h1 className="sx-display text-lg sm:text-xl truncate">{title}</h1>
-            <p className="sx-eyebrow text-[#8a8a96] mt-1">实验详情</p>
-          </div>
-          <Link href={backHref} className="btn-ghost !min-h-[40px] !py-2 !px-4 !text-[11px] shrink-0">
-            ← 返回实验
+    <main className="exp-details">
+      <header className="exp-details__header">
+        <div className="page-shell exp-details__bar">
+          <BrandLockup href="/" size={26} showTagline={false} />
+
+          <nav className="exp-details__crumb" aria-label="位置">
+            <Link href="/" className="exp-details__crumb-link">
+              实验大厅
+            </Link>
+            <span className="exp-details__crumb-sep" aria-hidden>
+              ›
+            </span>
+            <Link href={backHref} className="exp-details__crumb-link">
+              {title}
+            </Link>
+            <span className="exp-details__crumb-sep" aria-hidden>
+              ›
+            </span>
+            <span className="exp-details__crumb-here">实验详情</span>
+          </nav>
+
+          <Link href={backHref} className="exp-details__back">
+            <ArrowLeft size={14} aria-hidden />
+            返回实验
           </Link>
         </div>
       </header>
 
-      <div className="page-shell py-6 sm:py-8 space-y-5 sm:space-y-6 pb-12">
+      <div className="page-shell exp-details__body">
+        <h1 className="exp-details__title">{title}</h1>
+        <p className="exp-details__subtitle">
+          原理推导、核心公式与操作说明
+        </p>
         {children}
       </div>
     </main>
   );
 }
 
+/** 章节：序号由 CSS 计数器自动生成（01 / 02 …），无需逐页传参 */
 export function DetailsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="sx-section">
-      <h2 className="sx-display text-base sm:text-lg mb-4">{title}</h2>
-      <div className="text-sm text-[#e8e8f0]/85 leading-relaxed space-y-3">{children}</div>
+    <section className="exp-details-section">
+      <header className="exp-details-section__head">
+        <h2>{title}</h2>
+      </header>
+      <div className="exp-details-section__body">{children}</div>
     </section>
   );
 }
@@ -48,20 +72,21 @@ export function DetailsFormulaCard({
   description?: string;
 }) {
   return (
-    <div className="sx-details-formula">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
-        <span className="text-sm font-bold text-white">{label}</span>
+    <div className="exp-details-formula">
+      <div className="exp-details-formula__row">
+        <span className="exp-details-formula__label">{label}</span>
         <code>{formula}</code>
       </div>
-      {description && <p className="text-xs text-[#8a8a96]">{description}</p>}
+      {description && <p className="exp-details-formula__desc">{description}</p>}
     </div>
   );
 }
 
 export function DetailsLaunchButton({ href, label = "启动实验" }: { href: string; label?: string }) {
   return (
-    <div className="flex justify-center pt-2">
-      <Link href={href} className="btn-ghost !min-h-[48px] !px-8 !text-sm">
+    <div className="exp-details__launch">
+      <Link href={href} className="btn-primary kh-press">
+        <Play size={16} aria-hidden />
         {label}
       </Link>
     </div>
