@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { TransverseWave } from "./wave-mechanics/transverse-wave";
 import { LongitudinalWave } from "./wave-mechanics/longitudinal-wave";
 import { PhaseLines } from "./wave-mechanics/phase-lines";
-import { WaveLabel, WaveHtml } from "./wave-mechanics/wave-label";
+import { WaveSprite } from "./wave-mechanics/wave-label";
 import { XAxis } from "./wave-mechanics/x-axis";
 import {
   WAVE_COLORS,
@@ -54,13 +54,54 @@ export interface WaveMechanicsSceneProps {
   onFocusComplete?: () => void;
 }
 
+/** 径向渐变光晕纹理：柔光地场用 */
+function makeGlowTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.4, "rgba(255, 255, 255, 0.45)");
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** 柔光地场：暗网格 + 中心蓝色柔光，填掉"虚空感"，不抢波形 */
+function GroundGlow() {
+  const tex = useMemo(makeGlowTexture, []);
+  useEffect(() => () => tex.dispose(), [tex]);
+  return (
+    <group position={[0, -0.06, 0]}>
+      <gridHelper args={[64, 32, "#1c2a52", "#101a38"]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <planeGeometry args={[58, 34]} />
+        <meshBasicMaterial
+          map={tex}
+          color="#3b82f6"
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 function Starfield() {
   const positions = useMemo(() => {
-    const arr = new Float32Array(200 * 3);
-    for (let i = 0; i < 200; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 60;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 30;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 40 - 10;
+    const arr = new Float32Array(520 * 3);
+    for (let i = 0; i < 520; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 70;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 34;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 46 - 10;
     }
     return arr;
   }, []);
@@ -70,7 +111,7 @@ function Starfield() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.02} color="#ffffff" transparent opacity={0.15} />
+      <pointsMaterial size={0.045} color="#cfe0ff" transparent opacity={0.4} depthWrite={false} />
     </points>
   );
 }
@@ -81,34 +122,37 @@ function GlassPlatform({
   accent,
   chainLength,
   showAxisLabel = true,
+  showAxisArrow = true,
 }: {
   position: [number, number, number];
   width: number;
   accent: string;
   chainLength: number;
   showAxisLabel?: boolean;
+  showAxisArrow?: boolean;
 }) {
   const geo = useMemo(() => new THREE.PlaneGeometry(width, 4), [width]);
   const edges = useMemo(() => new THREE.EdgesGeometry(geo), [geo]);
 
   return (
     <group position={position}>
+      {/* 底板不做成半透明实体面：正/背面受光差很大，会出现"一面网格、一面黑板"。
+          现在只留极薄的一层色 + 描边，底板实际上由网格和柔光地场表达。 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[width, 4]} />
-        <meshPhysicalMaterial
-          color="#111128"
+        <meshBasicMaterial
+          color="#0d1430"
           transparent
-          opacity={0.35}
-          metalness={0.4}
-          roughness={0.3}
-          clearcoat={0.8}
+          opacity={0.16}
+          depthWrite={false}
+          side={THREE.DoubleSide}
         />
       </mesh>
       <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <primitive object={edges} attach="geometry" />
         <lineBasicMaterial color={accent} transparent opacity={0.6} />
       </lineSegments>
-      <XAxis length={chainLength} showLabel={showAxisLabel} />
+      <XAxis length={chainLength} showLabel={showAxisLabel} showArrow={showAxisArrow} />
     </group>
   );
 }
@@ -134,6 +178,7 @@ export function WaveMechanicsSceneComponent({
   const timeRef = useRef(0);
   const frameRef = useRef(0);
   const lastShockCheck = useRef(-999);
+  void lastShockCheck;
   const compressionTextureRef = useRef<THREE.DataTexture | null>(null);
 
   const transverseStats = useRef({ yMax: 0, yMin: 0 });
@@ -163,6 +208,8 @@ export function WaveMechanicsSceneComponent({
   const { k, omega, waveSpeed } = physics;
 
   const shockPool = useMemo(() => createShockRingPool(5), []);
+  void shockPool;
+
 
   const focusAnim = useRef<{
     active: boolean;
@@ -190,9 +237,10 @@ export function WaveMechanicsSceneComponent({
         maxDistance: number;
         maxPolarAngle: number;
       };
-      c.enablePan = false;
-      c.minDistance = 12;
-      c.maxDistance = 30;
+      // 原来这里把 enablePan 关掉了，右键平移在这个实验里就失效了
+      c.enablePan = true;
+      c.minDistance = 8;
+      c.maxDistance = 60;
       c.maxPolarAngle = Math.PI / 2.2;
     }
   }, [controls]);
@@ -277,6 +325,8 @@ export function WaveMechanicsSceneComponent({
       case "longitudinal":
         return { transverse: false, longitudinal: true };
       case "overlay":
+        // 叠加视图不用单场景那两块"横波/纵波"标签（会叠在一起），
+        // 它有自己的说明牌，见下方 viewMode === "overlay" 分支
         return { transverse: false, longitudinal: false };
       default:
         return { transverse: true, longitudinal: true };
@@ -341,14 +391,18 @@ export function WaveMechanicsSceneComponent({
 
   return (
     <>
-      <ambientLight intensity={0.25} color="#ffffff" />
-      <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
-      <pointLight position={[-8, 3, 0]} color={WAVE_COLORS.transverseCrest} intensity={1.2} />
-      <pointLight position={[8, 3, 0]} color={WAVE_COLORS.transverseTrough} intensity={0.6} />
-      <pointLight position={[0, 12, 0]} intensity={0.5} color="#ffffff" />
-      <pointLight position={[9, 2, 0]} color={WAVE_COLORS.longitudinalDense} intensity={1} />
-      <pointLight position={[9, 2, 5]} color={WAVE_COLORS.longitudinalSparse} intensity={0.5} />
+      <ambientLight intensity={0.55} color="#c8d6ff" />
+      <directionalLight position={[5, 10, 5]} intensity={1.15} castShadow />
+      <pointLight position={[-8, 3, 0]} color={WAVE_COLORS.transverseCrest} intensity={1.6} />
+      <pointLight position={[8, 3, 0]} color={WAVE_COLORS.transverseTrough} intensity={0.9} />
+      <pointLight position={[0, 12, 0]} intensity={0.8} color="#ffffff" />
+      <pointLight position={[9, 2, 0]} color={WAVE_COLORS.longitudinalDense} intensity={1.3} />
+      <pointLight position={[9, 2, 5]} color={WAVE_COLORS.longitudinalSparse} intensity={0.7} />
+      {/* 冷色环境补光，压掉"纯黑虚空" */}
+      <hemisphereLight args={["#8fb0ff", "#101a38", 0.5]} />
+      <pointLight position={[-16, 6, -12]} intensity={0.7} color="#4f6bff" distance={60} decay={1.6} />
 
+      <GroundGlow />
       <Starfield />
 
       {viewMode === "compare" && !isMobile && (
@@ -377,54 +431,60 @@ export function WaveMechanicsSceneComponent({
           chainLength={preset.chainLength}
           accent={WAVE_COLORS.platformEdge}
           showAxisLabel={labelVisibility.transverse || labelVisibility.longitudinal}
+          // 叠加时波形自身也带箭头，轴上的箭头会重合，只留波形的
+          showAxisArrow={viewMode !== "overlay"}
         />
       )}
 
       {labelVisibility.transverse && (
-        <WaveHtml
+        <WaveSprite
+          text="横波"
+          color={WAVE_COLORS.transverseCrest}
           position={[
             layout.transverseOffset[0],
             layout.transverseOffset[1] + 1.6,
             0.6,
           ]}
-          center={viewMode !== "compare"}
-        >
-          <button
-            type="button"
-            className="bg-transparent border-0 p-0 cursor-pointer pointer-events-auto"
-            onClick={() => onRequestFocus?.("transverse")}
-          >
-            <WaveLabel color={WAVE_COLORS.transverseCrest} interactive>
-              横波
-            </WaveLabel>
-          </button>
-        </WaveHtml>
+          interactive
+          onClick={() => onRequestFocus?.("transverse")}
+        />
       )}
       {labelVisibility.longitudinal && (
-        <WaveHtml
+        <WaveSprite
+          text="纵波"          color={WAVE_COLORS.longitudinalDense}
           position={[
             layout.longitudinalOffset[0],
             layout.longitudinalOffset[1] + 1.6,
             0.6,
           ]}
-          center={viewMode !== "compare"}
-        >
-          <button
-            type="button"
-            className="bg-transparent border-0 p-0 cursor-pointer pointer-events-auto"
-            onClick={() => onRequestFocus?.("longitudinal")}
-          >
-            <WaveLabel color={WAVE_COLORS.longitudinalDense} interactive>
-              纵波
-            </WaveLabel>
-          </button>
-        </WaveHtml>
+          interactive
+          onClick={() => onRequestFocus?.("longitudinal")}
+        />
+      )}
+
+      {/* 叠加视图：两种波叠在同一位置，各挂一块说明牌区分（不用单场景的"横波/纵波"标签） */}
+      {viewMode === "overlay" && (
+        <>
+          <WaveSprite
+            text="横波 · 上下振动 ⊥ 传播"
+            color={WAVE_COLORS.transverseCrest}
+            position={[-3.4, 2.4, 0.6]}
+            size={0.42}
+          />
+          <WaveSprite
+            text="纵波 · 沿传播方向疏密相间"
+            color={WAVE_COLORS.longitudinalDense}
+            position={[-5.2, -1.7, 0.6]}
+            size={0.42}
+          />
+        </>
       )}
 
       <TransverseWave
         offset={layout.transverseOffset}
         opacity={layout.transverseOpacity}
         showLabels={labelVisibility.transverse}
+        viewMode={viewMode}
         amplitude={amplitude}
         k={k}
         omega={omega}
@@ -460,7 +520,6 @@ export function WaveMechanicsSceneComponent({
         preset={preset}
         isPlaying={isPlaying}
         showSprings={preset.showSprings}
-        showBreathField
         selectedIndex={selectedL}
         hoveredIndex={hoveredL}
         selectedSampleRef={selectedValueRef}
@@ -473,8 +532,6 @@ export function WaveMechanicsSceneComponent({
           onParticleHistory?.("longitudinal", [rho]);
           void x0;
         }}
-        shockPool={shockPool}
-        lastShockCheck={lastShockCheck}
         statsRef={longitudinalStats}
         compressionTextureRef={compressionTextureRef}
         frameCounterRef={longitudinalFrameRef}

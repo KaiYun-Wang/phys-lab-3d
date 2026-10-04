@@ -28,6 +28,27 @@ const STAR_COUNT = 1200;
 const TUBE_LENGTH = 120;
 const SHIP_LENGTH = 8;
 
+/** 悬浮全息平台高度（暗网格 + 中心柔光，无实体台面） */
+const STAGE_Y = -9.6;
+
+/** 径向渐变光晕纹理：悬浮平台中心柔光用 */
+function makeGlowTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+  gradient.addColorStop(0.35, "rgba(255, 255, 255, 0.5)");
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  return tex;
+}
+
 function createLabelTexture(text: string, options: { fontSize?: number; color?: string; bg?: string; padding?: number } = {}): THREE.CanvasTexture {
   const { fontSize = 28, color = "#ffffff", bg = "rgba(2,6,23,0.65)", padding = 10 } = options;
   const canvas = document.createElement("canvas");
@@ -85,6 +106,9 @@ export function SpecialRelativitySceneComponent({
       relativisticMass,
     });
   }, [velocity, gamma, lengthPercent, clockPeriod, relativisticMass, onDataChange]);
+
+  const glowTex = useMemo(makeGlowTexture, []);
+  useEffect(() => () => glowTex.dispose(), [glowTex]);
 
   // Starfield: long white streaks along x
   const starsGeo = useMemo(() => {
@@ -211,18 +235,26 @@ export function SpecialRelativitySceneComponent({
       <points ref={starsRef} geometry={starsGeo} material={starsMat} />
 
       {/* Floor grid for spatial reference */}
-      <gridHelper args={[80, 80, "#1e1b4b", "#0f0f25"]} position={[0, -10, 0]} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -10.05, 0]} receiveShadow>
-        <planeGeometry args={[120, 80]} />
-        <meshStandardMaterial color="#050510" roughness={0.95} metalness={0.05} />
+      <gridHelper args={[80, 80, "#1c2a52", "#0e1428"]} position={[0, STAGE_Y, 0]} />
+      {/* 悬浮全息平台：暗网格 + 中心柔光（去掉实体地面，避免与网格共面闪烁） */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, STAGE_Y + 0.01, 0]}>
+        <planeGeometry args={[110, 70]} />
+        <meshBasicMaterial
+          map={glowTex}
+          color="#3b82f6"
+          transparent
+          opacity={0.28}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
       </mesh>
 
       {/* Speed lane rails */}
-      <mesh position={[0, -9.8, -6]}>
+      <mesh position={[0, STAGE_Y + 0.25, -6]}>
         <boxGeometry args={[60, 0.08, 0.08]} />
         <meshBasicMaterial color="#1e3a8a" transparent opacity={0.4} />
       </mesh>
-      <mesh position={[0, -9.8, 6]}>
+      <mesh position={[0, STAGE_Y + 0.25, 6]}>
         <boxGeometry args={[60, 0.08, 0.08]} />
         <meshBasicMaterial color="#1e3a8a" transparent opacity={0.4} />
       </mesh>

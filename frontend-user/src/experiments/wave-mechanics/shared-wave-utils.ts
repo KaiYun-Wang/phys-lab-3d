@@ -6,16 +6,19 @@ import {
 } from "@/utils/physics";
 
 export const WAVE_COLORS = {
-  transverseCrest: "#4f8fff",
-  transverseTrough: "#8b5cf6",
-  longitudinalDense: "#ff6b35",
-  longitudinalSparse: "#ec4899",
-  propagation: "#06d6a0",
-  equilibrium: "#a0a0c8",
-  emissivePeak: "#e8e8ff",
+  // 配色按"色相家族"分工，互相避开
+  //   背景=深蓝 ｜ 传播轴=青绿 ｜ 横波=紫 ｜ 纵波=橙 ｜ 纵波稀疏=品红 ｜ 平衡位=灰
+  // 明度/饱和度取"鲜艳"档：压太低会发灰（试过低饱和，观感很差）
+  transverseCrest: "#ac5cf5",
+  transverseTrough: "#c3a0ff",
+  longitudinalDense: "#ff7a45",
+  longitudinalSparse: "#f062a8",
+  propagation: "#12dcae",
+  equilibrium: "#c4c4d0",
+  emissivePeak: "#f6f0ff",
   sceneFog: "#0d0d24",
-  platformEdge: "#06d6a0",
-  troughDark: "#1a1a3e",
+  platformEdge: "#12dcae",
+  troughDark: "#2a2440",
 } as const;
 
 export type WaveMedium = "rope" | "air" | "spring";
@@ -76,7 +79,6 @@ const COLOR_CACHE = {
   sparse: new THREE.Color(WAVE_COLORS.longitudinalSparse),
   white: new THREE.Color("#ffffff"),
 };
-
 export const MEDIUM_PRESETS: Record<WaveMedium, MediumPreset> = {
   rope: {
     particleCount: 50,
@@ -157,15 +159,16 @@ export function colorForTransverse(
   const absY = Math.abs(y);
   const t = A > 1e-6 ? Math.min(absY / A, 1) : 0;
 
+  // 不往深色混：波峰/波谷都向高光提亮，粒子才不发灰（对齐凸透镜的"白亮粒子"观感）
   if (y > 0.05 * A) {
     target.lerpColors(COLOR_CACHE.transverseCrest, COLOR_CACHE.emissivePeak, t);
   } else if (y < -0.05 * A) {
-    target.lerpColors(COLOR_CACHE.transverseTrough, COLOR_CACHE.troughDark, t);
+    target.lerpColors(COLOR_CACHE.transverseTrough, COLOR_CACHE.emissivePeak, t);
   } else {
     target.copy(COLOR_CACHE.equilibrium);
   }
 
-  return { emissiveIntensity: absY > 0.85 * A ? 1.5 : 0.15 };
+  return { emissiveIntensity: absY > 0.85 * A ? 1.6 : 0.32 };
 }
 
 export function colorForLongitudinal(
@@ -174,16 +177,16 @@ export function colorForLongitudinal(
 ): { emissiveIntensity: number; scale: number } {
   if (rho > 1.05) {
     const t = Math.min((rho - 1) * 5, 1);
-    target.lerpColors(COLOR_CACHE.dense, COLOR_CACHE.white, t);
-    return { emissiveIntensity: 0.8 + t * 0.5, scale: 1 + t * 0.15 };
+    target.lerpColors(COLOR_CACHE.dense, COLOR_CACHE.emissivePeak, t * 0.95);
+    return { emissiveIntensity: 0.85 + t * 0.8, scale: 1 + t * 0.15 };
   }
   if (rho < 0.95) {
     const t = Math.min((1 - rho) * 5, 1);
-    target.lerpColors(COLOR_CACHE.sparse, COLOR_CACHE.troughDark, t);
-    return { emissiveIntensity: 0.4 + t * 0.3, scale: 1 - t * 0.15 };
+    target.lerpColors(COLOR_CACHE.sparse, COLOR_CACHE.emissivePeak, t * 0.95);
+    return { emissiveIntensity: 0.55 + t * 0.55, scale: 1 - t * 0.15 };
   }
   target.copy(COLOR_CACHE.equilibrium);
-  return { emissiveIntensity: 0.15, scale: 1 };
+  return { emissiveIntensity: 0.28, scale: 1 };
 }
 
 export function computeCompressionRatios(

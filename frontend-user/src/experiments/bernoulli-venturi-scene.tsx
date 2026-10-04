@@ -384,11 +384,6 @@ export function BernoulliVenturiSceneComponent({
       </mesh>
       <gridHelper args={[40, 40, "#1e3a8a", "#0f172a"]} position={[0, -6.99, 0]} />
 
-      <mesh position={[0, -7.2, 0]} receiveShadow>
-        <boxGeometry args={[22, 0.4, 8]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.7} metalness={0.3} />
-      </mesh>
-
       <mesh geometry={pipeGeo} material={pipeMat} castShadow receiveShadow />
 
       {[-5, 5].map((x, idx) => {

@@ -360,6 +360,12 @@ export function ExperimentContainer({
             panSpeed={isMobile ? 0.8 : 0.5}
             rotateSpeed={isMobile ? 0.8 : 1}
             zoomSpeed={isMobile ? 1.0 : 1.2}
+            screenSpacePanning
+            mouseButtons={{
+              LEFT: THREE.MOUSE.ROTATE,
+              MIDDLE: THREE.MOUSE.DOLLY,
+              RIGHT: THREE.MOUSE.PAN,
+            }}
             touches={{
               ONE: THREE.TOUCH.ROTATE,
               TWO: THREE.TOUCH.DOLLY_PAN,

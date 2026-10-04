@@ -11,8 +11,9 @@ import {
   colorForTransverse,
   buildEquilibriumPositions,
   type MediumPreset,
+  type ViewMode,
 } from "./shared-wave-utils";
-import { WaveLabel, WaveHtml } from "./wave-label";
+import { WaveSprite } from "./wave-label";
 
 export interface TransverseWaveProps {
   offset?: [number, number, number];
@@ -30,6 +31,8 @@ export interface TransverseWaveProps {
   statsRef: React.MutableRefObject<{ yMax: number; yMin: number }>;
   frameCounterRef: React.MutableRefObject<number>;
   showLabels?: boolean;
+  /** 叠加视图里轴向箭头会重合，用来关掉波形自带的箭头 */
+  viewMode?: ViewMode;
 }
 
 export function TransverseWave({
@@ -48,6 +51,7 @@ export function TransverseWave({
   statsRef,
   frameCounterRef,
   showLabels = true,
+  viewMode,
 }: TransverseWaveProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -64,19 +68,6 @@ export function TransverseWave({
     () => new Float32Array(count * 3),
     [count]
   );
-
-  const firstPeakIndex = useMemo(() => {
-    let best = 0;
-    let bestY = -Infinity;
-    for (let i = 0; i < count; i++) {
-      const y = transverseDisplacement(x0Arr[i], 0, A, k, omega);
-      if (y > bestY) {
-        bestY = y;
-        best = i;
-      }
-    }
-    return best;
-  }, [count, x0Arr, A, k, omega]);
 
   useFrame(() => {
     if (!meshRef.current) return;
@@ -157,11 +148,11 @@ export function TransverseWave({
       >
         <sphereGeometry args={[1, 16, 16]} />
         <meshPhysicalMaterial
-          metalness={0.7}
-          roughness={0.15}
+          metalness={0.35}
+          roughness={0.12}
           clearcoat={1}
           emissive={WAVE_COLORS.transverseCrest}
-          emissiveIntensity={0.15}
+          emissiveIntensity={0.85}
           vertexColors
           transparent
           opacity={opacity}
@@ -200,7 +191,9 @@ export function TransverseWave({
         opacity={0.85 * opacity}
       />
 
-      <group position={[x0Arr[firstPeakIndex], 0, 0.3]}>
+      {/* 振动方向指示：固定在波列左端（原来挂在"最高点"粒子上，
+          改波长会让 argmax 跳来跳去，标签就乱跑） */}
+      <group position={[-preset.chainLength / 2 + 0.5, 0, 0.3]}>
         <Line
           points={[
             [0, -0.6, 0],
@@ -212,22 +205,26 @@ export function TransverseWave({
           opacity={0.5 * opacity}
         />
         {showLabels && (
-          <WaveHtml position={[0, 1.5, 0]}>
-            <WaveLabel color={WAVE_COLORS.transverseTrough}>↕ 振动方向</WaveLabel>
-          </WaveHtml>
+          <WaveSprite
+            text="↕ 振动方向"
+            color={WAVE_COLORS.transverseTrough}
+            position={[0, 1.5, 0]}
+          />
         )}
       </group>
 
-      <group position={[preset.chainLength / 2 + 1, 0, 0]}>
-        <mesh rotation={[0, 0, -Math.PI / 2]}>
-          <coneGeometry args={[0.2, 0.5, 8]} />
-          <meshStandardMaterial
-            color={WAVE_COLORS.propagation}
-            emissive={WAVE_COLORS.propagation}
-            emissiveIntensity={0.4 + 0.4 * Math.sin(omega * timeRef.current)}
-          />
-        </mesh>
-      </group>
+      {viewMode !== "overlay" && (
+        <group position={[preset.chainLength / 2 + 1, 0, 0]}>
+          <mesh rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[0.2, 0.5, 8]} />
+            <meshStandardMaterial
+              color={WAVE_COLORS.propagation}
+              emissive={WAVE_COLORS.propagation}
+              emissiveIntensity={0.4 + 0.4 * Math.sin(omega * timeRef.current)}
+            />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 }

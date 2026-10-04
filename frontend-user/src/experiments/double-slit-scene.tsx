@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useMemo, useState, useEffect, useCallback } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 interface DoubleSlitSceneProps {
   onDataChange?: (data: DoubleSlitData) => void;
@@ -45,6 +46,86 @@ const MAX_P = 500;
 const MAX_T = 3000;
 const TW = 512;
 const TH = 512;
+
+/* ═══════════════════════ 视觉辅助（仅观感，不含物理） ═══════════════════════ */
+
+/** 柔和径向辉光贴图：用于光源出射口、缝口、地面光池 */
+function makeGlowTexture(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.35, "rgba(255,255,255,0.42)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/** 深色圆角底板 + 青字标签，风格对齐平台其它实验 */
+function makeLabelTexture(text: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  const r = 24;
+  const w = 236;
+  const h = 116;
+  const x = (c.width - w) / 2;
+  const y = (c.height - h) / 2;
+  ctx.fillStyle = "rgba(10,16,34,0.82)";
+  ctx.strokeStyle = "rgba(83,195,255,0.6)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = "bold 44px 'Microsoft YaHei', 'PingFang SC', sans-serif";
+  ctx.fillStyle = "#eaf6ff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, c.width / 2, c.height / 2 + 2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  return tex;
+}
+
+/** 环境光照 + 淡雾：只影响材质观感与空气感，不参与任何计算 */
+function SceneEnvironment() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    scene.environment = envMap;
+    scene.environmentIntensity = 0.5;
+    const prevFog = scene.fog;
+    scene.fog = new THREE.FogExp2(0x050a1c, 0.014);
+    return () => {
+      scene.environment = null;
+      scene.environmentIntensity = 1;
+      scene.fog = prevFog;
+      envMap.dispose();
+    };
+  }, [gl, scene]);
+
+  return null;
+}
 
 export function DoubleSlitSceneComponent({
   onDataChange, wavelength = 500, slitSeparation = 2, slitWidth = 0.3,
@@ -310,25 +391,59 @@ export function DoubleSlitSceneComponent({
     return new THREE.Quaternion().setFromRotationMatrix(m);
   }, [barX]);
 
+  // 视觉用贴图（纯观感）
+  const glowTex = useMemo(makeGlowTexture, []);
+  const srcLabel = useMemo(() => makeLabelTexture("相干光源"), []);
+  const barLabel = useMemo(() => makeLabelTexture("双缝板"), []);
+  const scrLabel = useMemo(() => makeLabelTexture("探测屏"), []);
+  useEffect(
+    () => () => {
+      glowTex.dispose();
+      srcLabel.dispose();
+      barLabel.dispose();
+      scrLabel.dispose();
+    },
+    [glowTex, srcLabel, barLabel, scrLabel],
+  );
+
   return (
     <group>
       <EffectComposer>
-        <Bloom intensity={observerMode ? 0.3 : 0.5} luminanceThreshold={observerMode ? 0.7 : 0.4} luminanceSmoothing={0.5} mipmapBlur />
-        <Vignette offset={0.25} darkness={0.35} blendFunction={BlendFunction.NORMAL} />
+        <Bloom intensity={observerMode ? 0.55 : 0.85} luminanceThreshold={observerMode ? 0.62 : 0.42} luminanceSmoothing={0.5} mipmapBlur radius={0.6} />
+        <Vignette offset={0.42} darkness={0.58} blendFunction={BlendFunction.NORMAL} />
       </EffectComposer>
+
+      {/* 环境光照 + 淡雾（纯观感） */}
+      <SceneEnvironment />
 
       {/* Lab fill lighting */}
       <pointLight position={[5, 8, 0]} intensity={2.0} color="#ffffff" distance={45} decay={1.5} />
       <pointLight position={[0, 6, 14]} intensity={1.5} color="#e2e8f0" distance={40} decay={1.5} />
       <pointLight position={[0, 5, -12]} intensity={1.2} color="#cbd5e1" distance={40} decay={1.5} />
       <pointLight position={[scrX, 4, 0]} intensity={1.5} color="#ffffff" distance={25} decay={1.5} />
+      {/* 冷暖氛围补光（纯观感） */}
+      <pointLight position={[-14, 7, -9]} intensity={1.1} color="#4f6bff" distance={40} decay={1.6} />
+      <pointLight position={[13, -4, 9]} intensity={0.8} color="#ffa64d" distance={36} decay={1.6} />
 
       {/* ═══ Ground ═══ */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -6.5, 0]} receiveShadow>
         <planeGeometry args={[35, 25]} />
-        <meshStandardMaterial color="#080818" roughness={0.95} metalness={0.05} />
+        <meshStandardMaterial color="#080b18" roughness={0.92} metalness={0.1} envMapIntensity={0.35} />
       </mesh>
-      <gridHelper args={[35, 70, "#1a1a40", "#0d0d25"]} position={[0, -6.49, 0]} />
+      <gridHelper args={[35, 70, "#3358a8", "#152449"]} position={[0, -6.49, 0]} />
+
+      {/* 地面柔光光池（纯观感） */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -6.47, 0]}>
+        <planeGeometry args={[30, 22]} />
+        <meshBasicMaterial
+          map={glowTex}
+          color="#3b82f6"
+          transparent
+          opacity={0.24}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
 
       {/* ═══ Particle Source ═══ */}
       <group position={[srcX, 0, 0]}>
@@ -348,6 +463,21 @@ export function DoubleSlitSceneComponent({
           <sphereGeometry args={[0.2, 12, 12]} />
           <meshBasicMaterial color={wHex} transparent opacity={0.6} />
         </mesh>
+        {/* 出射口辉光 + 标签（纯观感） */}
+        <mesh position={[1.55, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[2.6, 2.6]} />
+          <meshBasicMaterial
+            map={glowTex}
+            color={wHex}
+            transparent
+            opacity={0.85}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+        <sprite position={[0, 1.7, 0]} scale={[2.8, 1.4, 1]} renderOrder={20}>
+          <spriteMaterial map={srcLabel} transparent depthTest={false} depthWrite={false} />
+        </sprite>
         <pointLight color={wHex} intensity={2} distance={6} decay={2} />
       </group>
 
@@ -385,6 +515,24 @@ export function DoubleSlitSceneComponent({
             <boxGeometry args={[0.005, 0.005, slitWidth + 0.04]} /><meshBasicMaterial color={wHex} transparent opacity={0.3} />
           </mesh>,
         ])}
+        {/* 缝口柔和辉光（纯观感） */}
+        {[s1Z, s2Z].map((sz, si) => (
+          <mesh key={`sg${si}`} position={[plateThick / 2 + 0.06, 0, sz]} rotation={[0, Math.PI / 2, 0]}>
+            <planeGeometry args={[slitH * 2.4, slitH * 2.4]} />
+            <meshBasicMaterial
+              map={glowTex}
+              color={wHex}
+              transparent
+              opacity={0.5}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        ))}
+        {/* 板标签（纯观感） */}
+        <sprite position={[0, plateH / 2 + 1.2, 0]} scale={[3, 1.5, 1]} renderOrder={20}>
+          <spriteMaterial map={barLabel} transparent depthTest={false} depthWrite={false} />
+        </sprite>
       </group>
 
       {/* Beam axis (barrier → screen) */}
@@ -466,6 +614,10 @@ export function DoubleSlitSceneComponent({
           <planeGeometry args={[5, 0.6]} />
           <meshBasicMaterial color={observerMode ? "#442222" : "#224422"} transparent opacity={0.4} />
         </mesh>
+        {/* 屏标签（纯观感） */}
+        <sprite position={[0, plateH / 2 + 1.5, 0]} scale={[3, 1.5, 1]} renderOrder={20}>
+          <spriteMaterial map={scrLabel} transparent depthTest={false} depthWrite={false} />
+        </sprite>
       </group>
 
       {/* ═══ Particles ═══ */}

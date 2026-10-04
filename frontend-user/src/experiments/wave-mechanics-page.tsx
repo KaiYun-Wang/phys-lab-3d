@@ -159,14 +159,6 @@ export default function WaveMechanicsPage() {
     return mobileTab === "transverse" ? "transverse" : "longitudinal";
   }, [isMobile, viewMode, mobileTab]);
 
-  const handleWaveSpeedChange = useCallback(
-    (v: number) => {
-      notifyUserEdit();
-      if (frequency > 0) setWavelength(v / frequency);
-    },
-    [frequency, notifyUserEdit]
-  );
-
   const handlePlayPause = () => setIsPlaying((p) => !p);
 
   const handleReset = () => {
@@ -228,17 +220,6 @@ export default function WaveMechanicsPage() {
           decimals={2}
           demoId="wavelength"
         />
-        <ControlSlider
-          label="波速 v"
-          value={waveSpeed}
-          unit="m/s"
-          min={1}
-          max={32}
-          step={0.1}
-          color="#06d6a0"
-          onChange={handleWaveSpeedChange}
-          decimals={1}
-        />
       </ControlGroup>
 
       {!isMobile && (
@@ -288,7 +269,7 @@ export default function WaveMechanicsPage() {
               </p>
               <Sparkline
                 values={particleHistory}
-                color={selectedSide === "transverse" ? "#4f8fff" : "#ff6b35"}
+                color={selectedSide === "transverse" ? "#a855f7" : "#ff6b35"}
               />
             </div>
           ) : (
@@ -359,19 +340,6 @@ export default function WaveMechanicsPage() {
           onRequestFocus={(target) => setFocusTarget(target)}
         />
       </ExperimentContainer>
-
-      {!isMobile && effectiveViewMode === "compare" && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.6 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 z-10 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, #8b5cf6, transparent 30%, transparent 70%, #ff6b35)",
-          }}
-        />
-      )}
 
       <AnimatePresence>
         {resetFlash && (
