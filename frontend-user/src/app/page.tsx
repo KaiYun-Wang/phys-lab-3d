@@ -233,6 +233,11 @@ export default function Home() {
       setShowFavoritesOnly(true);
       scrollToExperimentsRef.current = true;
     }
+    // 实验页面包屑「XX实验室」带着 #experiments 回跳：数据加载完再定位，
+    // 否则骨架屏阶段的页面高度不够，原生锚点滚动不到实验列表
+    if (window.location.hash === "#experiments") {
+      scrollToExperimentsRef.current = true;
+    }
   }, []);
 
   // 实验数据首屏加载完成后（布局高度稳定）再定位，避免滚到半空

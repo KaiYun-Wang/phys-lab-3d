@@ -3,6 +3,7 @@ import "./globals.css";
 import AuthGuard from "@/components/AuthGuard";
 import AiChatWidget from "@/components/AiChatWidget";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
+import TooltipLayer from "@/components/TooltipLayer";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -202,6 +203,7 @@ export default function RootLayout({
           {children}
           <AiChatWidget />
           <AnnouncementPopup />
+          <TooltipLayer />
         </AuthGuard>
       </body>
     </html>

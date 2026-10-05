@@ -139,7 +139,7 @@ export function ControlSlider({
   const canDec = !disabled && value > min + 1e-9;
   const canInc = !disabled && value < max - 1e-9;
   const stepBtnClass =
-    "flex h-6 w-6 shrink-0 items-center justify-center rounded border border-[#27354f] bg-[#131b2b] text-xs font-bold leading-none text-[#cbd5e1] transition-all hover:border-[#4b5563] hover:bg-[#1e2a42] hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30";
+    "flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded border border-[#27354f] bg-[#131b2b] text-xs font-bold leading-none text-[#cbd5e1] transition-all hover:border-[#4b5563] hover:bg-[#1e2a42] hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30";
 
   return (
     <div

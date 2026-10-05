@@ -6,6 +6,7 @@ import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import { lerp, clamp } from "@/utils/physics";
+import { SceneLabelSprite } from "./scene-labels";
 
 export type FluidType = "water" | "glycerol";
 
@@ -97,43 +98,6 @@ function createPipeGeometry(r2: number): THREE.BufferGeometry {
   geo.setIndex(indices);
   geo.computeVertexNormals();
   return geo;
-}
-
-function createLabelTexture(text: string): THREE.CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 72;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "rgba(0,0,0,0)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const r = 16;
-  const w = 220;
-  const h = 52;
-  const x = (canvas.width - w) / 2;
-  const y = (canvas.height - h) / 2;
-  ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.font = "bold 30px sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.minFilter = THREE.LinearFilter;
-  return tex;
 }
 
 export function BernoulliVenturiSceneComponent({
@@ -369,12 +333,6 @@ export function BernoulliVenturiSceneComponent({
     }
   });
 
-  const labelP1 = useMemo(() => createLabelTexture("P₁"), []);
-  const labelP2 = useMemo(() => createLabelTexture("P₂"), []);
-  const labelV1 = useMemo(() => createLabelTexture("v₁"), []);
-  const labelV2 = useMemo(() => createLabelTexture("v₂"), []);
-  const labelDeltaP = useMemo(() => createLabelTexture("ΔP"), []);
-
   const deltaLine = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(12);
@@ -462,24 +420,25 @@ export function BernoulliVenturiSceneComponent({
             >
               <cylinderGeometry args={[0.1, 0.1, radiusAt(x, r2), 16]} />
             </mesh>
-            <sprite position={[0, 7, 0]} scale={[2.2, 1.0, 1]}>
-              <spriteMaterial map={isLeft ? labelP1 : labelP2} transparent depthTest={false} />
-            </sprite>
+            <SceneLabelSprite
+              text={isLeft ? "P₁" : "P₂"}
+              position={[0, 7, 0]}
+              height={0.75}
+            />
           </group>
         );
       })}
 
-      <sprite position={[-5, -2.5, 0]} scale={[3, 1.4, 1]}>
-        <spriteMaterial map={labelV1} transparent depthTest={false} />
-      </sprite>
-      <sprite position={[5, -2.5, 0]} scale={[3, 1.4, 1]}>
-        <spriteMaterial map={labelV2} transparent depthTest={false} />
-      </sprite>
+      <SceneLabelSprite text="v₁" position={[-5, -2.5, 0]} height={0.75} />
+      <SceneLabelSprite text="v₂" position={[5, -2.5, 0]} height={0.75} />
 
       <primitive object={deltaLine} />
-      <sprite ref={deltaLabelRef} position={[5.9, 5.5, 0]} scale={[1.6, 0.8, 1]}>
-        <spriteMaterial map={labelDeltaP} transparent depthTest={false} />
-      </sprite>
+      <SceneLabelSprite
+        spriteRef={deltaLabelRef}
+        text="ΔP"
+        position={[5.9, 5.5, 0]}
+        height={0.75}
+      />
 
       <instancedMesh ref={particleRef} args={[undefined, undefined, PARTICLE_COUNT]}>
         <sphereGeometry args={[1, 12, 12]} />

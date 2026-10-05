@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import * as THREE from "three";
+import { SceneLabelSprite } from "./scene-labels";
 
 interface DopplerSceneProps {
   onDataChange?: (data: DopplerData) => void;
@@ -208,11 +209,8 @@ export function DopplerSceneComponent({
           <cylinderGeometry args={[0.05, 0.05, 1.2, 8]} />
           <meshStandardMaterial color="#666" />
         </mesh>
-        {/* Label */}
-        <mesh position={[0, 2.2, 0]} rotation={[0, 0, 0]}>
-          <sphereGeometry args={[0.25, 16, 16]} />
-          <meshBasicMaterial color="#8b5cf6" />
-        </mesh>
+        {/* 悬浮标签：观察者（与凸透镜实验同款样式） */}
+        <SceneLabelSprite text="观察者" position={[0, 2.5, 0]} height={1.1} />
       </group>
 
       {/* Sound source - moves left/right */}
@@ -242,6 +240,8 @@ export function DopplerSceneComponent({
             </mesh>
           </group>
         )}
+        {/* 悬浮标签：声源（跟随往复运动） */}
+        <SceneLabelSprite text="声源" position={[0, 2.35, 0]} height={1.1} />
       </group>
 
       {/* Wavefronts - circular waves emanating from emission points */}

@@ -381,7 +381,6 @@ export function ExperimentContainer({
           className={`exp-rail-resizer${resizing === "left" ? " active" : ""}`}
           onPointerDown={onResizePointerDown("left")}
           onDoubleClick={() => applyWidth("left", DEFAULT_W)}
-          data-tooltip="拖动调整宽度"
         />
         <div className="exp-rail-inner">
           <div className="exp-rail-header">
@@ -508,7 +507,7 @@ export function ExperimentContainer({
             type="button"
             onClick={() => router.push("/")}
             className="exp-topbar-back"
-            data-tooltip="返回实验大厅"
+            aria-label="返回实验大厅"
           >
             <i className="fa-solid fa-arrow-left" aria-hidden />
             <span className="hidden sm:inline">返回大厅</span>
@@ -677,7 +676,6 @@ export function ExperimentContainer({
           className={`exp-rail-resizer${resizing === "right" ? " active" : ""}`}
           onPointerDown={onResizePointerDown("right")}
           onDoubleClick={() => applyWidth("right", DEFAULT_W)}
-          data-tooltip="拖动调整宽度"
         />
         <div className="exp-rail-inner">
           {rightPanel === "chat" && (

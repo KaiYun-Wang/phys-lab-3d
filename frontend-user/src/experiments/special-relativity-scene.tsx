@@ -409,14 +409,6 @@ export function SpecialRelativitySceneComponent({
           <spriteMaterial map={createLabelTexture("10", { fontSize: 20, color: "#94a3b8" })} transparent depthTest={false} />
         </sprite>
       </group>
-
-      {/* Speed streaks for high velocity */}
-      {velocity > 0.3 && (
-        <mesh position={[-20, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <cylinderGeometry args={[velocity * 0.08, velocity * 0.08, 50, 8]} />
-          <meshBasicMaterial color="#22d3ee" transparent opacity={0.06} blending={THREE.AdditiveBlending} />
-        </mesh>
-      )}
     </group>
   );
 }

@@ -27,7 +27,7 @@ export default function GeneralRelativityPage() {
   const [data, setData] = useState<GeneralRelativityData | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
-  const [simulationSpeed, setSimulationSpeed] = useState(3);
+  const [simulationSpeed, setSimulationSpeed] = useState(1);
   const [resetTrigger, setResetTrigger] = useState(0);
 
   const [blackHoleMass, setBlackHoleMass] = useState(5);
@@ -149,7 +149,7 @@ export default function GeneralRelativityPage() {
     notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
-    setSimulationSpeed(3);
+    setSimulationSpeed(1);
     setBlackHoleMass(5);
     const preset = schwarzschildPlungePreset(10);
     setParticleLaunchRadius(preset.r);

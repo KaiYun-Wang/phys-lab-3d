@@ -117,9 +117,10 @@
     display: block;
   }
 
-  /* 悬浮提示的定位上下文：声明在 base 层，晚于它的组件定位规则（如 absolute 按钮）优先级更高，不会被误覆盖 */
-  [data-tooltip] {
-    position: relative;
+  /* Tailwind v4 preflight 不设按钮光标：交互按钮统一手形 */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 }
 
@@ -2991,6 +2992,28 @@
   color: #f59e0b;
   text-shadow: 0 0 22px rgba(245, 158, 11, 0.42);
 }
+/* 读数增长定格时的膨胀回弹（AnimatedNumber） */
+.anim-num {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+.anim-num.is-pop {
+  animation: num-pop 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes num-pop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  45% {
+    transform: scale(1.16);
+    filter: brightness(1.45);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
 
 /* 主网格：左档案 / 右设置 */
 .pf-grid {
@@ -3952,6 +3975,13 @@
   width: 100%;
   height: 100%;
 }
+/* 3D 场景可拖拽旋转：悬浮显示张开手型，拖拽中显示握拳手型 */
+.exp-canvas-layer canvas {
+  cursor: grab;
+}
+.exp-canvas-layer canvas:active {
+  cursor: grabbing;
+}
 
 .exp-rail {
   position: relative;
@@ -4201,13 +4231,13 @@
 .exp-sim-btn.primary > i {
   font-size: 15px;
 }
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  z-index: 80;
-  transform: translate(-50%, 4px);
+/* 悬浮提示：由 TooltipLayer 渲染到顶层容器（body / 全屏元素），
+   默认在触发元素正上方，仅上方放不下时翻到下方（data-side）。 */
+.ui-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9990;
   width: max-content;
   max-width: 220px;
   padding: 6px 9px;
@@ -4222,20 +4252,14 @@
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
+  transform: translate(-50%, 4px);
   transition: opacity 150ms ease, transform 150ms ease;
 }
-[data-tooltip]:hover::after,
-[data-tooltip]:focus-visible::after {
-  transform: translate(-50%, 0);
-  opacity: 1;
-}
-.exp-rail-header [data-tooltip]::after {
-  top: calc(100% + 8px);
-  bottom: auto;
+.ui-tooltip[data-side="below"] {
   transform: translate(-50%, -4px);
 }
-.exp-rail-header [data-tooltip]:hover::after,
-.exp-rail-header [data-tooltip]:focus-visible::after {
+.ui-tooltip.is-on {
+  opacity: 1;
   transform: translate(-50%, 0);
 }
 

@@ -68,7 +68,7 @@ function makeGlowTexture(): THREE.CanvasTexture {
   return t;
 }
 
-/** 深色圆角底板 + 青字标签，风格对齐平台其它实验 */
+/** 深色圆角底板 + 白字标签（与凸透镜实验的悬浮标签同款，无描边） */
 function makeLabelTexture(text: string): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 256;
@@ -79,9 +79,7 @@ function makeLabelTexture(text: string): THREE.CanvasTexture {
   const h = 116;
   const x = (c.width - w) / 2;
   const y = (c.height - h) / 2;
-  ctx.fillStyle = "rgba(10,16,34,0.82)";
-  ctx.strokeStyle = "rgba(83,195,255,0.6)";
-  ctx.lineWidth = 2.5;
+  ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -94,9 +92,8 @@ function makeLabelTexture(text: string): THREE.CanvasTexture {
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
   ctx.fill();
-  ctx.stroke();
   ctx.font = "bold 44px 'Microsoft YaHei', 'PingFang SC', sans-serif";
-  ctx.fillStyle = "#eaf6ff";
+  ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, c.width / 2, c.height / 2 + 2);

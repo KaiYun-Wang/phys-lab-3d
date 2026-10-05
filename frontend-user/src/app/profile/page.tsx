@@ -22,6 +22,7 @@ import {
 } from "@/lib/api";
 import { avatarInitials, avatarSrc, clearToken } from "@/lib/auth";
 import { BrandLockup } from "@/components/BrandLogo";
+import AnimatedNumber from "@/components/AnimatedNumber";
 import { formatChatTime } from "@/lib/time";
 import ExperimentThumbnail from "@/components/ExperimentThumbnail";
 import {
@@ -381,26 +382,34 @@ export default function ProfilePage() {
           </button>
         </section>
 
-        {/* 活动读数 */}
+        {/* 活动读数：数字滚动增长，与管理端首页同款渐进效果 */}
         <section className="pf-stats">
           <div className="pf-stat">
             <span className="pf-stat__lb">收藏</span>
-            <span className="pf-stat__n pf-stat__n--sky">{stats?.favoriteCount ?? "–"}</span>
+            <span className="pf-stat__n pf-stat__n--sky">
+              <AnimatedNumber value={stats?.favoriteCount ?? null} delay={0} />
+            </span>
             <span className="pf-stat__u">个实验</span>
           </div>
           <div className="pf-stat">
             <span className="pf-stat__lb">AI 对话</span>
-            <span className="pf-stat__n pf-stat__n--pur">{stats?.sessionCount ?? "–"}</span>
+            <span className="pf-stat__n pf-stat__n--pur">
+              <AnimatedNumber value={stats?.sessionCount ?? null} delay={110} />
+            </span>
             <span className="pf-stat__u">段会话</span>
           </div>
           <div className="pf-stat">
             <span className="pf-stat__lb">评论</span>
-            <span className="pf-stat__n pf-stat__n--eme">{stats?.commentCount ?? "–"}</span>
+            <span className="pf-stat__n pf-stat__n--eme">
+              <AnimatedNumber value={stats?.commentCount ?? null} delay={220} />
+            </span>
             <span className="pf-stat__u">条留言</span>
           </div>
           <div className="pf-stat">
             <span className="pf-stat__lb">浏览足迹</span>
-            <span className="pf-stat__n pf-stat__n--amb">{stats?.viewCount ?? "–"}</span>
+            <span className="pf-stat__n pf-stat__n--amb">
+              <AnimatedNumber value={stats?.viewCount ?? null} delay={330} />
+            </span>
             <span className="pf-stat__u">次运行</span>
           </div>
         </section>
@@ -421,10 +430,15 @@ export default function ProfilePage() {
                 <p className="pf-empty">还没有收藏。去实验库点卡片上的 ★ 即可收藏。</p>
               ) : (
                 <div className="pf-fav-grid">
-                  {visibleFavs.map((exp) => {
+                  {visibleFavs.map((exp, i) => {
                     const cover = experimentCoverSrc(exp.coverUrl);
                     return (
-                      <a key={exp.id} href={`/experiments/${exp.route}`} className="pf-mini">
+                      <a
+                        key={exp.id}
+                        href={`/experiments/${exp.route}`}
+                        className="pf-mini kh-enter"
+                        style={{ ["--kh-delay" as string]: `${Math.min(i, 8) * 70}ms` }}
+                      >
                         <span className="pf-mini__thumb">
                           {cover ? (
                             <Image
@@ -473,8 +487,13 @@ export default function ProfilePage() {
                 <p className="pf-empty">还没有对话记录。点右下角气泡即可开始提问。</p>
               ) : (
                 <>
-                  {sessions.map((s) => (
-                    <a key={s.id} href={sessionHref(s)} className="pf-sess">
+                  {sessions.map((s, i) => (
+                    <a
+                      key={s.id}
+                      href={sessionHref(s)}
+                      className="pf-sess kh-enter"
+                      style={{ ["--kh-delay" as string]: `${Math.min(i, 8) * 55}ms` }}
+                    >
                       <span className="pf-sess__ic">
                         <MessageCircle size={12} aria-hidden />
                       </span>

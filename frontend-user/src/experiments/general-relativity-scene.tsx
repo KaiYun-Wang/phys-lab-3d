@@ -20,6 +20,7 @@ import {
   perihelionPrecessionRate,
   type TimelikeGeodesicState,
 } from "@/utils/physics";
+import { SceneLabelSprite } from "./scene-labels";
 
 export interface GeneralRelativityData {
   rs: number;
@@ -145,6 +146,9 @@ export function GeneralRelativitySceneComponent({
   const rs = useMemo(() => schwarzschildRadius(blackHoleMass), [blackHoleMass]);
   // 黑洞球心 = 网格漏斗中心最深处 + 半径（与吸积盘同一赤道面）
   const holeCenterY = useMemo(() => funnelY(rs * 1.05, rs) + rs * 0.48, [rs]);
+  /** 参考环半径（标签定位复用） */
+  const photonR = photonSphereRadius(rs);
+  const iscoR = iscoRadius(rs);
 
   const particlesRef = useRef<TestParticle[]>([]);
   const photonsRef = useRef<AnimatedPhoton[]>([]);
@@ -525,6 +529,31 @@ export function GeneralRelativitySceneComponent({
       <Line points={photonRing} color="#ffaa44" lineWidth={1} opacity={0.3} transparent dashed />
       <Line points={iscoRing} color="#556688" lineWidth={0.8} opacity={0.2} transparent dashed />
 
+      {/* 悬浮标签（与凸透镜实验同款样式）：时空网格 / 参考环 */}
+      <SceneLabelSprite
+        text="弯曲时空"
+        position={[-38, funnelY(53.7, rs) + rs * 0.3, -38]}
+        height={4.4}
+      />
+      <SceneLabelSprite
+        text="光子球"
+        position={[
+          photonR * Math.cos(-0.6),
+          surfaceY(photonR, rs) + rs * 0.35,
+          photonR * Math.sin(-0.6),
+        ]}
+        height={4.4}
+      />
+      <SceneLabelSprite
+        text="ISCO"
+        position={[
+          iscoR * Math.cos(0.55),
+          surfaceY(iscoR, rs) + rs * 0.35,
+          iscoR * Math.sin(0.55),
+        ]}
+        height={4.4}
+      />
+
       {/* 吸积盘 + 黑洞：同一赤道高度 */}
       <group position={[0, holeCenterY, 0]}>
         <group ref={diskSpinRef}>
@@ -542,6 +571,17 @@ export function GeneralRelativitySceneComponent({
           <sphereGeometry args={[rs * 0.99, 64, 64]} />
           <meshBasicMaterial color="#000000" depthWrite />
         </mesh>
+        {/* 悬浮标签：事件视界 / 吸积盘（不随盘自转） */}
+        <SceneLabelSprite
+          text="事件视界"
+          position={[0, rs * 0.99 + 4.5, 0]}
+          height={4.4}
+        />
+        <SceneLabelSprite
+          text="吸积盘"
+          position={[rs * 3.7, rs * 0.32, rs * 3.7]}
+          height={4.4}
+        />
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[rs * 1.5, rs * 0.05, 8, 96]} />
           <meshBasicMaterial color="#eeddcc" transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} />
