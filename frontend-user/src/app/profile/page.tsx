@@ -1,58 +1,223 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   API_BASE,
   changePassword,
+  experimentCoverSrc,
+  experimentSubjectLabel,
+  fetchAllAiSessions,
+  fetchFavorites,
   fetchMe,
+  fetchUserStats,
   resetAvatar,
   updateProfile,
   uploadAvatar,
+  type AiChatSession,
+  type Experiment,
   type UserProfile,
+  type UserStats,
 } from "@/lib/api";
 import { avatarInitials, avatarSrc, clearToken } from "@/lib/auth";
 import { BrandLockup } from "@/components/BrandLogo";
-import { ArrowLeft, Check, Lock, RotateCcw, ShieldCheck, Upload, User } from "lucide-react";
+import { formatChatTime } from "@/lib/time";
+import ExperimentThumbnail from "@/components/ExperimentThumbnail";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  KeyRound,
+  Lock,
+  LogOut,
+  MessageCircle,
+  RotateCcw,
+  ShieldCheck,
+  Star,
+  Upload,
+  UserRound,
+  X,
+} from "lucide-react";
 
 const NICKNAME_MAX = 20;
-const BIO_MAX = 500;
+/** 个人中心最近对话展示条数 */
+const RECENT_SESSIONS = 5;
+/** 收藏网格默认展示前 N 个（2×2），其余折叠 */
+const FAV_COLLAPSED = 4;
+/** 「全部对话」弹框每页条数（滚动加载下一页） */
+const MODAL_PAGE_SIZE = 10;
 
-/** 相对时间：最近登录显示 */
-function timeAgo(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return null;
-  const sec = Math.floor((Date.now() - t) / 1000);
-  if (sec < 60) return "刚刚";
-  if (sec < 3600) return `${Math.floor(sec / 60)} 分钟前`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)} 小时前`;
-  if (sec < 86400 * 30) return `${Math.floor(sec / 86400)} 天前`;
-  return new Date(iso).toLocaleDateString("zh-CN");
+/** 学科徽章配色：与首页 SUBJECT_TONE 同一套语义色 */
+const SUBJECT_TONE: Record<string, { fg: string; bg: string; bd: string }> = {
+  QUANTUM: { fg: "#c4b5fd", bg: "rgba(46,16,101,.6)", bd: "rgba(139,92,246,.3)" },
+  RELATIVITY: { fg: "#fcd34d", bg: "rgba(69,26,3,.55)", bd: "rgba(245,158,11,.3)" },
+  WAVE: { fg: "#6ee7b7", bg: "rgba(4,47,46,.55)", bd: "rgba(16,185,129,.3)" },
+  ACOUSTICS: { fg: "#93c5fd", bg: "rgba(30,58,138,.45)", bd: "rgba(59,130,246,.3)" },
+  OPTICS: { fg: "#67e8f9", bg: "rgba(8,51,68,.6)", bd: "rgba(6,182,212,.3)" },
+  FLUID_MECHANICS: { fg: "#7dd3fc", bg: "rgba(12,74,110,.5)", bd: "rgba(14,165,233,.3)" },
+  ELECTRICITY: { fg: "#a5b4fc", bg: "rgba(49,46,129,.45)", bd: "rgba(99,102,241,.3)" },
+  MECHANICS: { fg: "#cbd5e1", bg: "rgba(51,65,85,.45)", bd: "rgba(148,163,184,.28)" },
+};
+const FALLBACK_TONE = SUBJECT_TONE.MECHANICS;
+
+function subjectStyle(exp: Experiment) {
+  const tone = SUBJECT_TONE[exp.subjectType] ?? FALLBACK_TONE;
+  return {
+    ["--pf-subject-fg" as string]: tone.fg,
+    ["--pf-subject-bg" as string]: tone.bg,
+    ["--pf-subject-bd" as string]: tone.bd,
+  };
 }
 
-function AvatarView({ user, size = "hero" }: { user: UserProfile; size?: "hero" | "form" }) {
+/** 会话深链：实验会话回对应实验页，首页会话回首页，均由 ?aiSession 精准打开 */
+function sessionHref(s: AiChatSession): string {
+  if (s.experimentRoute) return `/experiments/${s.experimentRoute}?aiSession=${s.id}`;
+  return `/?aiSession=${s.id}`;
+}
+
+function AvatarView({ user, size = "xl" }: { user: UserProfile; size?: "xl" | "form" }) {
   const src = avatarSrc(user.avatarUrl, API_BASE);
-  const className = size === "hero" ? "avatar" : "avatar avatar-sm";
+  const cls = size === "xl" ? "pf-ava pf-ava--xl" : "pf-ava pf-ava--md";
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
-      <div className={className}>
+      <div className={cls}>
         <img src={src} alt="头像" />
       </div>
     );
   }
-  return <div className={className}>{avatarInitials(user.username)}</div>;
+  return <div className={cls}>{avatarInitials(user.nickname || user.username)}</div>;
+}
+
+/** 全部 AI 对话浮层：Surface-2 玻璃弹框，内部滚动分页加载 */
+function AllSessionsModal({ total, onClose }: { total: number | null; onClose: () => void }) {
+  const [rows, setRows] = useState<AiChatSession[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
+
+  // 打开时拉第一页
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetchAllAiSessions(1, MODAL_PAGE_SIZE);
+        if (cancelled) return;
+        const recs = res.records ?? [];
+        setRows(recs);
+        setExhausted(recs.length >= (res.total ?? recs.length));
+      } catch {
+        /* 保持空列表 */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || exhausted) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await fetchAllAiSessions(next, MODAL_PAGE_SIZE);
+      const recs = res.records ?? [];
+      setRows((prev) => {
+        const merged = [...prev, ...recs.filter((r) => !prev.some((x) => x.id === r.id))];
+        if (merged.length >= (res.total ?? merged.length)) setExhausted(true);
+        return merged;
+      });
+      setPage(next);
+    } catch {
+      /* 静默失败：下次滚动会重试 */
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, exhausted, page]);
+
+  const onScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 32) void loadMore();
+    },
+    [loadMore],
+  );
+
+  // ESC 关闭；锁定背景滚动
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="pf-modal-mask" onClick={onClose}>
+      <div
+        className="pf-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="全部 AI 对话"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="pf-modal__head">
+          <span className="pf-card__t">
+            <MessageCircle size={13} className="pf-ic pf-ic--pur" aria-hidden />
+            全部 AI 对话
+            {total != null && <em className="pf-pill pf-pill--pur">{total}</em>}
+          </span>
+          <button type="button" className="pf-modal__close" onClick={onClose} aria-label="关闭">
+            <X size={16} aria-hidden />
+          </button>
+        </header>
+        <div className="pf-modal__body" onScroll={onScroll}>
+          {loading ? (
+            <p className="pf-empty">加载中…</p>
+          ) : rows.length === 0 ? (
+            <p className="pf-empty">还没有对话记录</p>
+          ) : (
+            <>
+              {rows.map((s) => (
+                <a key={s.id} href={sessionHref(s)} className="pf-sess">
+                  <span className="pf-sess__ic">
+                    <MessageCircle size={12} aria-hidden />
+                  </span>
+                  <span className="pf-sess__main">
+                    <span className="pf-sess__t">{s.title || "新对话"}</span>
+                    <span className="pf-sess__m">{s.experimentTitle ?? "通用助手"}</span>
+                  </span>
+                  <span className="pf-sess__time">{formatChatTime(s.updateTime)}</span>
+                </a>
+              ))}
+              {loadingMore ? <p className="pf-modal__more">加载中…</p> : null}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ProfilePage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [section, setSection] = useState<"profile" | "security">("profile");
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [favorites, setFavorites] = useState<Experiment[]>([]);
+  const [sessions, setSessions] = useState<AiChatSession[]>([]);
   const [nickname, setNickname] = useState("");
-  const [bio, setBio] = useState("");
-  const [academicEmail, setAcademicEmail] = useState("");
+  const [allSessionsOpen, setAllSessionsOpen] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,42 +227,39 @@ export default function ProfilePage() {
       .then((u) => {
         setUser(u);
         setNickname(u.nickname);
-        setBio(u.bio ?? "");
-        setAcademicEmail(u.academicEmail ?? "");
       })
       .catch((e) => setErr(e instanceof Error ? e.message : "加载失败"));
+    // 读数 / 收藏 / 对话：任一失败不阻塞页面
+    fetchUserStats().then(setStats).catch(() => {});
+    fetchFavorites().then(setFavorites).catch(() => {});
+    fetchAllAiSessions(1, RECENT_SESSIONS)
+      .then((p) => setSessions(p.records ?? []))
+      .catch(() => {});
   }, []);
+
+  const joinDays = useMemo(() => {
+    if (!user?.createTime) return null;
+    const t = new Date(user.createTime).getTime();
+    if (Number.isNaN(t)) return null;
+    return Math.max(1, Math.floor((Date.now() - t) / 86_400_000) + 1);
+  }, [user]);
 
   function logout() {
     clearToken();
     router.replace("/login");
   }
 
-  function resetForm() {
-    if (!user) return;
-    setMsg("");
-    setErr("");
-    setNickname(user.nickname);
-    setBio(user.bio ?? "");
-    setAcademicEmail(user.academicEmail ?? "");
-  }
-
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setMsg("");
     setErr("");
     setLoading(true);
     try {
-      const u = await updateProfile({
-        nickname,
-        bio: bio.trim(),
-        academicEmail: academicEmail.trim(),
-      });
+      const u = await updateProfile({ nickname });
       setUser(u);
       setNickname(u.nickname);
-      setBio(u.bio ?? "");
-      setAcademicEmail(u.academicEmail ?? "");
-      setMsg("个人资料已保存");
+      setMsg("昵称已更新");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "保存失败");
     } finally {
@@ -163,25 +325,20 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="profile-page flex items-center justify-center">
-        <p className="sx-eyebrow text-[#8d90a0]">{err || "加载中…"}</p>
+      <div className="pf-page flex items-center justify-center">
+        <p className="sx-eyebrow text-[#6b7280]">{err || "加载中…"}</p>
       </div>
     );
   }
 
-  const nicknameLen = nickname.length;
-  const dirty =
-    nickname !== user.nickname ||
-    bio !== (user.bio ?? "") ||
-    academicEmail !== (user.academicEmail ?? "");
-  const lastLogin = timeAgo(user.lastLoginTime);
+  const dirty = nickname !== user.nickname;
+  const visibleFavs = favorites.slice(0, FAV_COLLAPSED);
 
   return (
-    <div className="profile-page">
-      <header className="profile-navbar">
-        <div className="page-shell profile-navbar-inner">
+    <div className="pf-page">
+      <header className="pf-nav">
+        <div className="page-shell pf-nav__inner">
           <BrandLockup href="/" size={30} />
-
           <a href="/" className="kh-header__link">
             <ArrowLeft size={14} aria-hidden />
             返回实验
@@ -189,309 +346,347 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="profile-body">
-        <section className="profile-hero">
-          <div className="profile-identity">
+      <main className="pf-wrap">
+        {/* 身份横幅 */}
+        <section className="pf-banner">
+          <div className="pf-banner__left">
             <AvatarView user={user} />
-            <div className="profile-meta">
-              <span className="profile-handle">@{user.username}</span>
-              <h1>{user.nickname}</h1>
-              <p>
-                <ShieldCheck size={12} className="inline mr-1 -mt-0.5" aria-hidden />
-                {user.roleTitle ? `${user.roleTitle} · ` : ""}
-                用户 ID {user.id}
-                {lastLogin ? ` · 最近登录：${lastLogin}` : ""}
-              </p>
+            <div>
+              <div className="pf-banner__name">
+                {user.nickname}
+                <span className="pf-chip-mono">{user.username}</span>
+              </div>
+              <div className="pf-banner__sub">
+                {joinDays != null && (
+                  <>
+                    <span className="pf-banner__meta">
+                      <CalendarDays size={12} aria-hidden />
+                      <span>
+                        加入第 <b className="pf-mono">{joinDays}</b> 天
+                      </span>
+                    </span>
+                    <span className="pf-sep">·</span>
+                  </>
+                )}
+                <span className="pf-banner__meta">
+                  <ShieldCheck size={12} aria-hidden />
+                  账号正常
+                </span>
+              </div>
             </div>
+          </div>
+          <button type="button" className="pf-btn pf-btn--danger" onClick={logout}>
+            <LogOut size={13} aria-hidden />
+            登出
+          </button>
+        </section>
+
+        {/* 活动读数 */}
+        <section className="pf-stats">
+          <div className="pf-stat">
+            <span className="pf-stat__lb">收藏</span>
+            <span className="pf-stat__n pf-stat__n--sky">{stats?.favoriteCount ?? "–"}</span>
+            <span className="pf-stat__u">个实验</span>
+          </div>
+          <div className="pf-stat">
+            <span className="pf-stat__lb">AI 对话</span>
+            <span className="pf-stat__n pf-stat__n--pur">{stats?.sessionCount ?? "–"}</span>
+            <span className="pf-stat__u">段会话</span>
+          </div>
+          <div className="pf-stat">
+            <span className="pf-stat__lb">评论</span>
+            <span className="pf-stat__n pf-stat__n--eme">{stats?.commentCount ?? "–"}</span>
+            <span className="pf-stat__u">条留言</span>
+          </div>
+          <div className="pf-stat">
+            <span className="pf-stat__lb">浏览足迹</span>
+            <span className="pf-stat__n pf-stat__n--amb">{stats?.viewCount ?? "–"}</span>
+            <span className="pf-stat__u">次运行</span>
           </div>
         </section>
 
-        <div className="profile-content-grid">
-          <aside className="profile-panel">
-            <p className="sx-control-group-title">设置</p>
-            <div className="profile-sidebar-nav">
-              <button
-                type="button"
-                className={section === "profile" ? "is-active" : ""}
-                aria-current={section === "profile"}
-                onClick={() => {
-                  setSection("profile");
-                  setMsg("");
-                  setErr("");
-                }}
-              >
-                <User size={15} className="mr-2 shrink-0" aria-hidden />
-                基本资料
-              </button>
-              <button
-                type="button"
-                className={section === "security" ? "is-active" : ""}
-                aria-current={section === "security"}
-                onClick={() => {
-                  setSection("security");
-                  setMsg("");
-                  setErr("");
-                }}
-              >
-                <ShieldCheck size={15} className="mr-2 shrink-0" aria-hidden />
-                账号安全
-              </button>
-              <button type="button" className="profile-logout" onClick={logout}>
-                登出
-              </button>
-            </div>
-          </aside>
-
-          <div className="flex flex-col gap-4">
-            {section === "profile" && (
-              <section className="profile-panel">
-                <p className="sx-control-group-title">基本资料</p>
-
-                <form className="profile-form-grid" onSubmit={saveProfile}>
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <span className="sx-label">头像</span>
-                      <span className="sx-label">上传 / 恢复默认</span>
-                    </div>
-                    <div className="avatar-edit">
-                      <AvatarView user={user} size="form" />
-                      <div className="avatar-edit-actions">
-                        <div className="avatar-edit-btns">
-                          <button
-                            type="button"
-                            className="btn-ghost btn-ghost-sm"
-                            disabled={loading}
-                            onClick={() => fileRef.current?.click()}
-                          >
-                            <Upload size={13} className="mr-1.5" aria-hidden />
-                            上传头像
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost btn-ghost-sm btn-ghost-muted"
-                            disabled={loading}
-                            onClick={onAvatarReset}
-                          >
-                            <RotateCcw size={13} className="mr-1.5" aria-hidden />
-                            恢复默认
-                          </button>
-                          <input
-                            ref={fileRef}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            onChange={(e) => onAvatarChange(e.target.files?.[0])}
-                          />
-                        </div>
-                        <span className="sx-hint">
-                          支持 JPG / PNG / WebP，不超过 2MB；未上传时显示用户名前 2 字
+        <div className="pf-grid">
+          {/* 左列：内容档案 */}
+          <div className="pf-col">
+            <section className="pf-card">
+              <header className="pf-card__head">
+                <span className="pf-card__t">
+                  <Star size={13} className="pf-ic pf-ic--sky" aria-hidden />
+                  我的收藏
+                  <em className="pf-pill">{favorites.length}</em>
+                </span>
+                <span className="pf-card__state">全部同步</span>
+              </header>
+              {favorites.length === 0 ? (
+                <p className="pf-empty">还没有收藏。去实验库点卡片上的 ★ 即可收藏。</p>
+              ) : (
+                <div className="pf-fav-grid">
+                  {visibleFavs.map((exp) => {
+                    const cover = experimentCoverSrc(exp.coverUrl);
+                    return (
+                      <a key={exp.id} href={`/experiments/${exp.route}`} className="pf-mini">
+                        <span className="pf-mini__thumb">
+                          {cover ? (
+                            <Image
+                              src={cover}
+                              alt=""
+                              fill
+                              sizes="240px"
+                              className="object-cover"
+                              unoptimized={cover.startsWith("http")}
+                            />
+                          ) : (
+                            <ExperimentThumbnail route={exp.route} />
+                          )}
                         </span>
-                      </div>
-                    </div>
-                  </div>
+                        <span className="pf-mini__body">
+                          <span className="pf-mini__subj" style={subjectStyle(exp)}>
+                            {experimentSubjectLabel(exp)}
+                          </span>
+                          <span className="pf-mini__name">{exp.title}</span>
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+              {favorites.length > FAV_COLLAPSED && (
+                <div className="pf-card__foot pf-card__foot--center">
+                  <a className="pf-link" href="/?fav=1">
+                    查看全部 {favorites.length} 个收藏
+                    <ArrowRight size={11} aria-hidden />
+                  </a>
+                </div>
+              )}
+            </section>
 
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="username">
-                        用户名
-                      </label>
-                      <span className="sx-label">唯一标识</span>
-                    </div>
-                    <div className="profile-locked">
-                      <span className="profile-locked__value">@{user.username}</span>
-                      <span className="profile-locked__tag">
-                        <Lock size={11} aria-hidden />
-                        锁定
+            <section className="pf-card">
+              <header className="pf-card__head">
+                <span className="pf-card__t">
+                  <MessageCircle size={13} className="pf-ic pf-ic--pur" aria-hidden />
+                  最近 AI 对话
+                  {stats && <em className="pf-pill pf-pill--pur">{stats.sessionCount}</em>}
+                </span>
+                <span className="pf-card__state">按最近更新</span>
+              </header>
+              {sessions.length === 0 ? (
+                <p className="pf-empty">还没有对话记录。点右下角气泡即可开始提问。</p>
+              ) : (
+                <>
+                  {sessions.map((s) => (
+                    <a key={s.id} href={sessionHref(s)} className="pf-sess">
+                      <span className="pf-sess__ic">
+                        <MessageCircle size={12} aria-hidden />
                       </span>
-                    </div>
-                    <span className="profile-hint">用于登录与系统唯一定位，不可变更。</span>
+                      <span className="pf-sess__main">
+                        <span className="pf-sess__t">{s.title || "新对话"}</span>
+                        <span className="pf-sess__m">{s.experimentTitle ?? "通用助手"}</span>
+                      </span>
+                      <span className="pf-sess__time">{formatChatTime(s.updateTime)}</span>
+                    </a>
+                  ))}
+                  <div className="pf-card__foot pf-card__foot--center">
+                    <button
+                      type="button"
+                      className="pf-link"
+                      onClick={() => setAllSessionsOpen(true)}
+                    >
+                      查看全部{stats ? ` ${stats.sessionCount} 段对话` : "对话"}
+                      <ArrowRight size={11} aria-hidden />
+                    </button>
                   </div>
+                </>
+              )}
+            </section>
+          </div>
 
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="nickname">
-                        昵称
-                      </label>
-                      <span
-                        className={`profile-counter${nicknameLen >= NICKNAME_MAX ? " is-full" : ""}`}
-                      >
-                        {nicknameLen}/{NICKNAME_MAX}
-                      </span>
-                    </div>
+          {/* 右列：账号设置 */}
+          <div className="pf-col">
+            <section className="pf-card">
+              <header className="pf-card__head">
+                <span className="pf-card__t">
+                  <UserRound size={13} className="pf-ic pf-ic--sky" aria-hidden />
+                  账号资料
+                </span>
+                <span className="pf-card__state">{dirty ? "有未保存的更改" : "已同步"}</span>
+              </header>
+              <form className="pf-card__body" onSubmit={saveProfile}>
+                <div className="pf-ava-row">
+                  <AvatarView user={user} size="form" />
+                  <div className="pf-ava-btns">
+                    <button
+                      type="button"
+                      className="pf-btn"
+                      disabled={loading}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      <Upload size={12} aria-hidden />
+                      上传头像
+                    </button>
+                    <button
+                      type="button"
+                      className="pf-btn pf-btn--warn"
+                      disabled={loading}
+                      onClick={onAvatarReset}
+                    >
+                      <RotateCcw size={12} aria-hidden />
+                      恢复默认
+                    </button>
                     <input
-                      id="nickname"
-                      className="sx-input"
-                      maxLength={NICKNAME_MAX}
-                      value={nickname}
-                      onChange={(e) => setNickname(e.target.value)}
-                      placeholder="请输入昵称"
-                      required
+                      ref={fileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => onAvatarChange(e.target.files?.[0])}
                     />
-                    <span className="profile-hint">
-                      将在实验评审、共享实验库与在线讨论区中公开展示。
+                  </div>
+                </div>
+                <span className="pf-hint">支持 JPG / PNG / WebP，不超过 2MB</span>
+
+                <div className="pf-field">
+                  <div className="pf-field__head">
+                    <label className="sx-label" htmlFor="nickname">
+                      昵称
+                    </label>
+                    <span className="pf-counter">
+                      {nickname.length}/{NICKNAME_MAX}
                     </span>
                   </div>
+                  <input
+                    id="nickname"
+                    className="sx-input"
+                    maxLength={NICKNAME_MAX}
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="请输入昵称"
+                    required
+                  />
+                </div>
 
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="bio">
-                        个性签名 / 研学方向
-                      </label>
-                      <span
-                        className={`profile-counter${bio.length >= BIO_MAX ? " is-full" : ""}`}
-                      >
-                        {bio.length}/{BIO_MAX}
-                      </span>
-                    </div>
-                    <textarea
-                      id="bio"
-                      className="sx-input profile-textarea"
-                      rows={3}
-                      maxLength={BIO_MAX}
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="写下你的学术研究重点…"
-                    />
+                <div className="pf-field">
+                  <div className="pf-field__head">
+                    <span className="sx-label">用户名</span>
+                    <span className="sx-label">唯一标识</span>
                   </div>
-
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="academicEmail">
-                        绑定学术邮箱
-                      </label>
-                      <span className="sx-label">
-                        {user.emailVerified ? "已验证" : "未验证"}
-                      </span>
-                    </div>
-                    <input
-                      id="academicEmail"
-                      type="email"
-                      className="sx-input"
-                      maxLength={160}
-                      value={academicEmail}
-                      onChange={(e) => setAcademicEmail(e.target.value)}
-                      placeholder="如：you@university.edu.cn"
-                    />
-                    <span className="profile-hint">
-                      {user.emailVerified
-                        ? "已通过教育学术验证。"
-                        : "仅做格式与唯一性校验；教育域名验证流程尚未开放。"}
+                  <div className="pf-locked">
+                    <span className="pf-mono">{user.username}</span>
+                    <span className="pf-locked__tag">
+                      <Lock size={10} aria-hidden />
+                      锁定
                     </span>
                   </div>
+                </div>
 
-                  <div className="profile-actions">
-                    <span className="profile-autosave">
-                      <span className="profile-autosave__dot" aria-hidden />
-                      {dirty ? "有未保存的更改" : "已与服务器同步"}
-                    </span>
-                    <div className="profile-actions__btns">
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        disabled={loading || !dirty}
-                        onClick={resetForm}
-                      >
-                        取消 / 重置
-                      </button>
-                      <button type="submit" className="btn-primary" disabled={loading || !dirty}>
-                        {loading ? "正在保存…" : (
-                          <>
-                            <Check size={16} aria-hidden />
-                            保存更改
-                          </>
-                        )}
-                      </button>
-                    </div>
+                <div className="pf-card__foot">
+                  <span className="pf-sync">
+                    <span className={`pf-sync__dot${dirty ? " is-dirty" : ""}`} aria-hidden />
+                    {dirty ? "有未保存的更改" : "已与服务器同步"}
+                  </span>
+                  <button type="submit" className="btn-primary" disabled={loading || !dirty}>
+                    {loading ? (
+                      "保存中…"
+                    ) : (
+                      <>
+                        <Check size={14} aria-hidden />
+                        保存更改
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section className="pf-card">
+              <header className="pf-card__head">
+                <span className="pf-card__t">
+                  <ShieldCheck size={13} className="pf-ic pf-ic--eme" aria-hidden />
+                  账号安全
+                </span>
+                <span className="pf-card__state">修改后立即生效</span>
+              </header>
+              <form className="pf-card__body" onSubmit={savePassword}>
+                <div className="pf-field">
+                  <div className="pf-field__head">
+                    <label className="sx-label" htmlFor="oldPassword">
+                      当前密码
+                    </label>
                   </div>
-                </form>
-              </section>
-            )}
-
-            {section === "security" && (
-              <section className="profile-panel">
-                <p className="sx-control-group-title">账号安全</p>
-                <form className="profile-form-grid" onSubmit={savePassword}>
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="oldPassword">
-                        当前密码
-                      </label>
-                    </div>
-                    <input
-                      id="oldPassword"
-                      name="oldPassword"
-                      type="password"
-                      className="sx-input"
-                      autoComplete="current-password"
-                      minLength={5}
-                      maxLength={20}
-                      placeholder="5–20 个字符"
-                      required
-                    />
+                  <input
+                    id="oldPassword"
+                    name="oldPassword"
+                    type="password"
+                    className="sx-input"
+                    autoComplete="current-password"
+                    minLength={5}
+                    maxLength={20}
+                    placeholder="5–20 个字符"
+                    required
+                  />
+                </div>
+                <div className="pf-field">
+                  <div className="pf-field__head">
+                    <label className="sx-label" htmlFor="newPassword">
+                      新密码
+                    </label>
+                    <span className="sx-label">5–20 字符</span>
                   </div>
-
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="newPassword">
-                        新密码
-                      </label>
-                      <span className="sx-label">5–20 字符</span>
-                    </div>
-                    <input
-                      id="newPassword"
-                      name="newPassword"
-                      type="password"
-                      className="sx-input"
-                      autoComplete="new-password"
-                      minLength={5}
-                      maxLength={20}
-                      placeholder="5–20 个字符"
-                      required
-                    />
+                  <input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    className="sx-input"
+                    autoComplete="new-password"
+                    minLength={5}
+                    maxLength={20}
+                    placeholder="输入新密码"
+                    required
+                  />
+                </div>
+                <div className="pf-field">
+                  <div className="pf-field__head">
+                    <label className="sx-label" htmlFor="newPassword2">
+                      确认新密码
+                    </label>
                   </div>
-
-                  <div className="profile-field">
-                    <div className="profile-field__head">
-                      <label className="sx-label" htmlFor="newPassword2">
-                        确认新密码
-                      </label>
-                    </div>
-                    <input
-                      id="newPassword2"
-                      name="newPassword2"
-                      type="password"
-                      className="sx-input"
-                      autoComplete="new-password"
-                      minLength={5}
-                      maxLength={20}
-                      placeholder="再次输入新密码"
-                      required
-                    />
-                  </div>
-
-                  <div className="profile-actions">
-                    <span className="profile-autosave">
-                      <ShieldCheck size={13} aria-hidden />
-                      密码以 BCrypt 哈希存储
-                    </span>
-                    <div className="profile-actions__btns">
-                      <button type="submit" className="btn-primary" disabled={loading}>
-                        {loading ? "正在提交…" : "修改密码"}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </section>
-            )}
-
-            {msg && <p className="profile-feedback profile-feedback-ok">{msg}</p>}
-            {err && <p className="profile-feedback profile-feedback-err">{err}</p>}
+                  <input
+                    id="newPassword2"
+                    name="newPassword2"
+                    type="password"
+                    className="sx-input"
+                    autoComplete="new-password"
+                    minLength={5}
+                    maxLength={20}
+                    placeholder="再次输入新密码"
+                    required
+                  />
+                </div>
+                <div className="pf-card__foot">
+                  <span className="pf-sync">
+                    <KeyRound size={11} aria-hidden />
+                    建议定期更换
+                  </span>
+                  <button type="submit" className="pf-btn pf-btn--strong" disabled={loading}>
+                    {loading ? "提交中…" : "修改密码"}
+                  </button>
+                </div>
+              </form>
+            </section>
           </div>
         </div>
+
+        {msg && <p className="pf-feedback pf-feedback--ok">{msg}</p>}
+        {err && <p className="pf-feedback pf-feedback--err">{err}</p>}
       </main>
 
-      <footer className="profile-footer">
-        <div className="page-shell sx-eyebrow">PhysLab 3D — 交互式 3D 物理仿真平台</div>
+      {allSessionsOpen && (
+        <AllSessionsModal
+          total={stats?.sessionCount ?? null}
+          onClose={() => setAllSessionsOpen(false)}
+        />
+      )}
+
+      <footer className="site-foot">
+        <div className="page-shell site-foot__in">PhysLab 3D — 交互式 3D 物理仿真平台</div>
       </footer>
     </div>
   );

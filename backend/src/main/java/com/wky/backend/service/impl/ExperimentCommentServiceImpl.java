@@ -62,12 +62,31 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
                 .isNull(ExperimentComment::getRootId)
                 .orderByDesc(ExperimentComment::getCreateTime);
 
+        // 「我的」=我参与过的楼层：我发的楼层 + 我在其下回复过的别人的楼层
+        Set<Long> participatedRootIds = Set.of();
         if ("mine".equalsIgnoreCase(filter)) {
             if (currentUserId == null) {
                 return new PageResponse<>(List.of(), 0, page, pageSize);
             }
-            wrapper.eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
-                    .eq(ExperimentComment::getOwnerId, currentUserId);
+            List<ExperimentComment> myReplies = list(new LambdaQueryWrapper<ExperimentComment>()
+                    .eq(ExperimentComment::getExperimentId, experimentId)
+                    .eq(ExperimentComment::getStatus, STATUS_VISIBLE)
+                    .isNotNull(ExperimentComment::getRootId)
+                    .eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
+                    .eq(ExperimentComment::getOwnerId, currentUserId)
+                    .select(ExperimentComment::getRootId));
+            Set<Long> replyRootIds = myReplies.stream()
+                    .map(ExperimentComment::getRootId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            wrapper.and(w -> {
+                w.and(x -> x.eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
+                        .eq(ExperimentComment::getOwnerId, currentUserId));
+                if (!replyRootIds.isEmpty()) {
+                    w.or().in(ExperimentComment::getId, replyRootIds);
+                }
+            });
+            participatedRootIds = replyRootIds;
         }
 
         Page<ExperimentComment> result = page(new Page<>(page, pageSize), wrapper);
@@ -101,15 +120,25 @@ public class ExperimentCommentServiceImpl extends ServiceImpl<ExperimentCommentM
         Map<Long, List<ExperimentComment>> repliesByRoot = replies.stream()
                 .collect(Collectors.groupingBy(ExperimentComment::getRootId));
 
+        final Set<Long> participated = participatedRootIds;
         List<CommentResponse> records = roots.stream()
-                .map(root -> toResponse(
-                        root,
-                        authors,
-                        likedIds,
-                        replyTargets,
-                        repliesByRoot.getOrDefault(root.getId(), List.of()).stream()
-                                .map(r -> toResponse(r, authors, likedIds, replyTargets, null))
-                                .toList()))
+                .map(root -> {
+                    CommentResponse resp = toResponse(
+                            root,
+                            authors,
+                            likedIds,
+                            replyTargets,
+                            repliesByRoot.getOrDefault(root.getId(), List.of()).stream()
+                                    .map(r -> toResponse(r, authors, likedIds, replyTargets, null))
+                                    .toList());
+                    // 仅「我的」列表：楼层不是我发的但含我的回复时标注
+                    boolean mineRoot = root.getOwnerType() == CommentOwnerType.USER
+                            && Objects.equals(root.getOwnerId(), currentUserId);
+                    if (participated.contains(root.getId()) && !mineRoot) {
+                        resp.setParticipated(Boolean.TRUE);
+                    }
+                    return resp;
+                })
                 .toList();
 
         return new PageResponse<>(records, result.getTotal(), result.getCurrent(), result.getSize());

@@ -1,23 +1,15 @@
 package com.wky.backend.controller.user;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wky.backend.domain.dto.AiChatMessageRequest;
-import com.wky.backend.domain.dto.AiChatMessageResponse;
-import com.wky.backend.domain.dto.AiChatReplyResponse;
-import com.wky.backend.domain.dto.AiChatSessionResponse;
-import com.wky.backend.domain.dto.PageResponse;
-import com.wky.backend.enums.CommentOwnerType;
-import com.wky.backend.exception.ApiException;
-import com.wky.backend.security.AuthPrincipal;
-import com.wky.backend.service.IAiChatService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.wky.backend.domain.dto.AiRenameSessionRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,10 +22,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wky.backend.domain.dto.AiChatMessageRequest;
+import com.wky.backend.domain.dto.AiChatMessageResponse;
+import com.wky.backend.domain.dto.AiChatReplyResponse;
+import com.wky.backend.domain.dto.AiChatSessionResponse;
+import com.wky.backend.domain.dto.AiRenameSessionRequest;
+import com.wky.backend.domain.dto.PageResponse;
+import com.wky.backend.enums.CommentOwnerType;
+import com.wky.backend.exception.ApiException;
+import com.wky.backend.security.AuthPrincipal;
+import com.wky.backend.service.IAiChatService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/users/me/ai")
@@ -46,9 +48,14 @@ public class UserAiChatController {
     public PageResponse<AiChatSessionResponse> listSessions(
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam(required = false) Long experimentId,
+            @RequestParam(required = false) Boolean all,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long size) {
         Long userId = requireUser(principal);
+        // all=true：个人中心用，跨全部作用域（含首页与各实验）
+        if (Boolean.TRUE.equals(all)) {
+            return aiChatService.listAllSessions(userId, CommentOwnerType.USER, page, size);
+        }
         return aiChatService.listSessions(userId, CommentOwnerType.USER, experimentId, page, size);
     }
 

@@ -1,17 +1,28 @@
 package com.wky.backend.controller.user;
 
+import java.util.Map;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.wky.backend.domain.dto.ChangePasswordRequest;
 import com.wky.backend.domain.dto.UpdateProfileRequest;
 import com.wky.backend.domain.dto.UserProfileResponse;
+import com.wky.backend.domain.dto.UserStatsResponse;
 import com.wky.backend.security.AuthPrincipal;
 import com.wky.backend.service.IUserService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users/me")
@@ -23,6 +34,11 @@ public class UserController {
     @GetMapping
     public UserProfileResponse me(@AuthenticationPrincipal AuthPrincipal principal) {
         return userService.getProfile(principal.id());
+    }
+
+    @GetMapping("/stats")
+    public UserStatsResponse stats(@AuthenticationPrincipal AuthPrincipal principal) {
+        return userService.getStats(principal.id());
     }
 
     @PatchMapping

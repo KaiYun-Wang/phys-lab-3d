@@ -228,6 +228,14 @@ export function ExperimentContainer({
     setRightWidth(readStoredWidth(RIGHT_W_KEY));
   }, []);
 
+  // ?aiSession=<id> 深链：从个人中心点历史会话跳来时，自动打开右栏 AI 面板
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = new URLSearchParams(window.location.search).get("aiSession");
+    const id = raw ? Number(raw) : NaN;
+    if (Number.isInteger(id) && id > 0) setRightPanel("chat");
+  }, []);
+
   useEffect(() => {
     if (!experimentRoute) return;
     fetchExperiment(experimentRoute)

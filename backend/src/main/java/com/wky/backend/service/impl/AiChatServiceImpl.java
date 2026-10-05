@@ -1,5 +1,22 @@
 package com.wky.backend.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wky.backend.ai.ExperimentAiTools;
@@ -24,6 +41,7 @@ import com.wky.backend.mapper.AiChatSessionMapper;
 import com.wky.backend.service.AiContextSummaryService;
 import com.wky.backend.service.IAiChatService;
 import com.wky.backend.service.IExperimentService;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -39,19 +57,6 @@ import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.service.tool.ToolService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -102,8 +107,44 @@ public class AiChatServiceImpl implements IAiChatService {
         }
         q.orderByDesc(AiChatSession::getUpdateTime);
         Page<AiChatSession> p = sessionMapper.selectPage(new Page<>(page, pageSize), q);
-        List<AiChatSessionResponse> records = p.getRecords().stream().map(this::toSession).toList();
-        return new PageResponse<>(records, p.getTotal(), page, pageSize);
+        return new PageResponse<>(toSessionList(p.getRecords()), p.getTotal(), page, pageSize);
+    }
+
+    @Override
+    public PageResponse<AiChatSessionResponse> listAllSessions(
+            Long ownerId, CommentOwnerType ownerType, long page, long pageSize) {
+        LambdaQueryWrapper<AiChatSession> q = new LambdaQueryWrapper<AiChatSession>()
+                .eq(AiChatSession::getOwnerId, ownerId)
+                .eq(AiChatSession::getOwnerType, ownerType)
+                .orderByDesc(AiChatSession::getUpdateTime);
+        Page<AiChatSession> p = sessionMapper.selectPage(new Page<>(page, pageSize), q);
+        return new PageResponse<>(toSessionList(p.getRecords()), p.getTotal(), page, pageSize);
+    }
+
+    /** 会话列表映射：批量补齐所属实验的展示名与路由（列表标注 + 深链跳转）。 */
+    private List<AiChatSessionResponse> toSessionList(List<AiChatSession> rows) {
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> expIds = rows.stream()
+                .map(AiChatSession::getExperimentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Experiment> expMap = expIds.isEmpty()
+                ? Map.of()
+                : experimentService.listByIds(expIds).stream()
+                        .collect(Collectors.toMap(Experiment::getId, e -> e, (a, b) -> a));
+        return rows.stream().map(s -> {
+            AiChatSessionResponse r = toSession(s);
+            if (s.getExperimentId() != null) {
+                Experiment exp = expMap.get(s.getExperimentId());
+                if (exp != null) {
+                    r.setExperimentTitle(exp.getTitle());
+                    r.setExperimentRoute(exp.getRoute());
+                }
+            }
+            return r;
+        }).toList();
     }
 
     @Override

@@ -202,6 +202,8 @@ function ExperimentCard({
 export default function Home() {
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
+  /** 从「查看全部收藏」跳来时，等数据加载完再滚到实验区 */
+  const scrollToExperimentsRef = useRef(false);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -224,9 +226,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("subject");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("subject");
     if (code) setSubjectFilter(code);
+    // 个人中心「查看全部收藏」入口：开启「仅看收藏」，数据就绪后滚到实验区
+    if (params.get("fav") === "1" && isAuthenticated()) {
+      setShowFavoritesOnly(true);
+      scrollToExperimentsRef.current = true;
+    }
   }, []);
+
+  // 实验数据首屏加载完成后（布局高度稳定）再定位，避免滚到半空
+  useEffect(() => {
+    if (loading || !scrollToExperimentsRef.current) return;
+    scrollToExperimentsRef.current = false;
+    document.getElementById("experiments")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading]);
 
   useEffect(() => {
     const timer = setTimeout(
@@ -502,8 +517,8 @@ export default function Home() {
         </section>
       </div>
 
-      <footer className="w-full border-t border-[#232838] mt-2">
-        <div className={`${PAGE} py-10 sx-eyebrow text-[#5b6070]`}>
+      <footer className="site-foot">
+        <div className={`${PAGE} site-foot__in`}>
           PhysLab 3D — 交互式 3D 物理仿真平台
         </div>
       </footer>

@@ -1,10 +1,10 @@
 package com.wky.backend.domain.dto;
 
-import lombok.Builder;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.List;
+
+import lombok.Builder;
+import lombok.Data;
 
 @Data
 @Builder
@@ -25,6 +25,8 @@ public class CommentResponse {
     private String content;
     private Long likeCount;
     private Boolean liked;
+    /** 该楼层含我的回复（仅「我的」筛选时返回，用于标注“我回复过”） */
+    private Boolean participated;
     private LocalDateTime createTime;
     private List<CommentResponse> replies;
 }

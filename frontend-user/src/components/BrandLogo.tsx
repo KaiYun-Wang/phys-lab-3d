@@ -72,12 +72,12 @@ export function AtomMark({
   );
 }
 
-/** 完整品牌头：原子标识 + 渐变字标 + 副标题 */
+/** 完整品牌头：原子标识 + 渐变字标（副标题默认不显示，需要时显式传入） */
 export function BrandLockup({
   size = 30,
   spin = false,
-  tagline = "虚拟仿真与学术计算平台",
-  showTagline = true,
+  tagline,
+  showTagline = false,
   href,
 }: {
   size?: number;

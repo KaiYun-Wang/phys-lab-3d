@@ -20,11 +20,14 @@ import {
   type DemoSessionSummary,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
+import { formatChatTime } from "@/lib/time";
 import { DemoPlanCard } from "@/components/demo/DemoPlanCard";
 import { SessionHistoryItem } from "@/components/SessionHistoryItem";
 
 const PANEL_W_KEY = "physlab.ai.panel.w";
 const PANEL_H_KEY = "physlab.ai.panel.h";
+/** 会话历史每页条数（滚动加载下一页） */
+const HISTORY_PAGE_SIZE = 20;
 /** 悬浮球引导气泡只看一次 */
 const AI_TIP_KEY = "physlab.ai.tipSeen";
 const DEFAULT_W = 380;
@@ -124,17 +127,6 @@ function toolStepDetail(role: "tool_call" | "tool_result", content: string, cont
   return content;
 }
 
-function timeLabel(iso: string) {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "";
-  const d = new Date(t);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
-}
-
 function readSize(key: string, fallback: number) {
   if (typeof window === "undefined") return fallback;
   const n = parseFloat(localStorage.getItem(key) || "");
@@ -218,9 +210,15 @@ export default function AiChatWidget({
   const [panelW, setPanelW] = useState(DEFAULT_W);
   const [panelH, setPanelH] = useState(DEFAULT_H);
   const [resizing, setResizing] = useState<ResizeMode>(null);
+  const [sessPage, setSessPage] = useState(1);
+  const [sessTotal, setSessTotal] = useState(0);
+  const [sessLoadingMore, setSessLoadingMore] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
   const sizeRef = useRef({ w: DEFAULT_W, h: DEFAULT_H });
+  /** ?aiSession=<id> 深链指定的会话（消费一次即清空） */
+  const deepSessionRef = useRef<number | null>(null);
+  const deepLinkDoneRef = useRef(false);
   const loggedIn = isAuthenticated();
 
   const page = pageContext(pathname || "/");
@@ -232,7 +230,8 @@ export default function AiChatWidget({
     }),
     [page.context, contextOverride, refIds],
   );
-  const hideOnLogin = pathname === "/login";
+  /** 登录页与个人中心不显示悬浮气泡（个人中心内已有「最近 AI 对话」入口） */
+  const hideFab = pathname === "/login" || pathname === "/profile";
   const experimentId = context.experimentId;
   const canRefDemos = isRail && experimentId != null;
   // rail 必须等实验 id 到位，否则会误用首页（null）作用域
@@ -245,6 +244,29 @@ export default function AiChatWidget({
     setPanelH(next.h);
     sizeRef.current = next;
   }, [isRail]);
+
+  // ?aiSession=<id> 深链：从个人中心等外部入口直达指定会话；
+  // 实验页交给 rail 实例，实验页上的 fab 不抢参数。
+  useEffect(() => {
+    if (deepLinkDoneRef.current) return;
+    deepLinkDoneRef.current = true;
+    if (typeof window === "undefined") return;
+    if (!isRail && (onExperimentPage || hideFab)) return;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("aiSession");
+    if (!raw) return;
+    const id = Number(raw);
+    if (!Number.isInteger(id) || id <= 0) return;
+    params.delete("aiSession");
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`,
+    );
+    deepSessionRef.current = id;
+    if (!isRail) setOpenInternal(true);
+  }, [isRail, onExperimentPage, hideFab]);
 
   const scrollBottom = useCallback(() => {
     const el = listRef.current;
@@ -268,14 +290,42 @@ export default function AiChatWidget({
   const refreshSessionList = useCallback(async () => {
     if (!loggedIn || !scopeReady) return [] as AiChatSession[];
     try {
-      const pageRes = await fetchAiSessions(1, 50, experimentId ?? null);
+      const pageRes = await fetchAiSessions(1, HISTORY_PAGE_SIZE, experimentId ?? null);
       const rows = pageRes.records ?? [];
       setSessions(rows);
+      setSessPage(1);
+      setSessTotal(pageRes.total ?? rows.length);
       return rows;
     } catch {
       return [] as AiChatSession[];
     }
   }, [loggedIn, scopeReady, experimentId]);
+
+  /** 滚动到列表底部时增量加载下一页（防止历史无限膨胀，写满一屏再取）。 */
+  const loadMoreSessions = useCallback(async () => {
+    if (sessLoadingMore || sessions.length >= sessTotal) return;
+    setSessLoadingMore(true);
+    try {
+      const next = sessPage + 1;
+      const pageRes = await fetchAiSessions(next, HISTORY_PAGE_SIZE, experimentId ?? null);
+      const rows = pageRes.records ?? [];
+      setSessions((prev) => [...prev, ...rows.filter((r) => !prev.some((p) => p.id === r.id))]);
+      setSessPage(next);
+      setSessTotal(pageRes.total ?? sessTotal);
+    } catch {
+      /* 静默失败：下次滚动会重试 */
+    } finally {
+      setSessLoadingMore(false);
+    }
+  }, [sessLoadingMore, sessions.length, sessTotal, sessPage, experimentId]);
+
+  const onHistoryScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 32) void loadMoreSessions();
+    },
+    [loadMoreSessions],
+  );
 
   const loadDemos = useCallback(async () => {
     if (!canRefDemos || experimentId == null) {
@@ -298,11 +348,19 @@ export default function AiChatWidget({
     return s.id;
   }, [sessionId, scopeReady, experimentId]);
 
-  // 每次打开对话 / 切换实验作用域：进入最近一条；无历史则空着
+  // 每次打开对话 / 切换实验作用域：优先深链会话，其次进入最近一条；无历史则空着
   useEffect(() => {
     if (!open || !loggedIn || !scopeReady) return;
     let cancelled = false;
     void (async () => {
+      const deepId = deepSessionRef.current;
+      if (deepId != null) {
+        deepSessionRef.current = null;
+        void refreshSessionList();
+        if (cancelled) return;
+        await loadMessages(deepId);
+        return;
+      }
       const rows = await refreshSessionList();
       if (cancelled) return;
       if (rows[0]) await loadMessages(rows[0].id);
@@ -430,6 +488,7 @@ export default function AiChatWidget({
     try {
       await deleteAiSession(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
+      setSessTotal((t) => Math.max(0, t - 1));
       if (sessionId === id) {
         setSessionId(null);
         setMessages([]);
@@ -613,7 +672,7 @@ export default function AiChatWidget({
   };
 
   // 实验页全局气泡关闭：只保留右栏入口
-  if (!isRail && (hideOnLogin || onExperimentPage)) return null;
+  if (!isRail && (hideFab || onExperimentPage)) return null;
   if (isRail && openProp === false) return null;
 
   const placeholder = isRail ? "" : loggedIn ? "问点什么…" : "登录后开始对话…";
@@ -737,23 +796,27 @@ export default function AiChatWidget({
                 </svg>
               </button>
             </div>
-            <div className="ai-history-list">
+            <div className="ai-history-list" onScroll={onHistoryScroll}>
               {sessions.length === 0 ? (
                 <p className="ai-history-empty">暂无历史对话。发送第一条消息后会出现在这里。</p>
               ) : (
-                sessions.map((s) => (
-                  <SessionHistoryItem
-                    key={s.id}
-                    title={s.title}
-                    active={s.id === sessionId}
-                    onOpen={() => {
-                      void loadMessages(s.id);
-                      setHistoryOpen(false);
-                    }}
-                    onRename={(title) => renameSession(s.id, title)}
-                    onDelete={() => removeSession(s.id)}
-                  />
-                ))
+                <>
+                  {sessions.map((s) => (
+                    <SessionHistoryItem
+                      key={s.id}
+                      title={s.title}
+                      time={formatChatTime(s.updateTime)}
+                      active={s.id === sessionId}
+                      onOpen={() => {
+                        void loadMessages(s.id);
+                        setHistoryOpen(false);
+                      }}
+                      onRename={(title) => renameSession(s.id, title)}
+                      onDelete={() => removeSession(s.id)}
+                    />
+                  ))}
+                  {sessLoadingMore ? <p className="ai-history-more">加载中…</p> : null}
+                </>
               )}
             </div>
           </aside>
@@ -851,7 +914,7 @@ export default function AiChatWidget({
                         m.content
                       )}
                     </div>
-                    <span className="time">{timeLabel(m.createTime)}</span>
+                    <span className="time">{formatChatTime(m.createTime)}</span>
                   </div>
                 );
               })}

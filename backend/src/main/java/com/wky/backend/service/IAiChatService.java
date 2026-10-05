@@ -1,5 +1,8 @@
 package com.wky.backend.service;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import com.wky.backend.domain.dto.AiChatMessageRequest;
 import com.wky.backend.domain.dto.AiChatMessageResponse;
 import com.wky.backend.domain.dto.AiChatReplyResponse;
@@ -7,13 +10,14 @@ import com.wky.backend.domain.dto.AiChatSessionResponse;
 import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.enums.CommentOwnerType;
 
-import java.util.List;
-import java.util.function.Consumer;
-
 public interface IAiChatService {
 
     PageResponse<AiChatSessionResponse> listSessions(
             Long ownerId, CommentOwnerType ownerType, Long experimentId, long page, long pageSize);
+
+    /** 个人中心：全部作用域的会话（不按实验过滤），按最近更新倒序。 */
+    PageResponse<AiChatSessionResponse> listAllSessions(
+            Long ownerId, CommentOwnerType ownerType, long page, long pageSize);
 
     AiChatSessionResponse createSession(Long ownerId, CommentOwnerType ownerType, Long experimentId);
 

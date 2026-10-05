@@ -230,7 +230,9 @@ export function CommentsPanel({
         ) : error ? (
           <p className="exp-comments-empty">{error}</p>
         ) : comments.length === 0 ? (
-          <p className="exp-comments-empty">暂无评论，来抢沙发吧</p>
+          <p className="exp-comments-empty">
+            {filter === "mine" ? "你还没有参与过这个实验的讨论" : "暂无评论，来抢沙发吧"}
+          </p>
         ) : (
           comments.map((c) => (
             <Thread
@@ -331,6 +333,9 @@ function Thread({
                 <Star size={9} fill="currentColor" aria-hidden />
                 精选
               </span>
+            ) : null}
+            {comment.participated ? (
+              <span className="exp-participated-tag">我回复过</span>
             ) : null}
           </div>
           <div className="time">{timeAgo(comment.createTime)}</div>

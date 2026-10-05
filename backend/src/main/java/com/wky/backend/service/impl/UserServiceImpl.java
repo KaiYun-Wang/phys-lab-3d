@@ -8,9 +8,19 @@ import com.wky.backend.domain.dto.ChangePasswordRequest;
 import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.domain.dto.UpdateProfileRequest;
 import com.wky.backend.domain.dto.UserProfileResponse;
+import com.wky.backend.domain.dto.UserStatsResponse;
+import com.wky.backend.domain.entity.AiChatSession;
+import com.wky.backend.domain.entity.ExperimentComment;
+import com.wky.backend.domain.entity.ExperimentFavorite;
+import com.wky.backend.domain.entity.ExperimentView;
 import com.wky.backend.domain.entity.User;
+import com.wky.backend.enums.CommentOwnerType;
 import com.wky.backend.enums.UserStatus;
 import com.wky.backend.exception.ApiException;
+import com.wky.backend.mapper.AiChatSessionMapper;
+import com.wky.backend.mapper.ExperimentCommentMapper;
+import com.wky.backend.mapper.ExperimentFavoriteMapper;
+import com.wky.backend.mapper.ExperimentViewMapper;
 import com.wky.backend.mapper.UserMapper;
 import com.wky.backend.service.IUserService;
 import org.dromara.x.file.storage.core.FileInfo;
@@ -32,15 +42,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     private static final String STORAGE_PLATFORM = "minio-1";
     private static final String AVATAR_BASE_PATH = "avatars/";
 
+    /** 与评论模块一致的可见状态值 */
+    private static final String COMMENT_STATUS_VISIBLE = "VISIBLE";
+
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp");
 
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
+    private final ExperimentFavoriteMapper favoriteMapper;
+    private final ExperimentViewMapper viewMapper;
+    private final ExperimentCommentMapper commentMapper;
+    private final AiChatSessionMapper aiSessionMapper;
 
-    public UserServiceImpl(PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
+    public UserServiceImpl(
+            PasswordEncoder passwordEncoder,
+            FileStorageService fileStorageService,
+            ExperimentFavoriteMapper favoriteMapper,
+            ExperimentViewMapper viewMapper,
+            ExperimentCommentMapper commentMapper,
+            AiChatSessionMapper aiSessionMapper) {
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
+        this.favoriteMapper = favoriteMapper;
+        this.viewMapper = viewMapper;
+        this.commentMapper = commentMapper;
+        this.aiSessionMapper = aiSessionMapper;
     }
 
     @Override
@@ -55,6 +82,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     public UserProfileResponse getProfile(Long userId) {
         return UserProfileResponse.from(requireUser(userId));
+    }
+
+    @Override
+    public UserStatsResponse getStats(Long userId) {
+        long favoriteCount = favoriteMapper.selectCount(new LambdaQueryWrapper<ExperimentFavorite>()
+                .eq(ExperimentFavorite::getUserId, userId));
+        long sessionCount = aiSessionMapper.selectCount(new LambdaQueryWrapper<AiChatSession>()
+                .eq(AiChatSession::getOwnerId, userId)
+                .eq(AiChatSession::getOwnerType, CommentOwnerType.USER));
+        long commentCount = commentMapper.selectCount(new LambdaQueryWrapper<ExperimentComment>()
+                .eq(ExperimentComment::getOwnerId, userId)
+                .eq(ExperimentComment::getOwnerType, CommentOwnerType.USER)
+                .eq(ExperimentComment::getStatus, COMMENT_STATUS_VISIBLE));
+        long viewCount = viewMapper.selectCount(new LambdaQueryWrapper<ExperimentView>()
+                .eq(ExperimentView::getUserId, userId));
+        return new UserStatsResponse(favoriteCount, sessionCount, commentCount, viewCount);
     }
 
     @Override

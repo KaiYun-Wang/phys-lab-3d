@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from "react";
 
 type Props = {
   title: string;
+  /** 已格式化的时间（formatted via formatChatTime）；留空则不显示 */
+  time?: string;
   active?: boolean;
   onOpen: () => void;
   onRename: (title: string) => Promise<void> | void;
   onDelete: () => Promise<void> | void;
 };
 
-export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }: Props) {
+export function SessionHistoryItem({ title, time, active, onOpen, onRename, onDelete }: Props) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const trackRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -149,6 +151,8 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
           </span>
         )}
       </button>
+
+      {time ? <span className="ai-sess-time">{time}</span> : null}
 
       <div className="ai-sess-more" ref={menuRef}>
         <button

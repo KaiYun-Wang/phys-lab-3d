@@ -68,18 +68,15 @@ export type UserProfile = {
   username: string;
   nickname: string;
   avatarUrl: string | null;
-  /** 个性签名 / 研学方向 */
-  bio?: string | null;
-  /** 绑定学术邮箱 */
-  academicEmail?: string | null;
-  /** 学术邮箱是否已验证（验证流程待审批后实现） */
-  emailVerified?: boolean;
-  /** 学术头衔 */
-  roleTitle?: string | null;
-  /** 系统权限层级 */
-  permissionLevel?: string | null;
-  /** 最近登录时间 */
-  lastLoginTime?: string | null;
+  /** 注册时间（个人中心「加入第 N 天」） */
+  createTime?: string | null;
+};
+
+export type UserStats = {
+  favoriteCount: number;
+  sessionCount: number;
+  commentCount: number;
+  viewCount: number;
 };
 
 export type LoginResponse = {
@@ -150,11 +147,14 @@ export function fetchMe() {
   return apiFetch<UserProfile>("/api/users/me");
 }
 
-/** 学术档案字段：仅传需要修改的项（nickname 必传，后端为部分更新语义）。 */
+/** 个人中心活动读数（一次请求聚合） */
+export function fetchUserStats() {
+  return apiFetch<UserStats>("/api/users/me/stats");
+}
+
+/** 学术档案字段：昵称（后端为部分更新语义，可只传昵称）。 */
 export type ProfilePatch = {
   nickname: string;
-  bio?: string;
-  academicEmail?: string;
 };
 
 export function updateProfile(patch: ProfilePatch) {
@@ -229,6 +229,8 @@ export type Comment = {
   liked?: boolean;
   /** 管理员精选 */
   featured?: boolean;
+  /** 该楼层含我的回复（仅「我的」筛选时返回） */
+  participated?: boolean;
   createTime: string;
   replies?: Comment[];
 };
@@ -389,6 +391,10 @@ export type AiChatContext = {
 export type AiChatSession = {
   id: number;
   experimentId?: number | null;
+  /** 所属实验展示名（全局列表标注用） */
+  experimentTitle?: string | null;
+  /** 所属实验路由（深链跳转用） */
+  experimentRoute?: string | null;
   title: string;
   createTime: string;
   updateTime: string;
@@ -421,6 +427,12 @@ export type AiSessionPage = {
 export function fetchAiSessions(page = 1, size = 30, experimentId?: number | null) {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (experimentId != null) params.set("experimentId", String(experimentId));
+  return apiFetch<AiSessionPage>(`/api/users/me/ai/sessions?${params}`);
+}
+
+/** 全部作用域的会话（个人中心用，含首页与各实验，按最近更新倒序）。 */
+export function fetchAllAiSessions(page = 1, size = 20) {
+  const params = new URLSearchParams({ page: String(page), size: String(size), all: "true" });
   return apiFetch<AiSessionPage>(`/api/users/me/ai/sessions?${params}`);
 }
 

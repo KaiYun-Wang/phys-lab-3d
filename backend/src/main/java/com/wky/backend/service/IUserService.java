@@ -1,22 +1,26 @@
 package com.wky.backend.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
-import com.wky.backend.domain.dto.ChangePasswordRequest;
-import com.wky.backend.domain.dto.PageResponse;
-import com.wky.backend.domain.dto.AdminUserResponse;
-import com.wky.backend.domain.dto.UpdateProfileRequest;
-import com.wky.backend.domain.dto.UserProfileResponse;
-import com.wky.backend.domain.entity.User;
-import com.wky.backend.enums.UserStatus;
+import java.time.LocalDate;
+
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.wky.backend.domain.dto.AdminUserResponse;
+import com.wky.backend.domain.dto.ChangePasswordRequest;
+import com.wky.backend.domain.dto.PageResponse;
+import com.wky.backend.domain.dto.UpdateProfileRequest;
+import com.wky.backend.domain.dto.UserProfileResponse;
+import com.wky.backend.domain.dto.UserStatsResponse;
+import com.wky.backend.domain.entity.User;
+import com.wky.backend.enums.UserStatus;
 
 public interface IUserService extends IService<User> {
 
     User requireUser(Long userId);
 
     UserProfileResponse getProfile(Long userId);
+
+    UserStatsResponse getStats(Long userId);
 
     UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request);
 
