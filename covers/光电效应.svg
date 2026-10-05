@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="光电效应示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 透视地板网格 -->
+  <g stroke="rgba(56,189,248,.16)" strokeWidth="1">
+    <line x1="150" y1="316" x2="650" y2="316"/>
+    <line x1="120" y1="334" x2="680" y2="334"/>
+    <line x1="90" y1="356" x2="710" y2="356"/>
+    <line x1="60" y1="380" x2="740" y2="380"/>
+    <line x1="400" y1="300" x2="400" y2="400"/>
+    <line x1="370" y1="300" x2="330" y2="400"/>
+    <line x1="430" y1="300" x2="470" y2="400"/>
+    <line x1="330" y1="300" x2="250" y2="400"/>
+    <line x1="470" y1="300" x2="550" y2="400"/>
+    <line x1="280" y1="300" x2="160" y2="400"/>
+    <line x1="520" y1="300" x2="640" y2="400"/>
+  </g>
+
+  <!-- 真空管 -->
+  <path d="M180 114 L620 114 A26 66 0 0 1 620 246 L180 246 A26 66 0 0 1 180 114 Z"
+        fill="rgba(148,163,184,.05)" stroke="rgba(148,163,184,.4)" strokeWidth="1.4"/>
+  <ellipse cx="180" cy="180" rx="26" ry="66" fill="none" stroke="rgba(148,163,184,.3)" strokeWidth="1.2"/>
+
+  <!-- 阴极 K / 阳极 A -->
+  <ellipse cx="270" cy="180" rx="10" ry="60" fill="rgba(216,216,216,.2)" stroke="#d8d8d8" strokeWidth="1.6"/>
+  <ellipse cx="555" cy="180" rx="10" ry="60" fill="rgba(148,163,184,.15)" stroke="#94a3b8" strokeWidth="1.6"/>
+
+  <!-- 光子流（波长色，斜射阴极） -->
+  <g>
+    <line x1="78" y1="87" x2="94" y2="92" stroke="rgba(34,211,238,.35)" strokeWidth="2"/>
+    <circle cx="96" cy="93" r="5" fill="#22d3ee"/>
+    <line x1="102" y1="95" x2="118" y2="100" stroke="rgba(56,189,248,.35)" strokeWidth="2"/>
+    <circle cx="120" cy="101" r="5" fill="#38bdf8"/>
+    <line x1="126" y1="103" x2="142" y2="108" stroke="rgba(96,165,250,.35)" strokeWidth="2"/>
+    <circle cx="144" cy="109" r="5" fill="#60a5fa"/>
+    <line x1="150" y1="111" x2="166" y2="116" stroke="rgba(129,140,248,.35)" strokeWidth="2"/>
+    <circle cx="168" cy="117" r="5" fill="#818cf8"/>
+    <line x1="174" y1="119" x2="190" y2="124" stroke="rgba(167,139,250,.35)" strokeWidth="2"/>
+    <circle cx="192" cy="125" r="5" fill="#a78bfa"/>
+    <line x1="198" y1="127" x2="214" y2="132" stroke="rgba(34,211,238,.35)" strokeWidth="2"/>
+    <circle cx="216" cy="133" r="5" fill="#22d3ee"/>
+    <line x1="222" y1="135" x2="238" y2="140" stroke="rgba(56,189,248,.35)" strokeWidth="2"/>
+    <circle cx="240" cy="141" r="5" fill="#38bdf8"/>
+  </g>
+
+  <!-- 光电子流（阴极 → 阳极，带尾迹） -->
+  <g fill="none" stroke="rgba(103,232,249,.5)" strokeWidth="1.2">
+    <path d="M282 146 Q400 156 545 150"/>
+    <path d="M282 180 Q408 182 545 180"/>
+    <path d="M282 214 Q400 206 545 210"/>
+  </g>
+  <g fill="#67e8f9">
+    <circle cx="330" cy="152" r="4"/>
+    <circle cx="420" cy="160" r="4"/>
+    <circle cx="350" cy="181" r="4"/>
+    <circle cx="470" cy="180" r="4"/>
+    <circle cx="400" cy="206" r="4"/>
+    <circle cx="500" cy="208" r="4"/>
+  </g>
+  <g fill="rgba(103,232,249,.3)">
+    <circle cx="318" cy="152" r="2"/><circle cx="308" cy="152" r="1.4"/>
+    <circle cx="408" cy="160" r="2"/><circle cx="398" cy="160" r="1.4"/>
+    <circle cx="338" cy="181" r="2"/><circle cx="328" cy="181" r="1.4"/>
+    <circle cx="458" cy="180" r="2"/><circle cx="448" cy="180" r="1.4"/>
+    <circle cx="388" cy="206" r="2"/><circle cx="378" cy="206" r="1.4"/>
+    <circle cx="488" cy="208" r="2"/><circle cx="478" cy="208" r="1.4"/>
+  </g>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

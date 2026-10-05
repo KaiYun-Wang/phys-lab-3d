@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="广义相对论·史瓦西黑洞示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <linearGradient id="diskGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff7d6"/>
+      <stop offset="30%" stop-color="#fbbf24"/>
+      <stop offset="70%" stop-color="#b45309"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 星空 -->
+  <g fill="rgba(255,255,255,.65)">
+    <circle cx="120" cy="70" r="1.4"/><circle cx="250" cy="42" r="1.2"/><circle cx="560" cy="58" r="1.4"/>
+    <circle cx="690" cy="120" r="1.2"/><circle cx="86" cy="180" r="1.2"/><circle cx="726" cy="300" r="1.3"/>
+    <circle cx="180" cy="330" r="1.2"/><circle cx="640" cy="360" r="1.2"/>
+  </g>
+
+  <!-- 时空漏斗网格（蓝色网格被压弯） -->
+  <g fill="none" stroke="rgba(34,211,238,.26)" strokeWidth="1">
+    <path d="M130 254 Q400 280 670 254"/>
+    <path d="M142 284 Q400 318 658 284"/>
+    <path d="M156 314 Q400 356 644 314"/>
+    <path d="M172 344 Q400 390 628 344"/>
+    <path d="M192 374 Q400 418 608 374"/>
+    <path d="M120 400 Q262 306 400 252"/>
+    <path d="M220 400 Q311 300 400 252"/>
+    <path d="M320 400 Q360 300 400 252"/>
+    <path d="M400 400 L400 252"/>
+    <path d="M480 400 Q440 300 400 252"/>
+    <path d="M580 400 Q489 300 400 252"/>
+    <path d="M680 400 Q538 306 400 252"/>
+  </g>
+
+  <!-- 吸积盘：后半（黑洞背后） -->
+  <path d="M185 205 A215 58 0 0 1 615 205" fill="none" stroke="url(#diskGrad)" strokeWidth="9" opacity=".85"/>
+  <path d="M185 205 A215 58 0 0 1 615 205" fill="none" stroke="rgba(255,255,255,.45)" strokeWidth="2.5"/>
+
+  <!-- 黑洞：视界 + 光子环 -->
+  <circle cx="400" cy="205" r="48" fill="#000000"/>
+  <circle cx="400" cy="205" r="48" fill="rgba(2,4,10,.9)" stroke="#04060c" strokeWidth="1"/>
+  <circle cx="400" cy="205" r="52" fill="none" stroke="rgba(165,180,252,.6)" strokeWidth="2.5"/>
+
+  <!-- 吸积盘：前半（跨过黑洞前方，更亮更厚） -->
+  <path d="M185 205 A215 58 0 0 0 615 205" fill="none" stroke="url(#diskGrad)" strokeWidth="12"/>
+  <path d="M185 205 A215 58 0 0 0 615 205" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="3"/>
+
+  <!-- 测地线轨道 + 测试粒子 -->
+  <ellipse cx="400" cy="205" rx="136" ry="44" fill="none" stroke="rgba(165,180,252,.5)" strokeWidth="1.3" strokeDasharray="5 6"/>
+  <ellipse cx="400" cy="205" rx="168" ry="56" fill="none" stroke="rgba(165,180,252,.28)" strokeWidth="1.2" strokeDasharray="4 7"/>
+  <circle cx="536" cy="205" r="3.2" fill="#22d3ee"/>
+  <circle cx="264" cy="205" r="3.2" fill="#22d3ee"/>
+  <circle cx="536" cy="205" r="7" fill="rgba(34,211,238,.2)"/>
+  <circle cx="264" cy="205" r="7" fill="rgba(34,211,238,.2)"/>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

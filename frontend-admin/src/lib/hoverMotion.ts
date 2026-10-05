@@ -69,6 +69,9 @@ const HOVER_RULES: HoverRule[] = [
   { sel: ".date-range__day", scale: 1.15 },
   // 页面面包屑（子页面顶部）：上级链接
   { sel: ".page-crumb__link", scale: 1.05 },
+  // 封面缩略图 / 编辑页封面预览（有图时可点开大图，按压带按钮音效）
+  { sel: ".cover-thumb:has(img)", scale: 1.06 },
+  { sel: ".cover-upload__preview:has(img)", scale: 1.06 },
 ];
 
 const ITEM_SELECTOR = HOVER_RULES.map((r) => r.sel).join(", ");

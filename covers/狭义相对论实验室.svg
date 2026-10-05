@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="狭义相对论示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <radialGradient id="shipGlow">
+      <stop offset="0" stop-color="rgba(34,211,238,.4)"/>
+      <stop offset="100%" stop-color="rgba(34,211,238,0)"/>
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 星流：水平速度线（飞航隧道感，发动机后方更长） -->
+  <g stroke="rgba(226,232,240,.26)" strokeWidth="1.2">
+    <line x1="40" y1="52" x2="180" y2="52"/>
+    <line x1="560" y1="56" x2="690" y2="56"/>
+    <line x1="120" y1="88" x2="230" y2="88"/>
+    <line x1="600" y1="94" x2="760" y2="94"/>
+    <line x1="60" y1="128" x2="130" y2="128"/>
+    <line x1="520" y1="132" x2="640" y2="132"/>
+    <line x1="236" y1="46" x2="330" y2="46" opacity=".7"/>
+    <line x1="428" y1="362" x2="545" y2="362" opacity=".7"/>
+    <line x1="90" y1="238" x2="170" y2="238"/>
+    <line x1="620" y1="246" x2="750" y2="246"/>
+    <line x1="50" y1="288" x2="150" y2="288"/>
+    <line x1="540" y1="300" x2="620" y2="300"/>
+    <line x1="150" y1="332" x2="250" y2="332"/>
+    <line x1="640" y1="340" x2="770" y2="340"/>
+  </g>
+  <g fill="rgba(255,255,255,.55)">
+    <circle cx="200" cy="66" r="1.3"/><circle cx="480" cy="44" r="1.2"/><circle cx="700" cy="180" r="1.3"/>
+    <circle cx="120" cy="310" r="1.2"/><circle cx="360" cy="356" r="1.3"/><circle cx="620" cy="212" r="1.2"/>
+  </g>
+
+  <!-- 飞船（侧视朝右，已被长度收缩压短） -->
+  <ellipse cx="295" cy="200" rx="230" ry="52" fill="url(#shipGlow)"/>
+  <path d="M150 200 L192 184 L400 184 L440 200 L400 216 L192 216 Z"
+        fill="rgba(15,23,42,.85)" stroke="#e2e8f0" strokeWidth="1.8"/>
+  <line x1="200" y1="192" x2="380" y2="192" stroke="rgba(34,211,238,.55)" strokeWidth="1.2" opacity=".8"/>
+  <circle cx="255" cy="200" r="5" fill="none" stroke="#67e8f9" strokeWidth="1.6"/>
+  <circle cx="300" cy="200" r="5" fill="none" stroke="#67e8f9" strokeWidth="1.6"/>
+  <circle cx="345" cy="200" r="5" fill="none" stroke="#67e8f9" strokeWidth="1.6"/>
+
+  <!-- 尾焰 -->
+  <line x1="148" y1="200" x2="92" y2="200" stroke="#fbbf24" strokeWidth="2.4" opacity=".9"/>
+  <line x1="148" y1="192" x2="110" y2="192" stroke="#f472b6" strokeWidth="1.8" opacity=".7"/>
+  <line x1="148" y1="208" x2="104" y2="208" stroke="#fbbf24" strokeWidth="1.8" opacity=".7"/>
+
+  <!-- 原长（静止长度 L0）参考虚线：超出机身两端 = 收缩量 -->
+  <g stroke="rgba(165,180,252,.55)" strokeWidth="1.2" strokeDasharray="6 5">
+    <line x1="98" y1="162" x2="492" y2="162"/>
+    <line x1="98" y1="156" x2="98" y2="168"/>
+    <line x1="492" y1="156" x2="492" y2="168"/>
+  </g>
+  <path d="M150 172 L98 162 L150 152" fill="none" stroke="rgba(165,180,252,.55)" strokeWidth="1.2"/>
+  <path d="M440 172 L492 162 L440 152" fill="none" stroke="rgba(165,180,252,.55)" strokeWidth="1.2"/>
+
+  <!-- γ–v/c 曲线（右下角参考图） -->
+  <g>
+    <rect x="588" y="238" width="180" height="128" rx="8" fill="rgba(10,18,32,.6)" stroke="rgba(148,163,184,.35)" strokeWidth="1"/>
+    <line x1="600" y1="352" x2="756" y2="352" stroke="rgba(148,163,184,.4)" strokeWidth="1" strokeDasharray="3 4"/>
+    <line x1="600" y1="248" x2="600" y2="352" stroke="rgba(148,163,184,.4)" strokeWidth="1" strokeDasharray="3 4"/>
+    <path d="M604 350 C 660 346 706 332 722 302 C 736 276 742 258 750 250" fill="none" stroke="#22d3ee" strokeWidth="2"/>
+    <circle cx="722" cy="302" r="4" fill="#fbbf24"/>
+    <circle cx="722" cy="302" r="8" fill="rgba(251,191,36,.25)"/>
+  </g>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

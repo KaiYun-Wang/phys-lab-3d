@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="双缝实验示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <radialGradient id="srcGlow">
+      <stop offset="0" stop-color="rgba(34,211,238,.9)"/>
+      <stop offset="40%" stop-color="rgba(34,211,238,.35)"/>
+      <stop offset="100%" stop-color="rgba(34,211,238,0)"/>
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 电子枪：出射口 + 光束（汇聚到双缝） -->
+  <circle cx="76" cy="200" r="34" fill="url(#srcGlow)"/>
+  <circle cx="76" cy="200" r="7" fill="#22d3ee"/>
+  <line x1="86" y1="196" x2="354" y2="166" stroke="rgba(34,211,238,.35)" strokeWidth="1.2" strokeDasharray="3 6"/>
+  <line x1="86" y1="200" x2="354" y2="200" stroke="rgba(34,211,238,.5)" strokeWidth="1.4" strokeDasharray="3 6"/>
+  <line x1="86" y1="204" x2="354" y2="234" stroke="rgba(34,211,238,.35)" strokeWidth="1.2" strokeDasharray="3 6"/>
+
+  <!-- 双缝挡板（两缝：148-176 / 224-252） -->
+  <rect x="356" y="52" width="12" height="96" fill="#0b1120" stroke="rgba(34,211,238,.45)" strokeWidth="1.2"/>
+  <rect x="356" y="176" width="12" height="48" fill="#0b1120" stroke="rgba(34,211,238,.45)" strokeWidth="1.2"/>
+  <rect x="356" y="252" width="12" height="96" fill="#0b1120" stroke="rgba(34,211,238,.45)" strokeWidth="1.2"/>
+
+  <!-- 缝后干涉波纹（两个缝的右向同心弧） -->
+  <g fill="none" stroke="#22d3ee" strokeWidth="1.3">
+    <path d="M370.8 129.2 A34 34 0 0 1 370.8 194.8" opacity=".45"/>
+    <path d="M380.7 92.4 A72 72 0 0 1 380.7 231.6" opacity=".38"/>
+    <path d="M390.5 55.7 A110 110 0 0 1 390.5 268.3" opacity=".31"/>
+    <path d="M400.3 19 A148 148 0 0 1 400.3 305" opacity=".24"/>
+    <path d="M410.2 -17.7 A186 186 0 0 1 410.2 341.7" opacity=".17"/>
+    <path d="M370.8 205.2 A34 34 0 0 1 370.8 270.8" opacity=".45"/>
+    <path d="M380.7 168.4 A72 72 0 0 1 380.7 307.6" opacity=".38"/>
+    <path d="M390.5 131.7 A110 110 0 0 1 390.5 344.3" opacity=".31"/>
+    <path d="M400.3 95 A148 148 0 0 1 400.3 381" opacity=".24"/>
+    <path d="M410.2 58.3 A186 186 0 0 1 410.2 417.7" opacity=".17"/>
+  </g>
+
+  <!-- 缝到屏的发散边界 -->
+  <g stroke="rgba(34,211,238,.12)" strokeWidth="1">
+    <line x1="362" y1="162" x2="640" y2="64"/>
+    <line x1="362" y1="162" x2="640" y2="336"/>
+    <line x1="362" y1="238" x2="640" y2="64"/>
+    <line x1="362" y1="238" x2="640" y2="336"/>
+  </g>
+
+  <!-- 探测屏（正面）+ 干涉条纹 -->
+  <rect x="640" y="64" width="116" height="272" rx="6" fill="#0a1220" stroke="rgba(34,211,238,.4)" strokeWidth="1.4"/>
+  <g fill="#7df3ff">
+    <rect x="634" y="80" width="8" height="240" opacity=".14"/>
+    <rect x="666" y="80" width="8" height="240" opacity=".14"/>
+    <rect x="682" y="80" width="7" height="240" opacity=".3"/>
+    <rect x="706" y="80" width="7" height="240" opacity=".3"/>
+    <rect x="698" y="80" width="9" height="240" opacity=".95"/>
+    <rect x="690" y="80" width="5" height="240" opacity=".55"/>
+    <rect x="710" y="80" width="5" height="240" opacity=".55"/>
+    <rect x="678" y="80" width="4" height="240" opacity=".16"/>
+    <rect x="722" y="80" width="4" height="240" opacity=".16"/>
+  </g>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

@@ -23,6 +23,7 @@ import Pager from "@/components/Pager";
 import { resolveCoverUrl } from "@/lib/covers";
 import { formatCount, formatDateTime } from "@/lib/format";
 import { useToast } from "@/components/Toast";
+import CoverLightbox from "@/components/CoverLightbox";
 
 type StatusFilter = ExperimentStatus | "all";
 
@@ -42,6 +43,8 @@ export default function ExperimentsPage() {
   const [subjectFilter, setSubjectFilter] = useState<number | "all">("all");
   const [deleteTarget, setDeleteTarget] = useState<Experiment | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // 封面大图查看（列表封面缩略图点击打开）
+  const [previewCoverSrc, setPreviewCoverSrc] = useState<string | null>(null);
   // 排序模式：拖拽全量列表后一次性保存
   const [sortMode, setSortMode] = useState(false);
   const [sortLoading, setSortLoading] = useState(false);
@@ -221,15 +224,22 @@ export default function ExperimentsPage() {
                           {i + 1}
                         </td>
                         <td>
-                          <div className="cover-thumb">
-                            {coverSrc ? (
+                          {coverSrc ? (
+                            <button
+                              type="button"
+                              className="cover-thumb cover-thumb--button"
+                              onClick={() => setPreviewCoverSrc(coverSrc)}
+                              aria-label={`查看「${exp.title}」封面大图`}
+                            >
                               <img src={coverSrc} alt="" />
-                            ) : (
+                            </button>
+                          ) : (
+                            <div className="cover-thumb">
                               <span className="cover-thumb__fallback">
                                 {exp.title.slice(0, 2)}
                               </span>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </td>
                         <td>
                           <span className="data-table__title">{exp.title}</span>
@@ -340,15 +350,22 @@ export default function ExperimentsPage() {
                     <tr key={exp.id}>
                       <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                       <td>
-                        <div className="cover-thumb">
-                          {coverSrc ? (
+                        {coverSrc ? (
+                          <button
+                            type="button"
+                            className="cover-thumb cover-thumb--button"
+                            onClick={() => setPreviewCoverSrc(coverSrc)}
+                            aria-label={`查看「${exp.title}」封面大图`}
+                          >
                             <img src={coverSrc} alt="" />
-                          ) : (
+                          </button>
+                        ) : (
+                          <div className="cover-thumb">
                             <span className="cover-thumb__fallback">
                               {exp.title.slice(0, 2)}
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <span className="data-table__title">{exp.title}</span>
@@ -433,6 +450,8 @@ export default function ExperimentsPage() {
           </div>
         </div>
       ) : null}
+
+      <CoverLightbox src={previewCoverSrc} onClose={() => setPreviewCoverSrc(null)} />
     </AdminShell>
   );
 }

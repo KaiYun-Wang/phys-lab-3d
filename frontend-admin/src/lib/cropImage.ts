@@ -1,10 +1,6 @@
-import type { Area, MediaSize, Size } from "react-easy-crop";
+import type { Area } from "react-easy-crop";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-
-export function computeCoverZoom(mediaSize: MediaSize, cropSize: Size): number {
-  return Math.max(cropSize.width / mediaSize.width, cropSize.height / mediaSize.height);
-}
 
 /** 封面输出尺寸：与用户端实验卡预览窗的宽扁比例一致（2:1） */
 export const COVER_ASPECT = 2 / 1;

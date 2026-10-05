@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="伯努利原理（文丘里管）示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 文丘里管剖面：直段—收缩—喉部—扩张—直段 -->
+  <path d="M60 140 L260 140 C310 140 320 168 360 168 L440 168 C480 168 490 140 540 140 L740 140 L740 260 L540 260 C490 260 480 232 440 232 L360 232 C320 232 310 260 260 260 L60 260 Z"
+        fill="rgba(34,211,238,.06)" stroke="#22d3ee" strokeWidth="1.6"/>
+
+  <!-- 管内流体粒子（喉部加密） -->
+  <g fill="rgba(125,211,252,.55)">
+    <circle cx="110" cy="182" r="1.8"/><circle cx="150" cy="218" r="1.6"/><circle cx="200" cy="196" r="1.7"/><circle cx="236" cy="226" r="1.5"/>
+    <circle cx="92" cy="232" r="1.5"/><circle cx="280" cy="204" r="1.6"/>
+    <circle cx="372" cy="188" r="1.5"/><circle cx="392" cy="212" r="1.6"/><circle cx="414" cy="192" r="1.5"/><circle cx="428" cy="214" r="1.5"/>
+    <circle cx="520" cy="202" r="1.7"/><circle cx="566" cy="222" r="1.6"/><circle cx="620" cy="186" r="1.8"/><circle cx="680" cy="216" r="1.7"/><circle cx="716" cy="192" r="1.6"/>
+  </g>
+
+  <!-- 流线箭头：左段短（慢），喉部加长（快） -->
+  <g stroke="#22d3ee" strokeWidth="1.4" fill="none" opacity=".8">
+    <path d="M96 180 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M150 200 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M96 220 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M206 180 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M206 220 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M292 200 h14 m-5 -3.5 l5 3.5 -5 3.5"/>
+    <path d="M370 182 h30 m-8 -4.5 l8 4.5 -8 4.5"/>
+    <path d="M370 200 h30 m-8 -4.5 l8 4.5 -8 4.5"/>
+    <path d="M370 218 h30 m-8 -4.5 l8 4.5 -8 4.5"/>
+    <path d="M448 200 h14 m-5 -3.5 l5 3.5 -5 3.5"/>
+    <path d="M534 200 h14 m-5 -3.5 l5 3.5 -5 3.5"/>
+    <path d="M590 180 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M650 200 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M590 220 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M700 180 h16 m-6 -4 l6 4 -6 4"/>
+    <path d="M700 220 h16 m-6 -4 l6 4 -6 4"/>
+  </g>
+
+  <!-- 压力柱：宽段高柱（P 大）/ 喉部低柱（P 小） -->
+  <rect x="164" y="64" width="8" height="76" rx="4" fill="rgba(251,191,36,.75)"/>
+  <circle cx="168" cy="60" r="4.5" fill="#fbbf24"/>
+  <rect x="394" y="132" width="8" height="36" rx="4" fill="rgba(34,211,238,.8)"/>
+  <circle cx="398" cy="128" r="4.5" fill="#22d3ee"/>
+
+  <!-- 断面标记（收缩前 / 喉部） -->
+  <g stroke="rgba(148,163,184,.4)" strokeWidth="1.2" strokeDasharray="4 4">
+    <line x1="260" y1="96" x2="260" y2="304"/>
+    <line x1="400" y1="112" x2="400" y2="288"/>
+  </g>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

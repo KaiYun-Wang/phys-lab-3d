@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="横波与纵波示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 分区参考线 -->
+  <line x1="405" y1="70" x2="405" y2="330" stroke="rgba(148,163,184,.2)" strokeWidth="1"/>
+
+  <!-- 左：横波（质点上下振动，波形前进） -->
+  <line x1="50" y1="170" x2="380" y2="170" stroke="rgba(148,163,184,.35)" strokeWidth="1" strokeDasharray="4 4"/>
+  <path d="M60 170 C 74 118 98 118 112 170 C 126 222 150 222 163 170 C 177 118 201 118 215 170 C 229 222 253 222 267 170 C 281 118 305 118 318 170 C 332 222 356 222 370 170"
+        fill="none" stroke="#22d3ee" strokeWidth="2.4"/>
+  <g fill="#7df3ff">
+    <circle cx="86" cy="125" r="4"/><circle cx="137" cy="215" r="4"/><circle cx="189" cy="125" r="4"/>
+    <circle cx="241" cy="215" r="4"/><circle cx="292" cy="125" r="4"/><circle cx="344" cy="215" r="4"/>
+  </g>
+  <g fill="rgba(125,243,255,.25)">
+    <circle cx="86" cy="125" r="9"/><circle cx="137" cy="215" r="9"/><circle cx="189" cy="125" r="9"/>
+    <circle cx="241" cy="215" r="9"/><circle cx="292" cy="125" r="9"/><circle cx="344" cy="215" r="9"/>
+  </g>
+
+  <!-- 右：纵波（质点沿轴疏密相间） -->
+  <line x1="440" y1="170" x2="762" y2="170" stroke="rgba(148,163,184,.35)" strokeWidth="1" strokeDasharray="4 4"/>
+  <g fill="#67e8f9">
+    <circle cx="446" cy="170" r="2.6" opacity=".9"/><circle cx="462" cy="170" r="2.5" opacity=".85"/>
+    <circle cx="477" cy="170" r="2.4" opacity=".8"/><circle cx="491" cy="170" r="2.2" opacity=".7"/>
+    <circle cx="505" cy="170" r="2" opacity=".6"/><circle cx="521" cy="170" r="1.8" opacity=".5"/>
+    <circle cx="539" cy="170" r="1.7" opacity=".42"/><circle cx="558" cy="170" r="1.6" opacity=".38"/>
+    <circle cx="578" cy="170" r="1.7" opacity=".42"/><circle cx="597" cy="170" r="1.9" opacity=".52"/>
+    <circle cx="613" cy="170" r="2.2" opacity=".68"/><circle cx="627" cy="170" r="2.5" opacity=".82"/>
+    <circle cx="640" cy="170" r="2.6" opacity=".9"/><circle cx="655" cy="170" r="2.3" opacity=".72"/>
+    <circle cx="671" cy="170" r="2" opacity=".58"/><circle cx="688" cy="170" r="1.8" opacity=".46"/>
+    <circle cx="707" cy="170" r="1.6" opacity=".38"/><circle cx="727" cy="170" r="1.7" opacity=".4"/>
+    <circle cx="746" cy="170" r="1.9" opacity=".5"/>
+  </g>
+
+  <!-- 相位参考竖线（波节 / 密部） -->
+  <g stroke="rgba(125,243,255,.4)" strokeWidth="1" strokeDasharray="3 5">
+    <line x1="163" y1="96" x2="163" y2="244"/>
+    <line x1="640" y1="132" x2="640" y2="208"/>
+  </g>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

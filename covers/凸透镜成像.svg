@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" role="img" aria-label="凸透镜成像示意图">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M20 0H0V20" fill="none" stroke="rgba(148,163,184,.10)" strokeWidth="1"/>
+    </pattern>
+    <linearGradient id="lensFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="rgba(34,211,238,.05)"/>
+      <stop offset="50%" stop-color="rgba(34,211,238,.16)"/>
+      <stop offset="100%" stop-color="rgba(34,211,238,.05)"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="rgba(6,10,20,0)"/>
+      <stop offset="100%" stop-color="rgba(6,10,20,.9)"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="#070b14"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- 主光轴 -->
+  <line x1="60" y1="210" x2="740" y2="210" stroke="rgba(148,163,184,.45)" strokeWidth="1.2" strokeDasharray="6 5"/>
+
+  <!-- 双凸透镜 -->
+  <path d="M400 90 Q438 210 400 330 Q362 210 400 90 Z" fill="url(#lensFill)" stroke="#22d3ee" strokeWidth="1.8"/>
+
+  <!-- 焦点 F / F' -->
+  <g fill="#67e8f9">
+    <circle cx="300" cy="210" r="3.2"/>
+    <circle cx="500" cy="210" r="3.2"/>
+  </g>
+  <g stroke="rgba(103,232,249,.5)" strokeWidth="1">
+    <line x1="300" y1="204" x2="300" y2="216"/>
+    <line x1="500" y1="204" x2="500" y2="216"/>
+  </g>
+
+  <!-- 物（向上箭头） -->
+  <g stroke="#fbbf24" strokeWidth="2.2" fill="none">
+    <line x1="210" y1="210" x2="210" y2="134"/>
+    <path d="M204 144 L210 130 L216 144"/>
+  </g>
+
+  <!-- 特征光线：平行光（过 F'） / 过光心 -->
+  <g fill="none" strokeWidth="1.6">
+    <line x1="210" y1="130" x2="400" y2="130" stroke="#60a5fa" opacity=".9"/>
+    <line x1="400" y1="130" x2="610" y2="299" stroke="#60a5fa" opacity=".9"/>
+    <line x1="210" y1="130" x2="610" y2="298" stroke="#4ade80" opacity=".85"/>
+  </g>
+
+  <!-- 像（倒立） -->
+  <g stroke="#a5b4fc" strokeWidth="2.2" fill="none">
+    <line x1="610" y1="210" x2="610" y2="296"/>
+    <path d="M604 286 L610 300 L616 286"/>
+  </g>
+
+  <rect width="800" height="400" fill="url(#fade)"/>
+</svg>

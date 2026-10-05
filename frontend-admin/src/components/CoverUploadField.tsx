@@ -1,11 +1,10 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useId, useRef, useState } from "react";
-import Cropper, { type Area, type MediaSize, type Size } from "react-easy-crop";
+import { ChangeEvent, useCallback, useId, useRef, useState } from "react";
+import Cropper, { type Area } from "react-easy-crop";
 import { uploadExperimentCover } from "@/lib/api";
 import { resolveCoverUrl } from "@/lib/covers";
 import {
-  computeCoverZoom,
   cropImageToBlob,
   cropSvgToBlob,
   prepareSvgForCrop,
@@ -13,12 +12,21 @@ import {
   type SvgCropSource,
 } from "@/lib/cropImage";
 import { useToast } from "@/components/Toast";
+import CoverLightbox from "@/components/CoverLightbox";
 
 type CoverUploadFieldProps = {
   value: string;
   onChange: (url: string) => void;
   disabled?: boolean;
 };
+
+/**
+ * react-easy-crop v6 缩放语义：zoom = 1 即媒体恰好顶到取景框边（上下或左右到头），
+ * 再缩小无意义；放大上限 3×。min/max 为常量，避免历史动态计算在首帧尺寸为 0
+ * 时产出 NaN / Infinity 导致滑块受控值异常甚至页面崩溃。
+ */
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
 
 export default function CoverUploadField({ value, onChange, disabled }: CoverUploadFieldProps) {
   const toast = useToast();
@@ -27,37 +35,20 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [minZoom, setMinZoom] = useState(1);
-  const [mediaSize, setMediaSize] = useState<MediaSize | null>(null);
-  const [cropSize, setCropSize] = useState<Size | null>(null);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const coverInitializedRef = useRef(false);
   // SVG 矢量取景：原图文档与显示用的 blob URL（栅格图时为空）
   const svgSourceRef = useRef<SvgCropSource | null>(null);
   const [cropIsSvg, setCropIsSvg] = useState(false);
+  // 封面大图查看（有值时显示）
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const previewSrc = resolveCoverUrl(value);
 
   const onCropComplete = useCallback((_area: Area, pixels: Area) => {
     setCroppedArea(pixels);
   }, []);
-
-  const maxZoom = Math.max(minZoom * 2, 3);
-
-  useEffect(() => {
-    coverInitializedRef.current = false;
-  }, [imageSrc]);
-
-  useEffect(() => {
-    if (!mediaSize || !cropSize || coverInitializedRef.current) return;
-    const cover = computeCoverZoom(mediaSize, cropSize);
-    setMinZoom(cover);
-    setZoom(cover);
-    setCrop({ x: 0, y: 0 });
-    coverInitializedRef.current = true;
-  }, [mediaSize, cropSize]);
 
   function openFilePicker() {
     if (disabled || uploading) return;
@@ -74,10 +65,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
 
   function resetCropState() {
     setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setMinZoom(1);
-    setMediaSize(null);
-    setCropSize(null);
+    setZoom(MIN_ZOOM);
     setCroppedArea(null);
   }
 
@@ -177,8 +165,15 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
 
       <div className="cover-upload__preview" aria-label="封面预览">
         {previewSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewSrc} alt="" className="cover-upload__img" />
+          <button
+            type="button"
+            className="cover-upload__preview-btn"
+            onClick={() => setLightboxSrc(previewSrc)}
+            aria-label="查看封面大图"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewSrc} alt="" className="cover-upload__img" />
+          </button>
         ) : (
           <div className="cover-upload__placeholder">
             <span>2:1</span>
@@ -230,14 +225,12 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
                 crop={crop}
                 zoom={zoom}
                 aspect={COVER_ASPECT}
-                objectFit="cover"
-                minZoom={minZoom}
-                maxZoom={maxZoom}
+                objectFit="contain"
+                minZoom={MIN_ZOOM}
+                maxZoom={MAX_ZOOM}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onCropComplete={onCropComplete}
-                onMediaLoaded={setMediaSize}
-                onCropSizeChange={setCropSize}
               />
             </div>
             <div className="cover-cropper__zoom">
@@ -245,11 +238,14 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
               <input
                 id="cover-zoom"
                 type="range"
-                min={minZoom}
-                max={maxZoom}
-                step={0.05}
+                min={MIN_ZOOM}
+                max={MAX_ZOOM}
+                step={0.01}
                 value={zoom}
-                onChange={(e) => setZoom(Math.max(minZoom, Number(e.target.value)))}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (Number.isFinite(v)) setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v)));
+                }}
                 disabled={uploading}
               />
             </div>
@@ -275,6 +271,8 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
           </div>
         </div>
       ) : null}
+
+      <CoverLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

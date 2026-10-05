@@ -2421,6 +2421,75 @@ body.is-sidebar-resizing .sidebar {
   display: block;
 }
 
+.cover-upload__preview-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: zoom-in;
+}
+
+/* 封面缩略图（列表）改为可点按钮：点击查看大图 */
+.cover-thumb--button {
+  display: block;
+  padding: 0;
+  cursor: zoom-in;
+}
+
+/* 封面大图查看层（实验列表 / 编辑页共用）：点遮罩 · 右上角按钮 · Esc 关闭 */
+.cover-lightbox__frame {
+  position: relative;
+  animation: cover-lightbox-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+.cover-lightbox__img {
+  display: block;
+  max-width: min(92vw, 960px);
+  max-height: 80vh;
+  border-radius: var(--radius-inset);
+  border: 1px solid var(--border-inset);
+  background: var(--surface-inset);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+.cover-lightbox__close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--control-border);
+  background: var(--surface-inset);
+  color: var(--text-mute);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cover-lightbox__close:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+@keyframes cover-lightbox-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-lightbox__frame {
+    animation: none;
+  }
+}
+
 .cover-upload__placeholder {
   width: 100%;
   height: 100%;
