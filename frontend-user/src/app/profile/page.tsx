@@ -30,10 +30,12 @@ import {
   ArrowRight,
   CalendarDays,
   Check,
+  Eye,
   KeyRound,
   Lock,
   LogOut,
   MessageCircle,
+  MessageSquare,
   RotateCcw,
   ShieldCheck,
   Star,
@@ -382,35 +384,43 @@ export default function ProfilePage() {
           </button>
         </section>
 
-        {/* 活动读数：数字滚动增长，与管理端首页同款渐进效果 */}
+        {/* 活动读数：四张统计卡，数字滚动增长同款渐进效果 */}
         <section className="pf-stats">
-          <div className="pf-stat">
-            <span className="pf-stat__lb">收藏</span>
-            <span className="pf-stat__n pf-stat__n--sky">
+          <div className="pf-stat-card" data-tone="sky">
+            <div className="pf-stat-card__head">
+              <Star size={13} aria-hidden />
+              <span>收藏实验数量</span>
+            </div>
+            <span className="pf-stat-card__value">
               <AnimatedNumber value={stats?.favoriteCount ?? null} delay={0} />
             </span>
-            <span className="pf-stat__u">个实验</span>
           </div>
-          <div className="pf-stat">
-            <span className="pf-stat__lb">AI 对话</span>
-            <span className="pf-stat__n pf-stat__n--pur">
+          <div className="pf-stat-card" data-tone="pur">
+            <div className="pf-stat-card__head">
+              <MessageCircle size={13} aria-hidden />
+              <span>AI 对话数</span>
+            </div>
+            <span className="pf-stat-card__value">
               <AnimatedNumber value={stats?.sessionCount ?? null} delay={110} />
             </span>
-            <span className="pf-stat__u">段会话</span>
           </div>
-          <div className="pf-stat">
-            <span className="pf-stat__lb">评论</span>
-            <span className="pf-stat__n pf-stat__n--eme">
+          <div className="pf-stat-card" data-tone="eme">
+            <div className="pf-stat-card__head">
+              <MessageSquare size={13} aria-hidden />
+              <span>评论数</span>
+            </div>
+            <span className="pf-stat-card__value">
               <AnimatedNumber value={stats?.commentCount ?? null} delay={220} />
             </span>
-            <span className="pf-stat__u">条留言</span>
           </div>
-          <div className="pf-stat">
-            <span className="pf-stat__lb">浏览足迹</span>
-            <span className="pf-stat__n pf-stat__n--amb">
+          <div className="pf-stat-card" data-tone="amb">
+            <div className="pf-stat-card__head">
+              <Eye size={13} aria-hidden />
+              <span>实验运行次数</span>
+            </div>
+            <span className="pf-stat-card__value">
               <AnimatedNumber value={stats?.viewCount ?? null} delay={330} />
             </span>
-            <span className="pf-stat__u">次运行</span>
           </div>
         </section>
 

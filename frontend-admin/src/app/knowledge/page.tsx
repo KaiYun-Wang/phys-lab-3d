@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
 import { useToast } from "@/components/Toast";
 import {
@@ -103,17 +104,6 @@ export default function KnowledgeListPage() {
             <button type="submit" className="btn-pill btn-pill--outline btn-pill--sm">
               搜索
             </button>
-            <button
-              type="button"
-              className="btn-pill btn-pill--ghost btn-pill--sm"
-              onClick={() => {
-                setSearch("");
-                setPage(1);
-                setQuery("");
-              }}
-            >
-              清空
-            </button>
           </form>
         </div>
 
@@ -158,6 +148,14 @@ export default function KnowledgeListPage() {
                     <td className="data-table__time">{formatDateTime(row.updateTime)}</td>
                     <td>
                       <div className="row-actions">
+                        <RowDetailButton
+                          title="知识页详情"
+                          fields={[
+                            { label: "标题", value: row.title },
+                            { label: "描述", value: row.description || "—" },
+                            { label: "更新时间", value: formatDateTime(row.updateTime) },
+                          ]}
+                        />
                         <Link
                           href={`/knowledge/${row.id}`}
                           className="btn-pill btn-pill--ghost btn-pill--sm"

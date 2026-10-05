@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import PageCrumb from "@/components/PageCrumb";
 import { useAdmin } from "@/components/AdminProvider";
 import ExperimentForm, { type ExperimentFormValues } from "@/components/ExperimentForm";
 import { useToast } from "@/components/Toast";
@@ -40,7 +41,9 @@ export default function NewExperimentPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <h2 className="page-title">新建实验</h2>
+          <PageCrumb parent="实验列表" parentHref="/experiments">
+            <h2 className="page-title">新建实验</h2>
+          </PageCrumb>
         </div>
       </section>
 

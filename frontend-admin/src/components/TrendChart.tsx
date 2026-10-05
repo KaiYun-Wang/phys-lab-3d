@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { playHoverTick } from "@/lib/uiSound";
 
 type Point = { date: string; count: number };
 
@@ -95,6 +96,8 @@ export default function TrendChart({ data, color = "var(--accent)", height = 160
     for (let i = 1; i < coords.length; i += 1) {
       if (Math.abs(coords[i].x - chartX) < Math.abs(coords[nearest].x - chartX)) nearest = i;
     }
+    // 命中节点切换：轻「嗒」（内部 45ms 限流，快速扫过连成刻度声）
+    if (nearest !== hover) playHoverTick();
     setHover(nearest);
     setLastIdx(nearest);
   }
@@ -159,7 +162,7 @@ export default function TrendChart({ data, color = "var(--accent)", height = 160
           {coords.map((c, i) => (
             <circle
               key={`${c.date}-${drawId}`}
-              className="trend-chart__dot"
+              className={`trend-chart__dot${hover === i ? " is-hot" : ""}`}
               style={{ animationDelay: `${Math.min(i, 18) * 0.045}s` }}
               cx={c.x}
               cy={c.y}

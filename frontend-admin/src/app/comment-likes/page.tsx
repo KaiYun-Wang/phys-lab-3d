@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
 import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
@@ -152,11 +153,7 @@ export default function CommentLikesPage() {
                     <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>{row.username || "—"}</td>
                     <td>{row.nickname || "—"}</td>
-                    <td className="cell-clip">
-                      <div className="data-table__title" data-tooltip={row.commentContent ?? ""}>
-                        {row.commentContent || "—"}
-                      </div>
-                    </td>
+                    <td className="cell-clip">{row.commentContent || "—"}</td>
                     <td>
                       {row.experimentId ? (
                         <Link href={`/experiments/${row.experimentId}/edit`}>
@@ -168,13 +165,25 @@ export default function CommentLikesPage() {
                     </td>
                     <td className="data-table__time">{formatDateTime(row.createTime)}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn-pill btn-pill--ghost btn-pill--sm row-actions__danger"
-                        onClick={() => setDeleteTarget(row)}
-                      >
-                        删除
-                      </button>
+                      <div className="row-actions">
+                        <RowDetailButton
+                          title="点赞详情"
+                          fields={[
+                            { label: "用户名", value: row.username || "—" },
+                            { label: "昵称", value: row.nickname || "—" },
+                            { label: "评论内容", value: row.commentContent || "—" },
+                            { label: "实验", value: row.experimentTitle || row.experimentId || "—" },
+                            { label: "点赞时间", value: formatDateTime(row.createTime) },
+                          ]}
+                        />
+                        <button
+                          type="button"
+                          className="btn-pill btn-pill--ghost btn-pill--sm row-actions__danger"
+                          onClick={() => setDeleteTarget(row)}
+                        >
+                          删除
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

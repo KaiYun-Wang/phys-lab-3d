@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import PageCrumb from "@/components/PageCrumb";
 import { useAdmin } from "@/components/AdminProvider";
 import SubjectTypeForm, { type SubjectTypeFormValues } from "@/components/SubjectTypeForm";
 import { useToast } from "@/components/Toast";
@@ -36,7 +37,9 @@ export default function NewSubjectTypePage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <h2 className="page-title">新建学科分类</h2>
+          <PageCrumb parent="学科分类" parentHref="/subject-types">
+            <h2 className="page-title">新建学科分类</h2>
+          </PageCrumb>
         </div>
       </section>
 

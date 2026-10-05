@@ -261,9 +261,6 @@ export default function DateRangePicker({ value, onChange }: Props) {
                   : "先选开始日期"}
             </span>
             <div className="date-range__actions">
-              <button type="button" className="btn-pill btn-pill--ghost btn-pill--sm" onClick={clear}>
-                清空
-              </button>
               <button
                 type="button"
                 className="btn-pill btn-pill--primary btn-pill--sm"

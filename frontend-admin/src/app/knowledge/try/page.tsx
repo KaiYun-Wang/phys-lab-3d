@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import AdminShell from "@/components/AdminShell";
+import PageCrumb from "@/components/PageCrumb";
 import { useAdmin } from "@/components/AdminProvider";
 import {
   createAdminAiSession,
@@ -371,10 +371,9 @@ export default function AdminAiChatPage() {
     <AdminShell admin={admin}>
       <div className="page-toolbar">
         <div className="page-toolbar__left">
-          <Link href="/knowledge" className="kb-back-link">
-            ← 返回知识页
-          </Link>
-          <h2 className="page-title">试聊</h2>
+          <PageCrumb parent="知识页" parentHref="/knowledge">
+            <h2 className="page-title">试聊</h2>
+          </PageCrumb>
         </div>
         <button type="button" className="btn-pill" onClick={startNew}>
           <i className="fa-solid fa-plus" aria-hidden />

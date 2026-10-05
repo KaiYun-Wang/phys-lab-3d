@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import PageCrumb from "@/components/PageCrumb";
 import { useAdmin } from "@/components/AdminProvider";
 import AnnouncementForm, { type AnnouncementFormValues } from "@/components/AnnouncementForm";
 import { useToast } from "@/components/Toast";
@@ -98,7 +99,9 @@ export default function EditAnnouncementPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <h2 className="page-title">{announcement.title}</h2>
+          <PageCrumb parent="公告管理" parentHref="/announcements">
+            <h2 className="page-title">{announcement.title}</h2>
+          </PageCrumb>
         </div>
         <button
           type="button"

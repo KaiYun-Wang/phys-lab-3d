@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminShell from "@/components/AdminShell";
+import PageCrumb from "@/components/PageCrumb";
 import { useAdmin } from "@/components/AdminProvider";
 import KnowledgeMarkdownEditor from "@/components/KnowledgeMarkdownEditor";
 import { useToast } from "@/components/Toast";
@@ -80,12 +81,11 @@ export default function KnowledgeEditPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <Link href="/knowledge" className="caption">
-            ← 返回列表
-          </Link>
-          <h2 className="page-title mt-8">
-            编辑知识页
-          </h2>
+          <PageCrumb parent="知识页" parentHref="/knowledge">
+            <h2 className="page-title">
+              编辑知识页
+            </h2>
+          </PageCrumb>
         </div>
       </section>
 

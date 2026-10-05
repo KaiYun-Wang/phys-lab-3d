@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import PageCrumb from "@/components/PageCrumb";
 import { useAdmin } from "@/components/AdminProvider";
 import AnnouncementForm, { type AnnouncementFormValues } from "@/components/AnnouncementForm";
 import { useToast } from "@/components/Toast";
@@ -37,7 +38,9 @@ export default function NewAnnouncementPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <h2 className="page-title">发布公告</h2>
+          <PageCrumb parent="公告管理" parentHref="/announcements">
+            <h2 className="page-title">发布公告</h2>
+          </PageCrumb>
         </div>
       </section>
 

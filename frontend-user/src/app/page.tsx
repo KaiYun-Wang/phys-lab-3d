@@ -17,6 +17,7 @@ import {
 import { avatarInitials, avatarSrc, isAuthenticated } from "@/lib/auth";
 import { ArrowRight, Eye, Search, Star } from "lucide-react";
 import AnnouncementMenu from "@/components/AnnouncementMenu";
+import SoundToggle from "@/components/SoundToggle";
 import FavoritesRankCarousel from "@/components/FavoritesRankCarousel";
 import { BrandLockup } from "@/components/BrandLogo";
 import ExperimentThumbnail from "@/components/ExperimentThumbnail";
@@ -360,7 +361,18 @@ export default function Home() {
           <BrandMark />
 
           <div className="kh-header__right">
+            {/* 仓库入口：公告左侧 GitHub 图标 */}
+            <a
+              href="https://github.com/KaiYun-Wang/phys-lab-3d"
+              target="_blank"
+              rel="noreferrer"
+              className="kh-github"
+              aria-label="GitHub 仓库"
+            >
+              <i className="fa-brands fa-github" aria-hidden />
+            </a>
             <AnnouncementMenu />
+            <SoundToggle />
             <span className="kh-header__divider" aria-hidden />
             <HeaderUser />
           </div>

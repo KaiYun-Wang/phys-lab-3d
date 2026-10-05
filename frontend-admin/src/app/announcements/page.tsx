@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
 import {
   deleteAnnouncement,
@@ -122,6 +123,15 @@ export default function AnnouncementsPage() {
                     <td className="data-table__time">{formatDateTime(item.createTime)}</td>
                     <td>
                       <div className="row-actions">
+                        <RowDetailButton
+                          title="公告详情"
+                          fields={[
+                            { label: "标题", value: item.title },
+                            { label: "描述", value: item.description || "—" },
+                            { label: "图标", value: item.icon || "—" },
+                            { label: "发布时间", value: formatDateTime(item.createTime) },
+                          ]}
+                        />
                         <Link
                           href={`/announcements/${item.id}/edit`}
                           className="btn-pill btn-pill--ghost btn-pill--sm"

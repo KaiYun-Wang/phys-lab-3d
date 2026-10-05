@@ -4,6 +4,7 @@ import AuthGuard from "@/components/AuthGuard";
 import AiChatWidget from "@/components/AiChatWidget";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
 import TooltipLayer from "@/components/TooltipLayer";
+import UserMotion from "@/components/UserMotion";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -201,6 +202,7 @@ export default function RootLayout({
       <body className="m-0 p-0">
         <AuthGuard>
           {children}
+          <UserMotion />
           <AiChatWidget />
           <AnnouncementPopup />
           <TooltipLayer />

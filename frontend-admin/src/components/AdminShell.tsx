@@ -366,13 +366,27 @@ export default function AdminShell({
 
         <div className="sidebar__foot">
           <SoundToggle collapsed={collapsed} />
-          <SidebarProfile
-            admin={admin}
-            onTipShow={(e, label) => {
-              if (collapsed) showTip(e, label);
-            }}
-            onTipHide={hideTip}
-          />
+          <div className="sidebar-foot-row">
+            <SidebarProfile
+              admin={admin}
+              onTipShow={(e, label) => {
+                if (collapsed) showTip(e, label);
+              }}
+              onTipHide={hideTip}
+            />
+            {!collapsed ? (
+              <a
+                href="https://github.com/KaiYun-Wang/phys-lab-3d"
+                target="_blank"
+                rel="noreferrer"
+                className="sidebar-github"
+                aria-label="GitHub 仓库"
+                title="GitHub 仓库"
+              >
+                <i className="fa-brands fa-github" aria-hidden />
+              </a>
+            ) : null}
+          </div>
         </div>
 
         {!collapsed ? (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
 import AdminSelect from "@/components/AdminSelect";
 import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
@@ -225,11 +226,7 @@ export default function CommentsPage() {
                 {items.map((row, i) => (
                   <tr key={row.id}>
                     <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
-                    <td className="cell-clip">
-                      <span className="data-table__title" data-tooltip={row.content}>
-                        {row.content.length > 60 ? `${row.content.slice(0, 60)}…` : row.content}
-                      </span>
-                    </td>
+                    <td className="cell-clip">{row.content}</td>
                     <td>{usernameCell(row)}</td>
                     <td>{row.nickname || "—"}</td>
                     <td>
@@ -261,6 +258,23 @@ export default function CommentsPage() {
                     <td className="data-table__time">{formatDateTime(row.createTime)}</td>
                     <td>
                       <div className="row-actions">
+                        <RowDetailButton
+                          title="评论详情"
+                          fields={[
+                            { label: "内容", value: row.content },
+                            { label: "用户", value: usernameCell(row) },
+                            { label: "昵称", value: row.nickname || "—" },
+                            { label: "实验", value: row.experimentTitle || row.experimentId || "—" },
+                            { label: "层级", value: row.rootId == null ? "一级评论" : "回复" },
+                            { label: "点赞数", value: formatCount(row.likeCount) },
+                            {
+                              label: "状态",
+                              value:
+                                row.status === "VISIBLE" ? "可见" : row.status === "HIDDEN" ? "隐藏" : "已删除",
+                            },
+                            { label: "评论时间", value: formatDateTime(row.createTime) },
+                          ]}
+                        />
                         {row.status === "VISIBLE" && (
                           <button
                             type="button"

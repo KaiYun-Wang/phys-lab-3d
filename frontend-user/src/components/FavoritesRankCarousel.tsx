@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import ExperimentThumbnail from "@/components/ExperimentThumbnail";
+import { playPageTurn } from "@/lib/uiSound";
 import {
   experimentCoverSrc,
   experimentSubjectLabel,
@@ -50,10 +51,13 @@ export default function FavoritesRankCarousel({ experiments }: Props) {
   const go = useCallback(
     (i: number) => {
       if (n === 0) return;
-      setIndex(((i % n) + n) % n);
+      const target = ((i % n) + n) % n;
+      // 手动翻页（箭头 / 圆点 / 键盘 / 拖拽）播放纸页声；自动轮播直接 setIndex 不经过这里
+      if (target !== index) playPageTurn();
+      setIndex(target);
       setDragX(0);
     },
-    [n],
+    [n, index],
   );
 
   const next = useCallback(() => go(index + 1), [go, index]);

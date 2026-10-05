@@ -225,7 +225,7 @@ export default function ExperimentsPage() {
                             {coverSrc ? (
                               <img src={coverSrc} alt="" />
                             ) : (
-                              <span className="cover-thumb__fallback" data-tooltip={exp.title}>
+                              <span className="cover-thumb__fallback">
                                 {exp.title.slice(0, 2)}
                               </span>
                             )}
@@ -344,7 +344,7 @@ export default function ExperimentsPage() {
                           {coverSrc ? (
                             <img src={coverSrc} alt="" />
                           ) : (
-                            <span className="cover-thumb__fallback" data-tooltip={exp.title}>
+                            <span className="cover-thumb__fallback">
                               {exp.title.slice(0, 2)}
                             </span>
                           )}

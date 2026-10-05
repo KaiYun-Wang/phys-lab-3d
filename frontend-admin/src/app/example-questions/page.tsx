@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
 import IconPicker from "@/components/IconPicker";
 import { useToast } from "@/components/Toast";
@@ -256,9 +257,7 @@ export default function ExampleQuestionsPage() {
                         </span>
                       </td>
                       <td className="data-table__desc">{row.description || "—"}</td>
-                      <td className="data-table__desc">
-                        {row.question.length > 48 ? `${row.question.slice(0, 48)}…` : row.question}
-                      </td>
+                      <td className="data-table__desc">{row.question}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -310,12 +309,19 @@ export default function ExampleQuestionsPage() {
                       </span>
                     </td>
                     <td className="data-table__desc">{row.description || "—"}</td>
-                    <td className="data-table__desc">
-                      {row.question.length > 48 ? `${row.question.slice(0, 48)}…` : row.question}
-                    </td>
+                    <td className="data-table__desc">{row.question}</td>
                     <td className="data-table__time">{formatDateTime(row.updateTime)}</td>
                     <td>
                       <div className="row-actions">
+                        <RowDetailButton
+                          title="示例问题详情"
+                          fields={[
+                            { label: "标题", value: row.title },
+                            { label: "描述", value: row.description || "—" },
+                            { label: "示例问题", value: row.question },
+                            { label: "更新时间", value: formatDateTime(row.updateTime) },
+                          ]}
+                        />
                         <button
                           type="button"
                           className="btn-pill btn-pill--ghost btn-pill--sm"

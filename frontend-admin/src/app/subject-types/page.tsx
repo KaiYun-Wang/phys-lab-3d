@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
 import {
   deleteSubjectType,
@@ -248,6 +249,20 @@ export default function SubjectTypesPage() {
                     <td className="data-table__time">{formatDateTime(item.updateTime)}</td>
                     <td>
                       <div className="row-actions">
+                        <RowDetailButton
+                          title="学科分类详情"
+                          fields={[
+                            { label: "代码", value: item.code },
+                            { label: "名称", value: item.label },
+                            { label: "描述", value: item.description || "—" },
+                            {
+                              label: "实验数",
+                              value:
+                                item.experimentCount !== undefined ? formatCount(item.experimentCount) : "—",
+                            },
+                            { label: "更新时间", value: formatDateTime(item.updateTime) },
+                          ]}
+                        />
                         <Link href={`/subject-types/${item.id}/edit`} className="btn-pill btn-pill--ghost btn-pill--sm">
                           编辑
                         </Link>
