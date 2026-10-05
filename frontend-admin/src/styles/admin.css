@@ -51,15 +51,17 @@ body::after {
   pointer-events: none;
 }
 
+/* sky 光置于左上：侧栏玻璃板背后必须有可透的光，否则玻璃感无从体现 */
 body::before {
-  top: -220px;
-  right: -160px;
+  top: -240px;
+  left: -200px;
   background: var(--bg-spot-sky);
 }
 
+/* purple 光置于右下：内容区卡片背后透光 */
 body::after {
-  bottom: -260px;
-  left: 120px;
+  bottom: -240px;
+  right: -180px;
   background: var(--bg-spot-purple);
 }
 
@@ -472,12 +474,15 @@ select.text-input {
 
 /* ── 7. 卡片与仪表盘 ──────────────────────────────────────────────── */
 
+/* 玻璃卡片（管理端统一）：微透底 + 背景模糊 + 斜向反光 + 顶部高光边 */
 .card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-card);
+  background: var(--glass-sheen), var(--glass-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  backdrop-filter: var(--blur-card);
+  border: 1px solid var(--rim);
   border-radius: var(--radius-card);
   padding: 24px;
-  box-shadow: var(--shadow-inset-card);
+  box-shadow: var(--shadow-glass);
 }
 
 .card--elevated {
@@ -515,9 +520,11 @@ select.text-input {
   font-size: 13px;
 }
 
-/* 欢迎横幅：Surface-1 玻璃面板 */
+/* 欢迎横幅：Surface-1 玻璃面板（斜向反光 + 背景模糊） */
 .hero-band {
-  background: linear-gradient(150deg, rgba(28, 31, 42, 0.9) 0%, rgba(15, 19, 29, 0.94) 100%);
+  background: var(--glass-sheen), linear-gradient(150deg, rgba(28, 31, 42, 0.72) 0%, rgba(15, 19, 29, 0.8) 100%);
+  -webkit-backdrop-filter: var(--blur-card);
+  backdrop-filter: var(--blur-card);
   border: 1px solid var(--rim);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-panel);
@@ -565,10 +572,12 @@ select.text-input {
 }
 
 .stat-card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-card);
+  background: var(--glass-sheen), var(--glass-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  backdrop-filter: var(--blur-card);
+  border: 1px solid var(--rim);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-inset-card);
+  box-shadow: var(--shadow-glass);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -931,7 +940,7 @@ select.text-input {
 }
 
 .placeholder-row:hover {
-  background: var(--tint-1);
+  background: var(--control-bg);
 }
 
 .placeholder-row i {
@@ -997,14 +1006,20 @@ select.text-input {
 .sidebar {
   width: var(--sidebar-w);
   flex-shrink: 0;
-  background: var(--surface-panel);
-  border-right: 1px solid var(--border-hairline);
+  /* 浮起玻璃板：四周留悬浮间距 + 半透明底 + 背景模糊 + rim 描边 + 深度投影 */
+  margin: var(--sidebar-gap) 0 var(--sidebar-gap) var(--sidebar-gap);
+  height: calc(100vh - 2 * var(--sidebar-gap));
+  position: sticky;
+  top: var(--sidebar-gap);
   display: flex;
   flex-direction: column;
   padding: 18px 12px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  background: var(--glass-sheen), var(--glass-sidebar);
+  -webkit-backdrop-filter: var(--blur-sidebar);
+  backdrop-filter: var(--blur-sidebar);
+  border: 1px solid var(--rim-strong);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-float);
   transition: width 0.15s ease;
 }
 
@@ -1238,6 +1253,8 @@ body.is-sidebar-resizing .sidebar {
   transition: background var(--t), color var(--t), box-shadow var(--t);
   white-space: nowrap;
   overflow: visible;
+  /* 缩放锚定左缘（hover 放大时朝右伸展，不溢出侧栏） */
+  transform-origin: left center;
 }
 
 .dash-layout.is-sidebar-collapsed .nav-item {
@@ -1306,6 +1323,66 @@ body.is-sidebar-resizing .sidebar {
   margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid var(--border-hairline);
+}
+
+/* 界面音效开关（侧栏底部，置于个人卡上方） */
+.sound-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t), color var(--t);
+}
+
+.sound-toggle:hover {
+  background: var(--control-bg);
+  color: var(--text-strong);
+}
+
+.sound-toggle.is-on {
+  color: var(--text-mute);
+}
+
+.sound-toggle__icon {
+  width: 18px;
+  display: inline-flex;
+  justify-content: center;
+  font-size: 12.5px;
+}
+
+.sound-toggle__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-toggle__state {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.sound-toggle.is-on .sound-toggle__state {
+  color: var(--accent);
+}
+
+.dash-layout.is-sidebar-collapsed .sound-toggle {
+  justify-content: center;
+  gap: 0;
+  padding: 8px 0;
 }
 
 .dash-layout.is-sidebar-collapsed .sidebar-profile {
@@ -1956,6 +2033,24 @@ body.is-sidebar-resizing .sidebar {
 
 .data-table tbody tr:hover {
   background: var(--control-bg);
+}
+
+/* 常规列表行（排序/拖拽表格除外）：hover 提亮一档 + 内容提亮，配合微抬动效（hoverMotion） */
+.data-table:not(.sort-table) tbody tr:hover {
+  background: var(--control-hover);
+}
+
+.data-table:not(.sort-table) tbody tr .data-table__title,
+.data-table:not(.sort-table) tbody tr .data-table__num {
+  transition: color var(--t);
+}
+
+.data-table:not(.sort-table) tbody tr:hover .data-table__title {
+  color: var(--text-title);
+}
+
+.data-table:not(.sort-table) tbody tr:hover .data-table__num {
+  color: var(--text-strong);
 }
 
 .data-table__title {
@@ -3604,6 +3699,8 @@ body.is-sidebar-resizing .sidebar {
   min-width: 100%;
   max-height: 268px;
   overflow-y: auto;
+  /* 横向明确不滚动：选项 hover 放大向右最多溢出数 px，由 padding 吸收，避免滚动条闪现 */
+  overflow-x: hidden;
   padding: 5px;
   border: 1px solid transparent;
   border-radius: 10px;

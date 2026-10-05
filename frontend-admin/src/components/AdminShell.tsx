@@ -3,8 +3,12 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { API_BASE, type AdminProfile } from "@/lib/api";
 import { avatarSrc, displayInitials } from "@/lib/auth";
+import { attachHoverMotion } from "@/lib/hoverMotion";
+import { initSoundPreference, setSoundOn, subscribeSound, unlockAudio } from "@/lib/uiSound";
 import { useAdmin } from "@/components/AdminProvider";
 
 type NavItem = {
@@ -21,6 +25,39 @@ type NavGroup = {
 };
 
 const SIDEBAR_COLLAPSED = 64;
+
+/** 侧栏入场动画门控：SPA 内路由切换不重播，仅首次进入/刷新页面时播放 */
+let shellRevealedOnce = false;
+
+/** 侧栏底部：界面音效开关（默认开，偏好持久化于 uiSound） */
+function SoundToggle({ collapsed }: { collapsed: boolean }) {
+  const [on, setOn] = useState(true);
+
+  useEffect(() => {
+    initSoundPreference();
+    return subscribeSound(setOn);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      className={`sound-toggle${on ? " is-on" : ""}`}
+      onClick={() => setSoundOn(!on)}
+      aria-pressed={on}
+      aria-label={on ? "关闭界面音效" : "开启界面音效"}
+    >
+      <span className="sound-toggle__icon">
+        <i className={`fa-solid ${on ? "fa-volume-high" : "fa-volume-xmark"}`} aria-hidden />
+      </span>
+      {!collapsed ? (
+        <>
+          <span className="sound-toggle__label">界面音效</span>
+          <span className="sound-toggle__state">{on ? "开" : "关"}</span>
+        </>
+      ) : null}
+    </button>
+  );
+}
 
 function isNavActive(href: string | undefined, pathname: string) {
   if (!href) return false;
@@ -108,6 +145,7 @@ export default function AdminShell({
   // 侧栏宽度/收起态提升到常驻 Provider：路由切换不重置、不闪烁
   const { width, setWidth, collapsed, setCollapsed } = useAdmin();
   const dragging = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip | null>(null);
 
   // 预热各菜单路由（含个人中心）：
@@ -144,6 +182,60 @@ export default function AdminShell({
       cancelled = true;
     };
   }, [router]);
+
+  // 首屏侧栏渐入（仅首次进入/刷新播放；SPA 路由切换不重播）：
+  // 玻璃板整体滑入 → 品牌 → 分组标题与菜单项错峰 → 底部个人卡；
+  // 用 useGSAP 的 revert 机制兜底 StrictMode 双执行不会留下半透明残影
+  useGSAP(
+    () => {
+      if (shellRevealedOnce) return;
+      shellRevealedOnce = true;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.fromTo(".sidebar", { x: -26, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5 })
+        .fromTo(
+          ".sidebar__brand",
+          { opacity: 0, y: -10 },
+          { opacity: 1, y: 0, duration: 0.32 },
+          0.14,
+        )
+        .fromTo(
+          ".nav-group__label",
+          { opacity: 0 },
+          { opacity: 1, duration: 0.28, stagger: 0.055 },
+          0.18,
+        )
+        .fromTo(
+          ".nav-item",
+          { opacity: 0, x: -16 },
+          { opacity: 1, x: 0, duration: 0.32, stagger: 0.032 },
+          0.22,
+        )
+        .fromTo(
+          ".sidebar__foot",
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.32 },
+          "-=0.16",
+        );
+    },
+    { scope: rootRef },
+  );
+
+  // 悬停微交互引擎（事件委托：菜单/按钮弹性放大、按钮组挤开、按压、音效）
+  // + 首次真实手势解锁音频（浏览器 autoplay 策略）
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    initSoundPreference();
+    const detach = attachHoverMotion(root);
+    const unlock = () => unlockAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => {
+      detach();
+      window.removeEventListener("pointerdown", unlock);
+    };
+  }, []);
 
   // 收起态提示：导航容器是 overflow 滚动区，CSS ::after 会被裁剪，改用 fixed 浮层
   const showTip = useCallback((e: React.MouseEvent<HTMLElement>, label: string) => {
@@ -187,7 +279,11 @@ export default function AdminShell({
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : width;
 
   return (
-    <div className={`dash-layout${collapsed ? " is-sidebar-collapsed" : ""}`} style={{ ["--sidebar-w" as string]: `${sidebarW}px` }}>
+    <div
+      ref={rootRef}
+      className={`dash-layout${collapsed ? " is-sidebar-collapsed" : ""}`}
+      style={{ ["--sidebar-w" as string]: `${sidebarW}px` }}
+    >
       <aside className="sidebar">
         <div className="sidebar__brand">
           {/* 左上角品牌标：与用户端一致，可点击（点击刷新页面） */}
@@ -269,6 +365,7 @@ export default function AdminShell({
         </div>
 
         <div className="sidebar__foot">
+          <SoundToggle collapsed={collapsed} />
           <SidebarProfile
             admin={admin}
             onTipShow={(e, label) => {

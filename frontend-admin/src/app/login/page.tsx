@@ -1,18 +1,27 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
 import { setToken } from "@/lib/auth";
+import { attachHoverMotion } from "@/lib/hoverMotion";
 
 export default function LoginPage() {
   const router = useRouter();
+  const pageRef = useRef<HTMLElement>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 登录页：保留按钮交互动效，但不播放音效（静态入口页保持克制）
+  useEffect(() => {
+    const root = pageRef.current;
+    if (!root) return;
+    return attachHoverMotion(root, { sound: false });
+  }, []);
 
   function collectErrors() {
     const errs: { username?: string; password?: string } = {};
@@ -55,7 +64,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-screen">
+    <main className="login-screen" ref={pageRef}>
       {/* 细密网格 + 光晕背景（与用户端 auth-backdrop 同款） */}
       <div className="auth-backdrop" aria-hidden>
         <span className="auth-backdrop__glyph" style={{ top: "24%", left: "3rem" }}>

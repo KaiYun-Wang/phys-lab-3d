@@ -56,10 +56,10 @@
 
   /* ── 2. Semantic：语义别名 ───────────────────────────────────── */
 
-  /* 页面底：三段渐变 + 两枚光斑（sky / purple，低透明度径向光晕） */
+  /* 页面底：三段渐变 + 两枚光斑（sky / purple，玻璃材质的透光来源，不可过弱） */
   --bg-page: linear-gradient(180deg, var(--p-void) 0%, var(--p-deep) 52%, var(--p-abyss) 100%);
-  --bg-spot-sky: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, transparent 62%);
-  --bg-spot-purple: radial-gradient(circle, rgba(192, 132, 252, 0.05) 0%, transparent 62%);
+  --bg-spot-sky: radial-gradient(circle, rgba(56, 189, 248, 0.13) 0%, transparent 64%);
+  --bg-spot-purple: radial-gradient(circle, rgba(192, 132, 252, 0.11) 0%, transparent 64%);
 
   /* 表面层级 */
   --surface-panel: var(--p-panel);
@@ -118,18 +118,24 @@
   --grad-primary-hover: linear-gradient(135deg, var(--p-blue-deep) 0%, var(--p-cyan-deep) 100%);
   --grad-stroke: linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(6, 182, 212, 0.1));
 
-  /* 玻璃与深度 */
+  /* 玻璃与深度（玻璃质感 = 微透底 + 背景模糊 + 反光边/斜向高光 + 背后光源） */
   --glass-1: rgba(23, 27, 38, 0.85);
   --glass-2: rgba(15, 23, 42, 0.92);
-  --rim: rgba(255, 255, 255, 0.08);
+  --rim: rgba(255, 255, 255, 0.1);
+  --rim-strong: rgba(255, 255, 255, 0.14);
   --blur-1: blur(16px);
   --blur-2: blur(24px);
+  --blur-card: blur(18px) saturate(140%);
+  --glass-sheen: linear-gradient(150deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 30%, rgba(255, 255, 255, 0) 48%);
+  --glass-card: color-mix(in srgb, var(--p-card) 62%, transparent);
+  --shadow-glass: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 6px rgba(0, 0, 0, 0.35),
+    0 14px 32px -10px rgba(0, 0, 0, 0.5);
 
   --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   --shadow-panel: 0 4px 16px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --shadow-glow-sky: 0 8px 32px -4px rgba(6, 182, 212, 0.12), 0 2px 8px -1px rgba(0, 0, 0, 0.4);
   --shadow-glow-cta: 0 10px 30px -8px rgba(6, 182, 212, 0.4), 0 2px 8px rgba(0, 0, 0, 0.5);
   --shadow-inset-card: inset 0 2px 4px rgba(0, 0, 0, 0.25);
@@ -148,4 +154,10 @@
   --font-display: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-body: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── 3. Motion / 悬浮玻璃：微交互与浮起侧栏 ─────────────────────
+     基准：DESIGN-style-guide.md §五；缩放与时长参数见该文档 */
+  --glass-sidebar: color-mix(in srgb, var(--p-panel) 56%, transparent);
+  --blur-sidebar: blur(30px) saturate(160%);
+  --sidebar-gap: 12px; /* 侧栏玻璃板与视口边缘的悬浮间距 */
 }
