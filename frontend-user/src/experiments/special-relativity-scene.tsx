@@ -215,7 +215,7 @@ export function SpecialRelativitySceneComponent({
 
   const shipColor = "#e2e8f0";
   const cockpitColor = "#06b6d4";
-  const clockColor = "#a855f7";
+  const clockColor = "#c084fc";
   const engineColor = "#f59e0b";
 
   return (
@@ -384,7 +384,7 @@ export function SpecialRelativitySceneComponent({
           <spriteMaterial map={createLabelTexture("v / c", { fontSize: 26, color: "#22d3ee" })} transparent depthTest={false} />
         </sprite>
         <sprite position={[-24.2, 5.5, CZ]} scale={[1.3, 0.8, 1]}>
-          <spriteMaterial map={createLabelTexture("γ", { fontSize: 28, color: "#a855f7" })} transparent depthTest={false} />
+          <spriteMaterial map={createLabelTexture("γ", { fontSize: 28, color: "#c084fc" })} transparent depthTest={false} />
         </sprite>
 
         {/* X-axis ticks */}

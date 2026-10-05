@@ -26,26 +26,18 @@ export default function DopplerPage() {
   const [sourceFrequency, setSourceFrequency] = useState(2);
   const [sourceVelocity, setSourceVelocity] = useState(5);
   const [waveSpeed, setWaveSpeed] = useState(10);
-  const [showWavefronts, setShowWavefronts] = useState(true);
-
-  const [autoOscillate, setAutoOscillate] = useState(true);
-  const [sourceDirection, setSourceDirection] = useState(0);
   const [observerPosition, setObserverPosition] = useState(15);
 
   const paramsRef = useRef({
     sourceFrequency,
     sourceVelocity,
     waveSpeed,
-    autoOscillate,
-    sourceDirection,
     observerPosition,
   });
   paramsRef.current = {
     sourceFrequency,
     sourceVelocity,
     waveSpeed,
-    autoOscillate,
-    sourceDirection,
     observerPosition,
   };
   const userEditHandlerRef = useRef<(() => void) | null>(null);
@@ -63,6 +55,10 @@ export default function DopplerPage() {
     setIsPlaying(true);
     setSimulationSpeed(1);
     setTimeElapsed(0);
+    setSourceFrequency(2);
+    setSourceVelocity(5);
+    setWaveSpeed(10);
+    setObserverPosition(15);
   };
 
   const onDataChange = useCallback((d: DopplerData) => {
@@ -95,11 +91,8 @@ export default function DopplerPage() {
           else if (params.sourceVelocity != null) setSourceVelocity(Number(params.sourceVelocity));
           if (typeof params.waveSpeed === "number") setWaveSpeed(params.waveSpeed);
           else if (params.waveSpeed != null) setWaveSpeed(Number(params.waveSpeed));
-          if (typeof params.sourceDirection === "number") setSourceDirection(params.sourceDirection);
-          else if (params.sourceDirection != null) setSourceDirection(Number(params.sourceDirection));
           if (typeof params.observerPosition === "number") setObserverPosition(params.observerPosition);
           else if (params.observerPosition != null) setObserverPosition(Number(params.observerPosition));
-          if (typeof params.autoOscillate === "boolean") setAutoOscillate(params.autoOscillate);
         } finally {
           queueMicrotask(() => {
             demoApplyingRef.current = false;
@@ -114,9 +107,19 @@ export default function DopplerPage() {
     [],
   );
 
+  const statusLine = data
+    ? data.shiftType === "none"
+      ? "声源速度远小于波速：频移可忽略。"
+      : `${data.shiftType === "blueshift" ? "蓝移（靠近）：观测频率比源频率高" : "红移（远离）：观测频率比源频率低"} ${Math.abs((data.dopplerShiftRatio - 1) * 100).toFixed(1)}%${data.machNumber >= 1 ? ` · 超音速，马赫数 ${data.machNumber.toFixed(2)}` : ""}。`
+    : null;
+
   const parameterControls = (
     <div className="space-y-4">
-      <ControlGroup title="波参数">
+      <ControlGroup
+        title="波参数"
+        icon="fa-solid fa-wave-square"
+        status="实时计算就绪"
+      >
         <ControlSlider
           label="源频率 (f₀)"
           value={sourceFrequency}
@@ -139,7 +142,7 @@ export default function DopplerPage() {
           min={0}
           max={15}
           step={0.1}
-          color="#3b82f6"
+          color="#38bdf8"
           onChange={(v) => {
             notifyUserEdit();
             setSourceVelocity(v);
@@ -154,7 +157,7 @@ export default function DopplerPage() {
           min={5}
           max={20}
           step={0.1}
-          color="#22c55e"
+          color="#34d399"
           onChange={(v) => {
             notifyUserEdit();
             setWaveSpeed(v);
@@ -164,65 +167,12 @@ export default function DopplerPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="声源运动">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-[#dfe2f1]/90">模式</span>
-          <div className="flex gap-2" data-demo-id="autoOscillate">
-            <button
-              onClick={() => {
-                notifyUserEdit();
-                setAutoOscillate(true);
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
-                autoOscillate
-                  ? "border-white bg-white/15 text-white"
-                  : "border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
-              }`}
-            >
-              自动
-            </button>
-            <button
-              onClick={() => {
-                notifyUserEdit();
-                setAutoOscillate(false);
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
-                !autoOscillate
-                  ? "border-white bg-white/15 text-white"
-                  : "border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
-              }`}
-            >
-              手动
-            </button>
-          </div>
-        </div>
-
-        {!autoOscillate && (
-          <div className="mb-3 sx-note-box">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#8d90a0]">方向</span>
-              <span className="text-xs font-mono text-white">
-                {sourceDirection > 0.1 ? "→ 向右" : sourceDirection < -0.1 ? "← 向左" : "● 静止"}
-              </span>
-            </div>
-            <ControlSlider
-              label=""
-              value={sourceDirection}
-              unit=""
-              min={-1}
-              max={1}
-              step={0.1}
-              color="#f59e0b"
-              onChange={(v) => {
-                notifyUserEdit();
-                setSourceDirection(v);
-              }}
-              decimals={1}
-              demoId="sourceDirection"
-            />
-          </div>
-        )}
-
+      <ControlGroup
+        title="观察者"
+        icon="fa-solid fa-location-crosshairs"
+        tone="amber"
+        status={`${observerPosition.toFixed(1)} m`}
+      >
         <ControlSlider
           label="观察者位置"
           value={observerPosition}
@@ -230,7 +180,7 @@ export default function DopplerPage() {
           min={-20}
           max={20}
           step={0.1}
-          color="#8b5cf6"
+          color="#c084fc"
           onChange={(v) => {
             notifyUserEdit();
             setObserverPosition(v);
@@ -240,54 +190,26 @@ export default function DopplerPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="显示选项">
-        <label className="sx-control-row cursor-pointer">
-          <span>显示波前</span>
-          <input
-            type="checkbox"
-            checked={showWavefronts}
-            onChange={(e) => setShowWavefronts(e.target.checked)}
-            className="w-4 h-4 rounded accent-white"
-          />
-        </label>
-      </ControlGroup>
-
-      <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
-          {data ? (
-            <>
-              <p>
-                <strong className="text-[#dfe2f1]">频移类型：</strong>
-                <span
-                  className={
-                    data.shiftType === "blueshift"
-                      ? "text-blue-400"
-                      : data.shiftType === "redshift"
-                        ? "text-red-400"
-                        : "text-green-400"
-                  }
-                >
-                  {data.shiftType === "blueshift"
-                    ? "蓝移（靠近）"
-                    : data.shiftType === "redshift"
-                      ? "红移（远离）"
-                      : "无频移（静止）"}
-                </span>
-              </p>
-              {data.machNumber >= 1 ? (
-                <p className="text-purple-400">超音速，马赫数 {data.machNumber.toFixed(2)}</p>
-              ) : null}
-              {data.dopplerShiftRatio !== 1 ? (
-                <p>
-                  {data.dopplerShiftRatio > 1
-                    ? `频率升高 ${((data.dopplerShiftRatio - 1) * 100).toFixed(0)}%`
-                    : `频率降低 ${((1 - data.dopplerShiftRatio) * 100).toFixed(0)}%`}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <p>声源靠近观察者时频率升高（蓝移），远离时降低（红移）。</p>
-          )}
+      <ControlGroup
+        title="原理说明"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="exp-theory">
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">多普勒公式（声源靠近观察者）：</span>
+            <span className="exp-theory__eq">f′ = f₀ · v / (v − vₛ) → 频率升高</span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">远离观察者：</span>
+            <span className="exp-theory__eq exp-theory__eq--amber">f′ = f₀ · v / (v + vₛ) → 频率降低</span>
+          </div>
+          <div className="exp-theory__dp">
+            <span>f′ / f₀ = {data ? data.dopplerShiftRatio.toFixed(3) : "—"}</span>
+            <strong>{data ? `${data.observedFrequency.toFixed(2)} Hz` : "—"}</strong>
+          </div>
+          {statusLine ? <p className="exp-theory__note">{statusLine}</p> : null}
         </div>
       </ControlGroup>
 
@@ -310,9 +232,9 @@ export default function DopplerPage() {
                 : "#86efac",
           decimals: 1,
         },
-        多普勒比: { value: data.dopplerShiftRatio, unit: "×", color: "#f9a8d4", decimals: 2 },
-        马赫数: { value: data.machNumber, unit: "", color: "#c4b5fd", decimals: 2 },
-        波速: { value: data.waveSpeed, unit: "m/s", color: "#86efac", decimals: 0 },
+        多普勒比: { value: data.dopplerShiftRatio, unit: "×", color: "#c084fc", decimals: 2 },
+        马赫数: { value: data.machNumber, unit: "", color: "#67e8f9", decimals: 2 },
+        波速: { value: data.waveSpeed, unit: "m/s", color: "#34d399", decimals: 0 },
       }}
     />
   ) : null;
@@ -325,6 +247,7 @@ export default function DopplerPage() {
         experimentRoute="doppler"
         cameraPosition={[0, 30, 40]}
         backgroundColor="#000000"
+        consoleSubtitle="调节声源频率、速度与观察者位置"
         controls={parameterControls}
         dataPanel={hud}
         demoAdapter={demoAdapter}
@@ -341,10 +264,7 @@ export default function DopplerPage() {
           sourceFrequency={sourceFrequency}
           sourceVelocity={sourceVelocity}
           waveSpeed={waveSpeed}
-          autoOscillate={autoOscillate}
-          sourceDirection={sourceDirection}
           observerPosition={observerPosition}
-          showWavefronts={showWavefronts}
           resetTrigger={resetTrigger}
         />
       </ExperimentContainer>

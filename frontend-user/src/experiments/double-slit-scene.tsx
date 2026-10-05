@@ -2,7 +2,6 @@
 
 import { useRef, useMemo, useState, useEffect, useCallback } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
@@ -14,8 +13,6 @@ interface DoubleSlitSceneProps {
   slitSeparation?: number;
   slitWidth?: number;
   particleRate?: number;
-  showParticles?: boolean;
-  showWaveView?: boolean;
   isPlaying?: boolean;
   simulationSpeed?: number;
   resetTrigger?: number;
@@ -42,8 +39,14 @@ const trailFS = `varying float vAlpha;uniform vec3 uColor;
 void main(){float d=length(gl_PointCoord-0.5);if(d>0.5)discard;
 float a=smoothstep(0.5,0.0,d)*vAlpha*0.5;gl_FragColor=vec4(uColor*0.8,a);}`;
 
-const MAX_P = 500;
+const MAX_P = 1400;
 const MAX_T = 3000;
+/** 每帧最多补发射的粒子数（防止高发射速率下卡顿） */
+const MAX_SPAWN_PER_FRAME = 20;
+/** 在途粒子硬上限：超出后淘汰最早的，避免高发射速率下无界叠加 */
+const MAX_ALIVE = 1400;
+/** 粒子飞行速度（单位/秒）：保证 1000 个/秒时在途数不超过上限且能飞到屏 */
+const PARTICLE_SPEED = 14;
 const TW = 512;
 const TH = 512;
 
@@ -128,12 +131,13 @@ function SceneEnvironment() {
 }
 
 export function DoubleSlitSceneComponent({
-  onDataChange, wavelength = 500, slitSeparation = 2, slitWidth = 0.3,
-  particleRate = 2, showParticles = true, showWaveView = false,
+  onDataChange, wavelength = 500, slitSeparation = 0.8, slitWidth = 0.15,
+  particleRate = 300,
   isPlaying = true, simulationSpeed = 1, resetTrigger, observerMode = true,
 }: DoubleSlitSceneProps) {
   const particlesRef = useRef<Particle[]>([]);
   const timeRef = useRef(0);
+  const frameCountRef = useRef(0);
   const lastSpawnRef = useRef(0);
   const totalRef = useRef(0);
   const hitsRef = useRef<number[]>(new Array(300).fill(0));
@@ -205,19 +209,22 @@ export function DoubleSlitSceneComponent({
     onDataChange?.({ fringeSpacing: fs * 1000, particleCount: totalRef.current, wavelength, slitSeparation, slitWidth });
   }, [wavelength, slitSeparation, slitWidth, onDataChange, intensities]);
 
-  // ─── Reset ─────────────────────────────────────────────────────
+  // ─── Reset / 参数变化清屏（挡板打点不再对应新工况） ─────────────
   useEffect(() => {
     particlesRef.current = []; hitsRef.current = new Array(300).fill(0);
     maxHitRef.current = 1; timeRef.current = 0; lastSpawnRef.current = 0; totalRef.current = 0;
     waveFadeRef.current = 0;
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, TW, TH); scrTex.needsUpdate = true; setIntensities(new Float32Array(300));
-  }, [resetTrigger, ctx, scrTex, observerMode]);
+  }, [resetTrigger, ctx, scrTex, observerMode, slitSeparation, slitWidth]);
 
   // Reset wave fade when switching to wave mode
   useEffect(() => {
     if (!observerMode && prevObserverRef.current) {
       waveFadeRef.current = 0;
       ctx.fillStyle = "#000"; ctx.fillRect(0, 0, TW, TH); scrTex.needsUpdate = true;
+    } else if (observerMode && !prevObserverRef.current) {
+      // 切回观测模式：发射基准对齐当前时间，避免瞬间补发粒子
+      lastSpawnRef.current = timeRef.current;
     }
     prevObserverRef.current = observerMode;
   }, [observerMode, ctx, scrTex]);
@@ -279,12 +286,21 @@ export function DoubleSlitSceneComponent({
 
     if (observerMode) {
       // ── Particle Mode (camera ON, wavefunction collapsed) ──
-      if (timeRef.current - lastSpawnRef.current > 1 / particleRate) {
-        const tz = sampleZ(); const tt = (scrX - srcX) / 8; const vz = tz / tt;
-        const vy = (Math.random() - 0.5) * 2.0;
-        particlesRef.current.push({ position: new THREE.Vector3(srcX + 1.5, 0, 0),
-          velocity: new THREE.Vector3(8, vy, vz), active: true, phase: "source", birth: el });
-        lastSpawnRef.current = timeRef.current;
+      {
+        let budget = MAX_SPAWN_PER_FRAME;
+        const interval = 1 / particleRate;
+        const tt = (scrX - srcX) / PARTICLE_SPEED;
+        while (timeRef.current - lastSpawnRef.current > interval && budget-- > 0) {
+          const tz = sampleZ(); const vz = tz / tt;
+          const vy = (Math.random() - 0.5) * 2.0;
+          particlesRef.current.push({ position: new THREE.Vector3(srcX + 1.5, 0, 0),
+            velocity: new THREE.Vector3(PARTICLE_SPEED, vy, vz), active: true, phase: "source", birth: el });
+          lastSpawnRef.current += interval;
+        }
+        // 硬上限：淘汰最早的粒子，防止在途数量无界增长
+        if (particlesRef.current.length > MAX_ALIVE) {
+          particlesRef.current.splice(0, particlesRef.current.length - MAX_ALIVE);
+        }
       }
       const pA = pGeo.attributes.position as THREE.BufferAttribute;
       const sA = pGeo.attributes.aSize as THREE.BufferAttribute;
@@ -298,12 +314,12 @@ export function DoubleSlitSceneComponent({
           tpA.setXYZ(ti, p.position.x - p.velocity.x * dt, p.position.y, p.position.z - p.velocity.z * dt);
           taA.setX(ti, Math.max(0.4 - (el - p.birth) * 0.08, 0.02)); ti++;
         }
-        p.position.add(p.velocity.clone().multiplyScalar(dt));
+        p.position.x += p.velocity.x * dt; p.position.y += p.velocity.y * dt; p.position.z += p.velocity.z * dt;
         if (p.phase === "source" && p.position.x >= barX) {
           const z1 = slitSeparation / 2, z2 = -slitSeparation / 2;
           const inZ = Math.abs(p.position.z - z1) < slitWidth / 2 || Math.abs(p.position.z - z2) < slitWidth / 2;
           const inY = Math.abs(p.position.y) < slitH / 2;
-          if (inZ && inY) { p.phase = "travelling"; p.velocity.z += (Math.random() - 0.5) * 0.15; p.velocity.normalize().multiplyScalar(8); }
+          if (inZ && inY) { p.phase = "travelling"; p.velocity.z += (Math.random() - 0.5) * 0.15; p.velocity.normalize().multiplyScalar(PARTICLE_SPEED); }
           else p.active = false;
         }
         if (p.position.x >= scrX) {
@@ -326,58 +342,23 @@ export function DoubleSlitSceneComponent({
       if (ntu) scrTex.needsUpdate = true;
     } else {
       // ── Wave Mode (no camera, quantum superposition) ──
-      // Still spawn particles flying through slits (visual only)
-      if (timeRef.current - lastSpawnRef.current > 1 / particleRate) {
-        const tz = sampleZ(); const tt = (scrX - srcX) / 8; const vz = tz / tt;
-        const vy = (Math.random() - 0.5) * 1.8;
-        particlesRef.current.push({ position: new THREE.Vector3(srcX + 1.5, 0, 0),
-          velocity: new THREE.Vector3(8, vy, vz), active: true, phase: "source", birth: el });
-        lastSpawnRef.current = timeRef.current;
-      }
-      const pA = pGeo.attributes.position as THREE.BufferAttribute;
-      const sA = pGeo.attributes.aSize as THREE.BufferAttribute;
-      const aA = pGeo.attributes.aAlpha as THREE.BufferAttribute;
-      const tpA = tGeo.attributes.position as THREE.BufferAttribute;
-      const taA = tGeo.attributes.aAlpha as THREE.BufferAttribute;
-      let pi = 0, ti = 0;
-      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-        const p = particlesRef.current[i]; if (!p.active) continue;
-        if (ti < MAX_T && p.phase !== "source") {
-          tpA.setXYZ(ti, p.position.x - p.velocity.x * dt, p.position.y, p.position.z - p.velocity.z * dt);
-          taA.setX(ti, Math.max(0.4 - (el - p.birth) * 0.08, 0.02)); ti++;
-        }
-        p.position.add(p.velocity.clone().multiplyScalar(dt));
-        if (p.phase === "source" && p.position.x >= barX) {
-          const z1 = slitSeparation / 2, z2 = -slitSeparation / 2;
-          const inZ = Math.abs(p.position.z - z1) < slitWidth / 2 || Math.abs(p.position.z - z2) < slitWidth / 2;
-          const inY = Math.abs(p.position.y) < slitH / 2;
-          if (inZ && inY) { p.phase = "travelling"; p.velocity.z += (Math.random() - 0.5) * 0.15; p.velocity.normalize().multiplyScalar(8); }
-          else p.active = false;
-        }
-        if (p.position.x >= scrX) { p.active = false; }
-        if (p.active && pi < MAX_P) {
-          const f = Math.min((el - p.birth) * 4, 1);
-          pA.setXYZ(pi, p.position.x, p.position.y, p.position.z); sA.setX(pi, 0.4); aA.setX(pi, f * 0.9); pi++;
-        }
-        if (!p.active) particlesRef.current.splice(i, 1);
-      }
-      for (let i = pi; i < MAX_P; i++) aA.setX(i, 0);
-      for (let i = ti; i < MAX_T; i++) taA.setX(i, 0);
-      pA.needsUpdate = sA.needsUpdate = aA.needsUpdate = true;
-      tpA.needsUpdate = taA.needsUpdate = true;
-      pGeo.setDrawRange(0, pi); tGeo.setDrawRange(0, ti);
-      // Wave fringes gradually build up, speed tied to particle rate
-      waveFadeRef.current = Math.min(waveFadeRef.current + dt * particleRate * 0.02, 1);
+      // 波动模式不打粒子：光以波的形式从光源射向双缝（光柱为场景常显元素），
+      // 屏上干涉条纹随发射速率逐渐淡入
+      particlesRef.current.length = 0;
+      pGeo.setDrawRange(0, 0);
+      tGeo.setDrawRange(0, 0);
+      // 干涉条纹以固定节奏淡入（与发射速率参数无关）
+      waveFadeRef.current = Math.min(waveFadeRef.current + dt * 1.5, 1);
       drawWaveFrings(waveFadeRef.current);
       scrTex.needsUpdate = true;
     }
-    const arr = new Float32Array(300);
-    for (let i = 0; i < 300; i++) if (maxHitRef.current > 0) arr[i] = hitsRef.current[i] / maxHitRef.current;
-    setIntensities(arr);
+    // 强度数组节流到每 8 帧更新一次 React state（约 7.5Hz，足够 HUD 显示且避免每帧全页重渲染）
+    if (frameCountRef.current++ % 8 === 0) {
+      const arr = new Float32Array(300);
+      for (let i = 0; i < 300; i++) if (maxHitRef.current > 0) arr[i] = hitsRef.current[i] / maxHitRef.current;
+      setIntensities(arr);
+    }
   });
-
-  const curve = useMemo(() => { const pts: [number, number, number][] = [];
-    for (let i = 0; i <= 200; i++) { const z = ((i / 200) - 0.5) * scrW * 0.9; pts.push([scrX + 2 + calcI(z) * 3, 0, z]); } return pts; }, [calcI, scrW]);
 
   const s1Z = slitSeparation / 2;
   const s2Z = -slitSeparation / 2;
@@ -481,10 +462,40 @@ export function DoubleSlitSceneComponent({
         <pointLight color={wHex} intensity={2} distance={6} decay={2} />
       </group>
 
-      {/* Beam axis */}
-      <mesh position={[(srcX + 1.5 + barX) / 2, 0, 0]}>
-        <boxGeometry args={[barX - srcX - 1.5, 0.01, 0.01]} />
-        <meshBasicMaterial color={wHex} transparent opacity={0.12} />
+      {/* Beam axis — 手电筒式光锥：光源射向双缝，光斑抱住双缝落于板面 */}
+      <mesh position={[(srcX + 1.5 + barX) / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.12, 1.3, barX - srcX - 1.5, 24, 1, true]} />
+        <meshBasicMaterial
+          color={wHex}
+          transparent
+          opacity={0.06}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[(srcX + 1.5 + barX) / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.05, 0.6, barX - srcX - 1.5, 20, 1, true]} />
+        <meshBasicMaterial
+          color={wHex}
+          transparent
+          opacity={0.16}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* 缝板落点光斑（手电筒打上去的亮斑） */}
+      <mesh position={[-0.1, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[2.6, 2.6]} />
+        <meshBasicMaterial
+          map={glowTex}
+          color={wHex}
+          transparent
+          opacity={0.4}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
       </mesh>
 
       {/* ═══ Barrier ═══ */}
@@ -621,13 +632,8 @@ export function DoubleSlitSceneComponent({
       </group>
 
       {/* ═══ Particles ═══ */}
-      {showParticles && (<><points geometry={pGeo} material={pMat} /><points geometry={tGeo} material={tMat} /></>)}
-
-      {/* Theory Curve */}
-      {showWaveView && (<group>
-        <Line points={curve} color={wHex} lineWidth={2} opacity={0.7} />
-        <Line points={[[scrX + 2, 0, -scrW * 0.45], [scrX + 2, 0, scrW * 0.45]]} color="#444" lineWidth={1} opacity={0.3} />
-      </group>)}
+      <points geometry={pGeo} material={pMat} />
+      <points geometry={tGeo} material={tMat} />
     </group>
   );
 }

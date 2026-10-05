@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { WaveMechanicsSceneComponent } from "@/experiments/wave-mechanics-scene";
 import type { WaveSnapshot, ViewMode } from "@/experiments/wave-mechanics/shared-wave-utils";
 import { calculateWaveSpeed } from "@/utils/physics";
@@ -13,6 +12,13 @@ import {
   DetailsLinkButton,
 } from "@/components/experiment-ui";
 import type { DemoAdapter } from "@/components/demo/DemoPanel";
+
+const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+  compare: "左右对比",
+  transverse: "横波视图",
+  longitudinal: "纵波视图",
+  overlay: "同轴叠加",
+};
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -57,7 +63,6 @@ export default function WaveMechanicsPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const [resetTrigger, setResetTrigger] = useState(0);
-  const [resetFlash, setResetFlash] = useState(false);
 
   const [frequency, setFrequency] = useState(2);
   const [amplitude, setAmplitude] = useState(1);
@@ -166,15 +171,21 @@ export default function WaveMechanicsPage() {
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(1);
-    setResetFlash(true);
-    setTimeout(() => setResetFlash(false), 500);
     setParticleHistory([]);
     setSelectedSide(null);
+    setFrequency(2);
+    setAmplitude(1);
+    setWavelength(4);
+    setViewMode("compare");
   };
 
   const parameterControls = (
     <div className="space-y-4 pb-1">
-      <ControlGroup title="波动参数">
+      <ControlGroup
+        title="波动参数"
+        icon="fa-solid fa-water"
+        status="实时计算就绪"
+      >
         <ControlSlider
           label="频率 f"
           value={frequency}
@@ -182,7 +193,7 @@ export default function WaveMechanicsPage() {
           min={0.5}
           max={4}
           step={0.1}
-          color="#4f8fff"
+          color="#38bdf8"
           onChange={(v) => {
             notifyUserEdit();
             setFrequency(v);
@@ -197,7 +208,7 @@ export default function WaveMechanicsPage() {
           min={0.2}
           max={2}
           step={0.1}
-          color="#8b5cf6"
+          color="#c084fc"
           onChange={(v) => {
             notifyUserEdit();
             setAmplitude(v);
@@ -212,7 +223,7 @@ export default function WaveMechanicsPage() {
           min={2}
           max={8}
           step={0.1}
-          color="#06d6a0"
+          color="#34d399"
           onChange={(v) => {
             notifyUserEdit();
             setWavelength(v);
@@ -223,57 +234,71 @@ export default function WaveMechanicsPage() {
       </ControlGroup>
 
       {!isMobile && (
-        <ControlGroup title="视图模式">
-          <motion.div
-            className="grid grid-cols-2 gap-2"
-            layout
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            data-demo-id="viewMode"
-          >
+        <ControlGroup
+          title="视图模式"
+          icon="fa-solid fa-table-columns"
+          tone="amber"
+          status={VIEW_MODE_LABELS[viewMode]}
+          statusTone="sky"
+        >
+          <div className="exp-option-switch" role="group" aria-label="视图模式" data-demo-id="viewMode">
             {(
               [
-                ["compare", "对比"],
-                ["transverse", "横波"],
-                ["longitudinal", "纵波"],
-                ["overlay", "叠加"],
+                ["compare", "对比", "fa-solid fa-table-columns", "#38bdf8"],
+                ["transverse", "横波", "fa-solid fa-wave-square", "#67e8f9"],
+                ["longitudinal", "纵波", "fa-solid fa-bars-staggered", "#c084fc"],
+                ["overlay", "叠加", "fa-solid fa-layer-group", "#fbbf24"],
               ] as const
-            ).map(([id, label]) => (
+            ).map(([id, label, icon, iconColor]) => (
               <button
                 key={id}
                 type="button"
+                className={`exp-option${viewMode === id ? " is-on" : ""}`}
                 onClick={() => {
                   notifyUserEdit();
                   setViewMode(id);
                 }}
-                className={`py-2 text-xs rounded-lg border ${
-                  viewMode === id
-                    ? "border-white bg-white/15 text-white"
-                    : "border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
-                }`}
+                aria-pressed={viewMode === id}
               >
-                {label}
+                <i className={icon} style={{ color: iconColor }} aria-hidden />
+                <span>{label}</span>
               </button>
             ))}
-          </motion.div>
+          </div>
         </ControlGroup>
       )}
 
-      <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
-          <p className="font-mono text-[11px]">横波：y = A sin(kx − ωt)</p>
-          <p className="font-mono text-[11px]">纵波：Δx = A sin(kx − ωt)</p>
+      <ControlGroup
+        title="原理说明"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="exp-theory">
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">横波（位移垂直传播方向）：</span>
+            <span className="exp-theory__eq">y = A sin(kx − ωt)</span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">纵波（压缩沿传播方向）：</span>
+            <span className="exp-theory__eq">Δx = A sin(kx − ωt)</span>
+          </div>
+          <div className="exp-theory__dp">
+            <span>v = λf</span>
+            <strong>{data ? `${data.waveSpeed.toFixed(1)} m/s` : "—"}</strong>
+          </div>
           {selectedSide && particleHistory.length > 1 ? (
             <div>
-              <p className="mb-1 text-[#c4c4ce]">
+              <p className="exp-theory__note" style={{ marginBottom: 4 }}>
                 {selectedSide === "transverse" ? "质点位移 y(t)" : "质点压缩度 ρ(t)"}
               </p>
               <Sparkline
                 values={particleHistory}
-                color={selectedSide === "transverse" ? "#a855f7" : "#ff6b35"}
+                color={selectedSide === "transverse" ? "#c084fc" : "#f59e0b"}
               />
             </div>
           ) : (
-            <p>点击场景中的质点可查看位移/压缩度时序。</p>
+            <p className="exp-theory__note">点击场景中的质点可查看位移/压缩度时序。</p>
           )}
         </div>
       </ControlGroup>
@@ -285,15 +310,15 @@ export default function WaveMechanicsPage() {
   const hud = data ? (
     <HudReadings
       data={{
-        时间: { value: data.time, unit: "s", color: "#6ee7b7", decimals: 2 },
-        频率: { value: data.frequency, unit: "Hz", color: "#93c5fd", decimals: 1 },
-        波长: { value: data.wavelength, unit: "m", color: "#6ee7b7", decimals: 2 },
-        波速: { value: data.waveSpeed, unit: "m/s", color: "#6ee7b7", decimals: 1 },
-        波数k: { value: data.k, unit: "rad/m", color: "#c4b5fd", decimals: 2 },
-        角频率ω: { value: data.omega, unit: "rad/s", color: "#c4b5fd", decimals: 2 },
-        横波ymax: { value: data.transverseYMax, unit: "m", color: "#93c5fd", decimals: 2 },
-        横波ymin: { value: data.transverseYMin, unit: "m", color: "#c4b5fd", decimals: 2 },
-        纵波ρmax: { value: data.longitudinalRhoMax, unit: "", color: "#fb923c", decimals: 2 },
+        时间: { value: data.time, unit: "s", color: "#67e8f9", decimals: 2 },
+        频率: { value: data.frequency, unit: "Hz", color: "#38bdf8", decimals: 1 },
+        波长: { value: data.wavelength, unit: "m", color: "#34d399", decimals: 2 },
+        波速: { value: data.waveSpeed, unit: "m/s", color: "#fbbf24", decimals: 1 },
+        波数k: { value: data.k, unit: "rad/m", color: "#c084fc", decimals: 2 },
+        角频率ω: { value: data.omega, unit: "rad/s", color: "#f472b6", decimals: 2 },
+        横波ymax: { value: data.transverseYMax, unit: "m", color: "#7dd3fc", decimals: 2 },
+        横波ymin: { value: data.transverseYMin, unit: "m", color: "#c084fc", decimals: 2 },
+        纵波ρmax: { value: data.longitudinalRhoMax, unit: "", color: "#f59e0b", decimals: 2 },
         纵波ρmin: { value: data.longitudinalRhoMin, unit: "", color: "#f9a8d4", decimals: 2 },
       }}
     />
@@ -308,6 +333,7 @@ export default function WaveMechanicsPage() {
         cameraPosition={[0, 8, 18]}
         backgroundColor="#000000"
         enableFog={false}
+        consoleSubtitle="调节频率、振幅与波长"
         controls={parameterControls}
         dataPanel={hud}
         demoAdapter={demoAdapter}
@@ -340,18 +366,6 @@ export default function WaveMechanicsPage() {
           onRequestFocus={(target) => setFocusTarget(target)}
         />
       </ExperimentContainer>
-
-      <AnimatePresence>
-        {resetFlash && (
-          <motion.div
-            initial={{ opacity: 0.3 }}
-            animate={{ opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 bg-white z-[90] pointer-events-none"
-          />
-        )}
-      </AnimatePresence>
 
       {isMobile && (
         <div

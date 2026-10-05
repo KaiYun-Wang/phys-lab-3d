@@ -144,23 +144,35 @@ export default function GeneralRelativityPage() {
     [rs]
   );
 
-  const [showSpacetimeGrid, setShowSpacetimeGrid] = useState(true);
-  const [showAccretionDisk, setShowAccretionDisk] = useState(true);
-  const [showStarfield, setShowStarfield] = useState(true);
-  const [showPhotonPaths, setShowPhotonPaths] = useState(true);
-  const [showParticleTrails, setShowParticleTrails] = useState(true);
-
   const handlePlayPause = () => setIsPlaying((p) => !p);
   const handleReset = () => {
     notifyUserEdit();
     setResetTrigger((n) => n + 1);
     setIsPlaying(true);
     setSimulationSpeed(3);
+    setBlackHoleMass(5);
+    const preset = schwarzschildPlungePreset(10);
+    setParticleLaunchRadius(preset.r);
+    setParticleTangentialVelocity(preset.vt);
+    setParticleRadialVelocity(preset.vr);
+    setPhotonImpactParam(25);
   };
+
+  /** 预设是否与当前工况一致（用于选项卡选中态） */
+  const activePreset = (p: { r: number; vt: number; vr: number }) =>
+    Math.abs(p.r - particleLaunchRadius) < 0.05 &&
+    Math.abs(p.vt - particleTangentialVelocity) < 0.005 &&
+    Math.abs(p.vr - particleRadialVelocity) < 0.005;
 
   const parameterControls = (
     <div className="space-y-4">
-      <ControlGroup title="黑洞参数">
+      <ControlGroup
+        title="黑洞参数"
+        icon="fa-solid fa-circle-dot"
+        tone="amber"
+        status={`rs = ${rs.toFixed(2)}`}
+        statusTone="emerald"
+      >
         <ControlSlider
           label="质量 M"
           value={blackHoleMass}
@@ -168,7 +180,7 @@ export default function GeneralRelativityPage() {
           min={2}
           max={12}
           step={0.1}
-          color="#ff6600"
+          color="#f59e0b"
           onChange={(v) => {
             notifyUserEdit();
             setBlackHoleMass(v);
@@ -178,26 +190,32 @@ export default function GeneralRelativityPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="测试粒子（测地线轨道）">
-        <p className="text-xs text-gray-400 mb-2">
-          圆轨道 ≈ {vCirc.toFixed(2)}c，切向逃逸 ≈ {vEsc.toFixed(2)}c（均随 r 与 M 变化）。
-          当前 <strong className="text-cyan-300">E = {orbitE.toFixed(3)}</strong>
-          （{orbitKindZh[orbitKind]}），ISCO = {isco.toFixed(0)}。
-          改质量 M 后预设会自动按 rs 缩放。
-        </p>
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          {particlePresets.map((p) => (
+      <ControlGroup
+        title="测试粒子（测地线轨道）"
+        icon="fa-solid fa-satellite"
+        status={orbitKindZh[orbitKind]}
+        statusTone={orbitKind === "Plunge" ? "muted" : "emerald"}
+      >
+        <div className="exp-option-switch" role="group" aria-label="轨道预设">
+          {particlePresets.map((p, i) => (
             <button
               key={p.label}
+              type="button"
+              className={`exp-option${activePreset(p) ? " is-on" : ""}`}
               onClick={() => {
                 notifyUserEdit();
                 setParticleLaunchRadius(p.r);
                 setParticleTangentialVelocity(p.vt);
                 setParticleRadialVelocity(p.vr);
               }}
-              className="py-1.5 text-xs bg-gray-700/80 hover:bg-gray-600 text-gray-200 rounded-lg"
+              aria-pressed={activePreset(p)}
             >
-              {p.label}
+              <i
+                className={i === 0 ? "fa-solid fa-arrow-down-long" : "fa-solid fa-arrow-up-right-from-square"}
+                style={{ color: i === 0 ? "#fb923c" : "#34d399" }}
+                aria-hidden
+              />
+              <span>{p.label}</span>
             </button>
           ))}
         </div>
@@ -208,7 +226,7 @@ export default function GeneralRelativityPage() {
           min={minR}
           max={80}
           step={0.1}
-          color="#88ccff"
+          color="#38bdf8"
           onChange={(v) => {
             notifyUserEdit();
             setParticleLaunchRadius(Math.max(v, minR));
@@ -222,7 +240,7 @@ export default function GeneralRelativityPage() {
           min={0.05}
           max={1.0}
           step={0.01}
-          color="#44aaff"
+          color="#67e8f9"
           onChange={(v) => {
             notifyUserEdit();
             setParticleTangentialVelocity(v);
@@ -237,7 +255,7 @@ export default function GeneralRelativityPage() {
           min={-0.3}
           max={0.3}
           step={0.01}
-          color="#ff8866"
+          color="#fbbf24"
           onChange={(v) => {
             notifyUserEdit();
             setParticleRadialVelocity(v);
@@ -247,14 +265,19 @@ export default function GeneralRelativityPage() {
         />
         <button
           onClick={() => setLaunchParticleTrigger((n) => n + 1)}
-          className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm rounded-lg transition-all shadow-md"
+          className="exp-action-btn"
         >
+          <i className="fa-solid fa-satellite" aria-hidden />
           发射粒子
         </button>
       </ControlGroup>
 
-      <ControlGroup title="引力透镜（光子路径）">
-        <p className="text-xs text-gray-400 mb-2">光子从左侧飞来，白点沿路径移动。被吸入视界时轨迹变红。</p>
+      <ControlGroup
+        title="引力透镜（光子路径）"
+        icon="fa-solid fa-bolt"
+        tone="amber"
+        status={`b = ${photonImpactParam.toFixed(1)}`}
+      >
         <ControlSlider
           label="碰撞参数 b"
           value={photonImpactParam}
@@ -262,7 +285,7 @@ export default function GeneralRelativityPage() {
           min={8}
           max={50}
           step={0.1}
-          color="#ffffff"
+          color="#67e8f9"
           onChange={(v) => {
             notifyUserEdit();
             setPhotonImpactParam(v);
@@ -271,31 +294,40 @@ export default function GeneralRelativityPage() {
         />
         <button
           onClick={() => setLaunchPhotonTrigger((n) => n + 1)}
-          className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-medium text-sm rounded-lg transition-all shadow-md"
+          className="exp-action-btn"
         >
+          <i className="fa-solid fa-bolt" aria-hidden />
           发射光子
         </button>
       </ControlGroup>
 
-      <ControlGroup title="显示图层">
-        {[
-          { label: "时空弯曲网格", val: showSpacetimeGrid, set: setShowSpacetimeGrid },
-          { label: "吸积盘", val: showAccretionDisk, set: setShowAccretionDisk },
-          { label: "星野背景", val: showStarfield, set: setShowStarfield },
-          { label: "光子路径", val: showPhotonPaths, set: setShowPhotonPaths },
-          { label: "粒子轨迹", val: showParticleTrails, set: setShowParticleTrails },
-        ].map(({ label, val, set }) => (
-          <label key={label} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-            <input type="checkbox" checked={val} onChange={(e) => set(e.target.checked)} className="accent-orange-500" />
-            {label}
-          </label>
-        ))}
-      </ControlGroup>
-
-      <ControlGroup title="读数提示">
-        <p className="text-xs text-[#8d90a0] leading-relaxed">
-          左上角为实时轨道与红移读数。r &lt; 3rs（ISCO）时有质量轨道不稳定；光子路径偏折体现引力透镜。
-        </p>
+      <ControlGroup
+        title="原理说明"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="exp-theory">
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">圆轨道与切向逃逸（随 r、M 变化）：</span>
+            <span className="exp-theory__eq">
+              v_circ ≈ {vCirc.toFixed(2)}c · v_esc ≈ {vEsc.toFixed(2)}c
+            </span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">测地线轨道能量：</span>
+            <span className="exp-theory__eq exp-theory__eq--amber">
+              E/mc² = {orbitE.toFixed(3)} → {orbitKindZh[orbitKind]}
+            </span>
+          </div>
+          <div className="exp-theory__dp">
+            <span>ISCO = 3 rs</span>
+            <strong>{isco.toFixed(0)}</strong>
+          </div>
+          <p className="exp-theory__note">
+            r &lt; 3rs（ISCO）时有质量轨道不稳定；光子从左侧飞来，被吸入视界时轨迹变红。改质量 M 后预设会自动按 rs 缩放。
+          </p>
+        </div>
       </ControlGroup>
 
       <DetailsLinkButton href="/experiments/general-relativity/details">查看原理说明</DetailsLinkButton>
@@ -305,25 +337,17 @@ export default function GeneralRelativityPage() {
   const hud = data ? (
     <HudReadings
       data={{
-        轨道: { value: data.orbitType, color: "#86efac" },
+        轨道: { value: data.orbitType, color: "#34d399" },
         "rs": { value: data.rs, unit: "", color: "#fb923c", decimals: 2 },
-        "r/rs": { value: data.rOverRs, unit: "", color: "#7dd3fc", decimals: 2 },
+        "r/rs": { value: data.rOverRs, unit: "", color: "#38bdf8", decimals: 2 },
         红移z: { value: data.redshift, unit: "", color: "#fca5a5", decimals: 3 },
         偏折角: {
           value: (data.deflectionAngle * 180) / Math.PI,
           unit: "°",
-          color: "#dfe2f1",
+          color: "#c084fc",
           decimals: 2,
         },
-        进动: {
-          value: (data.precessionRate * 180) / Math.PI,
-          unit: "°/圈",
-          color: "#c4b5fd",
-          decimals: 4,
-        },
-        ISCO: { value: data.isco, unit: "", color: "#93c5fd", decimals: 1 },
-        光子球: { value: data.photonSphere, unit: "", color: "#d6d3d1", decimals: 1 },
-        粒子数: { value: data.activeParticles, unit: "", color: "#7dd3fc", decimals: 0 },
+        ISCO: { value: data.isco, unit: "", color: "#67e8f9", decimals: 1 },
       }}
     />
   ) : null;
@@ -334,6 +358,7 @@ export default function GeneralRelativityPage() {
         title="广义相对论 · 史瓦西黑洞"
         description="观察时空弯曲、测地线轨道、引力透镜与引力红移。拖动旋转视角，滚轮缩放。"
         experimentRoute="general-relativity"
+        consoleSubtitle="调节黑洞质量与粒子轨道参数"
         controls={parameterControls}
         dataPanel={hud}
         demoAdapter={demoAdapter}
@@ -355,11 +380,6 @@ export default function GeneralRelativityPage() {
           particleTangentialVelocity={particleTangentialVelocity}
           particleRadialVelocity={particleRadialVelocity}
           photonImpactParam={photonImpactParam}
-          showSpacetimeGrid={showSpacetimeGrid}
-          showAccretionDisk={showAccretionDisk}
-          showStarfield={showStarfield}
-          showPhotonPaths={showPhotonPaths}
-          showParticleTrails={showParticleTrails}
           launchParticleTrigger={launchParticleTrigger}
           launchPhotonTrigger={launchPhotonTrigger}
           isPlaying={isPlaying}

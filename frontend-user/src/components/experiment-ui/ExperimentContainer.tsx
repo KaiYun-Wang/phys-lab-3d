@@ -402,8 +402,8 @@ export function ExperimentContainer({
                   type="button"
                   className="exp-icon-btn"
                   onClick={simulationBar?.onReset}
-                  data-tooltip="一键恢复标准工况"
-                  aria-label="一键恢复标准工况"
+                  data-tooltip="参数重置"
+                  aria-label="参数重置"
                 >
                   <i className="fa-solid fa-arrows-rotate" aria-hidden />
                 </button>
@@ -730,7 +730,7 @@ export function ExperimentContainer({
           )}
           {rightPanel === "comments" && experimentId == null && (
             <div className="exp-panel-scroll">
-              <p className="text-sm text-[#8d90a0]">评论暂不可用</p>
+              <p className="text-sm text-[#6b7280]">评论暂不可用</p>
             </div>
           )}
         </div>

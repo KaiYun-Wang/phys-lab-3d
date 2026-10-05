@@ -195,7 +195,7 @@ export function SimulationController({
           {/* Time Elapsed */}
           {timeElapsed !== undefined && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[10px] sm:text-xs text-[#8d90a0] hidden sm:inline">{timeLabel}</span>
+              <span className="text-[10px] sm:text-xs text-[#6b7280] hidden sm:inline">{timeLabel}</span>
               <span className="text-xs sm:text-sm font-mono text-white min-w-16 text-center">
                 {formatTime(timeElapsed)}
               </span>
@@ -206,7 +206,7 @@ export function SimulationController({
           {timeElapsed !== undefined && <div className="w-px h-6 bg-[#232838] flex-shrink-0" />}
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-            <span className="text-[10px] sm:text-xs text-[#8d90a0] hidden sm:inline">{speedLabel}</span>
+            <span className="text-[10px] sm:text-xs text-[#6b7280] hidden sm:inline">{speedLabel}</span>
             <input
               type="range"
               min="0.1"

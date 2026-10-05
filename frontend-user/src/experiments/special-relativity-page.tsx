@@ -83,9 +83,19 @@ export default function SpecialRelativityPage() {
 
   const velocityPercent = velocity * 100;
 
+  const statusLine = data
+    ? velocityPercent < 0.05
+      ? "飞船静止：γ = 1，时间、长度与质量均回到经典值。"
+      : `v = ${velocityPercent.toFixed(1)}% c：γ = ${data.gamma.toFixed(3)}，运动方向长度收缩至 ${data.lengthPercent.toFixed(1)}%，1 kg 静质量等效 ${data.relativisticMass.toFixed(2)} kg。`
+    : null;
+
   const parameterControls = (
     <div className="space-y-4">
-      <ControlGroup title="相对论参数">
+      <ControlGroup
+        title="相对论参数"
+        icon="fa-solid fa-rocket"
+        status="实时计算就绪"
+      >
         <ControlSlider
           label="飞船速度 v"
           value={velocity * 100}
@@ -93,67 +103,54 @@ export default function SpecialRelativityPage() {
           min={0}
           max={99.5}
           step={0.1}
-          color="#22d3ee"
+          color="#38bdf8"
           onChange={(v) => {
             notifyUserEdit();
             setVelocity(v / 100);
           }}
           decimals={1}
           demoId="velocity"
+          presets={[
+            { label: "静止", value: 0 },
+            { label: "0.5c", value: 50 },
+            { label: "0.9c", value: 90 },
+            { label: "0.95c", value: 95 },
+            { label: "0.99c", value: 99 },
+            { label: "0.995c", value: 99.5 },
+          ]}
         />
       </ControlGroup>
 
-      <ControlGroup title="快速预设">
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: "静止", v: 0 },
-            { label: "0.5c", v: 0.5 },
-            { label: "0.9c", v: 0.9 },
-            { label: "0.95c", v: 0.95 },
-            { label: "0.99c", v: 0.99 },
-            { label: "0.995c", v: 0.995 },
-          ].map((preset) => (
-            <button
-              key={preset.label}
-              onClick={() => {
-                notifyUserEdit();
-                setVelocity(preset.v);
-              }}
-              className={`px-2 py-1.5 text-xs rounded-md border transition-all ${
-                Math.abs(velocity - preset.v) < 0.005
-                  ? "bg-cyan-600/30 border-cyan-500 text-cyan-700"
-                  : "bg-gray-200/50 border-gray-300 text-gray-600 hover:border-gray-400"
-              }`}
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-      </ControlGroup>
-
-      <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
-          <p>
-            <strong className="text-[#dfe2f1]">时间膨胀</strong>
-            <span className="font-mono text-[#a855f7]"> Δt′ = γ Δt₀</span>
-            {data ? ` · ${data.gamma.toFixed(2)}× 变慢` : ""}
-            <br />
-            飞船上 1 秒 ≈ 地球上 γ 秒
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">长度收缩</strong>
-            <span className="font-mono text-[#06d6a0]"> L′ = L₀ / γ</span>
-            {data ? ` · ${data.lengthPercent.toFixed(1)}% 原长` : ""}
-            <br />
-            运动方向长度按 1/γ 收缩
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">相对论质量</strong>
-            <span className="font-mono text-[#f59e0b]"> m = γ m₀</span>
-            {data ? ` · ${data.relativisticMass.toFixed(2)}× 增重` : ""}
-            <br />
-            速度趋近光速，质量趋于无穷
-          </p>
+      <ControlGroup
+        title="原理说明"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="exp-theory">
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">时间膨胀：</span>
+            <span className="exp-theory__eq">
+              Δt′ = γΔt₀ → 飞船上 1 s ≈ 地面 {data ? data.gamma.toFixed(2) : "—"} s
+            </span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">长度收缩：</span>
+            <span className="exp-theory__eq">
+              L′ = L₀ / γ → 运动方向剩 {data ? data.lengthPercent.toFixed(1) : "—"}% 原长
+            </span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">相对论质量：</span>
+            <span className="exp-theory__eq exp-theory__eq--amber">
+              m = γm₀ → 增至 {data ? data.relativisticMass.toFixed(2) : "—"}× 静质量
+            </span>
+          </div>
+          <div className="exp-theory__dp">
+            <span>γ = 1 / √(1 − v²/c²)</span>
+            <strong>{data ? data.gamma.toFixed(3) : "—"}</strong>
+          </div>
+          {statusLine ? <p className="exp-theory__note">{statusLine}</p> : null}
         </div>
       </ControlGroup>
 
@@ -164,9 +161,9 @@ export default function SpecialRelativityPage() {
   const hud = data ? (
     <HudReadings
       data={{
-        velocity: { value: velocityPercent, unit: "% c", color: "#67e8f9", decimals: 1 },
-        gamma: { value: data.gamma, unit: "", color: "#c4b5fd", decimals: 3 },
-        length: { value: data.lengthPercent, unit: "%", color: "#6ee7b7", decimals: 1 },
+        velocity: { value: velocityPercent, unit: "% c", color: "#38bdf8", decimals: 1 },
+        gamma: { value: data.gamma, unit: "", color: "#c084fc", decimals: 3 },
+        length: { value: data.lengthPercent, unit: "%", color: "#34d399", decimals: 1 },
         mass: { value: data.relativisticMass, unit: "×", color: "#fbbf24", decimals: 2 },
       }}
     />
@@ -180,6 +177,7 @@ export default function SpecialRelativityPage() {
         experimentRoute="special-relativity"
         cameraPosition={[18, 8, 18]}
         backgroundColor="#000000"
+        consoleSubtitle="调节飞船速度，观察相对论效应"
         controls={parameterControls}
         dataPanel={hud}
         demoAdapter={demoAdapter}

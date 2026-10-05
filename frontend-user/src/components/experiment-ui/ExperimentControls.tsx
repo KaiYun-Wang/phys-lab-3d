@@ -56,7 +56,7 @@ export interface ControlItemProps {
 /**
  * Individual control display item
  */
-export function ControlItem({ label, value, unit, color = "#a855f7" }: ControlItemProps) {
+export function ControlItem({ label, value, unit, color = "#38bdf8" }: ControlItemProps) {
   const displayValue = typeof value === "number" ? value.toFixed(2) : value;
 
   return (
@@ -64,7 +64,7 @@ export function ControlItem({ label, value, unit, color = "#a855f7" }: ControlIt
       <span className="text-sm">{label}</span>
       <span className="text-sm font-mono font-bold" style={{ color }}>
         {displayValue}
-        {unit && <span className="text-xs text-[#8d90a0] ml-1">{unit}</span>}
+        {unit && <span className="text-xs text-[#6b7280] ml-1">{unit}</span>}
       </span>
     </div>
   );
@@ -108,7 +108,7 @@ export function ControlSlider({
   min,
   max,
   step,
-  color = "#a855f7",
+  color = "#38bdf8",
   onChange,
   decimals = 2,
   disabled = false,
@@ -262,12 +262,12 @@ export function DataGrid({ data, columns = 1 }: DataGridProps) {
     <div className={`grid ${colClasses[columns] || "grid-cols-1"} gap-2`}>
       {Object.entries(data).map(([key, item]) => (
         <div key={key} className="sx-data-cell">
-          <span className="text-xs text-[#dfe2f1]/80 capitalize">
+          <span className="text-xs text-[#d1d5db]/80 capitalize">
             {key.replace(/([A-Z])/g, " $1").trim()}
           </span>
           <span
             className="text-xs font-mono font-medium"
-            style={{ color: item.color || "#dfe2f1" }}
+            style={{ color: item.color || "#d1d5db" }}
           >
             {item.value.toFixed(item.decimals ?? 2)} {item.unit}
           </span>
@@ -395,7 +395,7 @@ export function ControlDropdown<T extends string = string>({
   value,
   options,
   onChange,
-  color = "#a855f7",
+  color = "#38bdf8",
   disabled = false
 }: ControlDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
@@ -404,7 +404,7 @@ export function ControlDropdown<T extends string = string>({
   return (
     <div className={`space-y-1 ${disabled ? "opacity-50" : ""}`}>
       <div className="flex justify-between text-xs">
-        <span className="text-[#dfe2f1]/90">{label}</span>
+        <span className="text-[#d1d5db]/90">{label}</span>
       </div>
       <div className="relative">
         <button
@@ -419,7 +419,7 @@ export function ControlDropdown<T extends string = string>({
               {selectedOption?.label || value}
             </span>
           </span>
-          <span className="text-[#8d90a0]">{isOpen ? "▲" : "▼"}</span>
+          <span className="text-[#6b7280]">{isOpen ? "▲" : "▼"}</span>
         </button>
 
         {isOpen && (
@@ -547,7 +547,7 @@ export function ControlCheckbox({
   label,
   checked,
   onChange,
-  color = "#a855f7",
+  color = "#38bdf8",
   disabled = false
 }: ControlCheckboxProps) {
   return (
@@ -617,7 +617,7 @@ export function ControlPresetButtons({
   return (
     <div className="mt-2 space-y-2" data-demo-id={demoId || undefined}>
       <div className="flex justify-between text-sm">
-        <span className="text-[#dfe2f1]/90">{label}</span>
+        <span className="text-[#d1d5db]/90">{label}</span>
         <span className="font-mono text-white">
           {displayValue ? displayValue(value) : String(value)}
         </span>
@@ -631,7 +631,7 @@ export function ControlPresetButtons({
               px-2 py-1 text-xs rounded-md border transition-all
               ${isActive(preset.value)
                 ? "bg-white/15 border-white text-white"
-                : "bg-black/25 border-[#232838] text-[#8d90a0] hover:border-[#3a4256] hover:text-white"
+                : "bg-black/25 border-[#232838] text-[#6b7280] hover:border-[#3a4256] hover:text-white"
               }
             `}
           >
@@ -665,7 +665,7 @@ export function ControlProgressBar({
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
-        <span className="text-[#dfe2f1]/90">{label}</span>
+        <span className="text-[#d1d5db]/90">{label}</span>
         {showPercentage && (
           <span className="font-mono text-xs" style={{ color }}>
             {percentage}%

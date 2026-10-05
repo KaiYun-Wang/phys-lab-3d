@@ -4121,13 +4121,15 @@
   outline-offset: 4px;
 }
 
-/* 流体介质切换：深色凹槽内两枚选项卡（对齐原型） */
-.venturi-fluid-switch {
+/* 选项选项卡（介质/模式/场景）：凹槽内并排按钮，选中 = 深底 + sky 边 */
+.venturi-fluid-switch,
+.exp-option-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-.venturi-fluid-option {
+.venturi-fluid-option,
+.exp-option {
   position: relative;
   display: flex;
   align-items: center;
@@ -4145,42 +4147,143 @@
   transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 .venturi-fluid-option:hover,
-.venturi-fluid-option:focus-visible {
+.venturi-fluid-option:focus-visible,
+.exp-option:hover,
+.exp-option:focus-visible {
   color: #e5e7eb;
   background: #131b2b;
   outline: none;
 }
-.venturi-fluid-option.is-on {
+.venturi-fluid-option.is-on,
+.exp-option.is-on {
   border-color: rgba(56, 189, 248, 0.4);
   background: #16233a;
   color: #38bdf8;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-.venturi-fluid-option:active {
+.venturi-fluid-option:active,
+.exp-option:active {
   transform: scale(0.98);
 }
 .venturi-fluid-option > .material-symbols-outlined,
-.venturi-fluid-option > i {
+.venturi-fluid-option > i,
+.exp-option > .material-symbols-outlined,
+.exp-option > i {
   font-size: 12px;
 }
 .venturi-fluid-check {
   display: none;
 }
 
+/* 凹槽行开关（显示类布尔项）：左标签 + 右胶囊 toggle */
+.exp-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.exp-switch-row__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #d1d5db;
+}
+.exp-switch-row__label > i {
+  font-size: 12px;
+}
+.exp-switch-row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.exp-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #27354f;
+  background: #131b2b;
+  transition: background 150ms, border-color 150ms;
+}
+.exp-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #6b7280;
+  transition: transform 150ms, background 150ms, box-shadow 150ms;
+}
+.exp-switch-row input:checked + .exp-switch {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(8, 47, 73, 0.6);
+}
+.exp-switch-row input:checked + .exp-switch::after {
+  transform: translateX(16px);
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+}
+.exp-switch-row input:focus-visible + .exp-switch {
+  outline: 2px solid var(--kh-secondary-soft);
+  outline-offset: 2px;
+}
+
+/* 全宽操作按钮（发射粒子 / 发射光子等一次性动作） */
+.exp-action-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid #27354f;
+  background: #131b2b;
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms, color 150ms;
+}
+.exp-action-btn:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: #16233a;
+  color: #38bdf8;
+}
+.exp-action-btn:active {
+  transform: scale(0.99);
+}
+.exp-action-btn > i {
+  font-size: 12px;
+}
+
 /* 物理规律联动：公式块（对齐原型暗色公式卡） */
-.venturi-theory {
+.venturi-theory,
+.exp-theory {
   display: flex;
   flex-direction: column;
   gap: 8px;
   font-size: 12px;
   line-height: 1.55;
 }
-.venturi-theory__label {
+.venturi-theory__label,
+.exp-theory__label {
   display: block;
   color: #9ca3af;
   font-size: 11px;
 }
-.venturi-theory__eq {
+.venturi-theory__eq,
+.exp-theory__eq {
   display: block;
   margin-top: 2px;
   font-family: var(--font-mono);
@@ -4188,11 +4291,13 @@
   color: #7dd3fc;
   letter-spacing: 0.02em;
 }
-.venturi-theory__eq--amber {
+.venturi-theory__eq--amber,
+.exp-theory__eq--amber {
   color: #fcd34d;
   font-size: 11px;
 }
-.venturi-theory__dp {
+.venturi-theory__dp,
+.exp-theory__dp {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4205,13 +4310,15 @@
   font-size: 12px;
   color: #f9a8d4;
 }
-.venturi-theory__dp strong {
+.venturi-theory__dp strong,
+.exp-theory__dp strong {
   color: #f472b6;
   font-size: 13px;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
-.venturi-theory__note {
+.venturi-theory__note,
+.exp-theory__note {
   margin: 0;
   font-size: 11px;
   color: #9ca3af;

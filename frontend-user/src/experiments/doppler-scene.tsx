@@ -9,11 +9,8 @@ interface DopplerSceneProps {
   onDataChange?: (data: DopplerData) => void;
   sourceFrequency?: number;
   sourceVelocity?: number;
-  sourceDirection?: number; // -1 (left) to 1 (right), 0 = stopped
-  autoOscillate?: boolean;
   observerPosition?: number; // x position
   waveSpeed?: number;
-  showWavefronts?: boolean;
   resetTrigger?: number;
 }
 
@@ -38,11 +35,8 @@ export function DopplerSceneComponent({
   onDataChange,
   sourceFrequency = 2,
   sourceVelocity = 5,
-  sourceDirection = 0,
-  autoOscillate = true,
   observerPosition = 15,
   waveSpeed = 10,
-  showWavefronts = true,
   resetTrigger,
 }: DopplerSceneProps) {
   // === REFS FOR ALL PHYSICS STATE ===
@@ -80,22 +74,11 @@ export function DopplerSceneComponent({
     frameCountRef.current++;
 
     // === UPDATE SOURCE PHYSICS ===
-    if (autoOscillate) {
-      // Auto-oscillate: source moves back and forth sinusoidally
-      const oscillationSpeed = 0.5;
-      const amplitude = 10;
-      sourceXRef.current = Math.sin(timeRef.current * oscillationSpeed) * amplitude;
-      sourceVelRef.current = Math.cos(timeRef.current * oscillationSpeed) * amplitude * oscillationSpeed;
-    } else {
-      // Manual control: source moves based on direction input
-      const maxPos = 18;
-      sourceVelRef.current = sourceDirection * sourceVelocity;
-      sourceXRef.current += sourceVelRef.current * delta;
-
-      // Clamp to bounds
-      if (sourceXRef.current > maxPos) sourceXRef.current = maxPos;
-      if (sourceXRef.current < -maxPos) sourceXRef.current = -maxPos;
-    }
+    // 固定自动模式：声源沿中轴往复振荡
+    const oscillationSpeed = 0.5;
+    const amplitude = 10;
+    sourceXRef.current = Math.sin(timeRef.current * oscillationSpeed) * amplitude;
+    sourceVelRef.current = Math.cos(timeRef.current * oscillationSpeed) * amplitude * oscillationSpeed;
 
     // === EMIT NEW WAVES ===
     const waveInterval = 1 / sourceFrequency;
@@ -260,34 +243,32 @@ export function DopplerSceneComponent({
       </group>
 
       {/* Wavefronts - circular waves emanating from emission points */}
-      {showWavefronts && (
-        <group>
-          {wavesRef.current.map((wave, i) => {
-            const age = timeRef.current - wave.emissionTime;
-            const radius = age * waveSpeed;
-            const maxRadius = 35;
+      <group>
+        {wavesRef.current.map((wave, i) => {
+          const age = timeRef.current - wave.emissionTime;
+          const radius = age * waveSpeed;
+          const maxRadius = 35;
 
-            if (radius > maxRadius || radius < 0.1) return null;
+          if (radius > maxRadius || radius < 0.1) return null;
 
-            const opacity = Math.max(0, 0.7 - (age / 6));
-            const waveColor = getWaveColor(wave.emissionX);
+          const opacity = Math.max(0, 0.7 - (age / 6));
+          const waveColor = getWaveColor(wave.emissionX);
 
-            return (
-              <group key={i} position={[wave.emissionX, 0, 0]}>
-                <mesh rotation={[Math.PI / 2, 0, 0]}>
-                  <ringGeometry args={[radius - 0.1, radius + 0.1, 64]} />
-                  <meshBasicMaterial
-                    color={waveColor}
-                    transparent
-                    opacity={opacity}
-                    side={THREE.DoubleSide}
-                  />
-                </mesh>
-              </group>
-            );
-          })}
-        </group>
-      )}
+          return (
+            <group key={i} position={[wave.emissionX, 0, 0]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[radius - 0.1, radius + 0.1, 64]} />
+                <meshBasicMaterial
+                  color={waveColor}
+                  transparent
+                  opacity={opacity}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
 
       {/* Center reference line */}
       <Line

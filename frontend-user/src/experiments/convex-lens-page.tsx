@@ -9,8 +9,6 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  ControlCheckbox,
-  ControlPresetButtons,
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
@@ -110,10 +108,10 @@ export default function ConvexLensPage() {
 
   const scenePresets = useMemo(
     () => [
-      { label: "照相机", value: presetU(3), emoji: "📷" },
-      { label: "等大", value: presetU(2), emoji: "⚖️" },
-      { label: "投影仪", value: presetU(1.5), emoji: "📽️" },
-      { label: "放大镜", value: presetU(0.7), emoji: "🔍" },
+      { label: "照相机", value: presetU(3), icon: "fa-solid fa-camera", iconColor: "#38bdf8" },
+      { label: "等大", value: presetU(2), icon: "fa-solid fa-scale-balanced", iconColor: "#34d399" },
+      { label: "投影仪", value: presetU(1.5), icon: "fa-solid fa-film", iconColor: "#c084fc" },
+      { label: "放大镜", value: presetU(0.7), icon: "fa-solid fa-magnifying-glass", iconColor: "#fbbf24" },
     ],
     [presetU],
   );
@@ -133,7 +131,11 @@ export default function ConvexLensPage() {
 
   const parameterControls = (
     <div className="space-y-4">
-      <ControlGroup title="光学参数">
+      <ControlGroup
+        title="光学参数"
+        icon="fa-solid fa-glasses"
+        status="实时计算就绪"
+      >
         <ControlSlider
           label="焦距 f"
           value={fCm}
@@ -141,7 +143,7 @@ export default function ConvexLensPage() {
           min={6}
           max={16}
           step={0.1}
-          color="#22d3ee"
+          color="#38bdf8"
           onChange={(v) => {
             notifyUserEdit();
             setFCm(v);
@@ -166,51 +168,80 @@ export default function ConvexLensPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="成像场景">
-        <ControlPresetButtons
-          label="快速切换"
-          value={uCm}
-          presets={scenePresets}
-          onChange={(value) => {
-            notifyUserEdit();
-            setUCm(Number(value));
-          }}
-          displayValue={() => ""}
-          demoId="scenePreset"
-        />
+      <ControlGroup
+        title="成像场景"
+        icon="fa-solid fa-camera"
+        tone="amber"
+        status={data ? zoneLabel(data.uCm, data.fCm) : "快速切换"}
+        statusTone={data ? "sky" : "muted"}
+      >
+        <div className="exp-option-switch" role="group" aria-label="成像场景" data-demo-id="scenePreset">
+          {scenePresets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className={`exp-option${Math.abs(uCm - p.value) < 0.05 ? " is-on" : ""}`}
+              onClick={() => {
+                notifyUserEdit();
+                setUCm(Number(p.value));
+              }}
+              aria-pressed={Math.abs(uCm - p.value) < 0.05}
+            >
+              <i className={p.icon} style={{ color: p.iconColor }} aria-hidden />
+              <span>{p.label}</span>
+            </button>
+          ))}
+        </div>
       </ControlGroup>
 
-      <ControlGroup title="显示选项">
-        <ControlCheckbox
-          label="显示光路"
-          checked={showRays}
-          color="#4ade80"
-          onChange={(checked) => {
-            notifyUserEdit();
-            setShowRays(checked);
-          }}
-        />
+      <ControlGroup
+        title="显示选项"
+        icon="fa-solid fa-eye"
+        tone="emerald"
+        status={showRays ? "光路已显示" : "光路已隐藏"}
+        statusTone={showRays ? "emerald" : "muted"}
+      >
+        <label className="exp-switch-row">
+          <span className="exp-switch-row__label">
+            <i className="fa-solid fa-bezier-curve" style={{ color: "#34d399" }} aria-hidden />
+            显示光路
+          </span>
+          <input
+            type="checkbox"
+            checked={showRays}
+            onChange={(e) => {
+              notifyUserEdit();
+              setShowRays(e.target.checked);
+            }}
+          />
+          <span className="exp-switch" aria-hidden />
+        </label>
       </ControlGroup>
 
-      <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
-          <p>
-            <strong className="text-[#dfe2f1]">薄透镜成像公式：</strong>
-            1/f = 1/u + 1/v
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">像距：</strong>
-            v = uf/(u − f)，虚像时 v 为负，像与物同侧
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">放大率：</strong>
-            m = |v|/u = |h′|/h
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">规律：</strong>
-            一倍焦距分虚实，二倍焦距分大小；物近像远像变大。
-          </p>
-          {statusLine ? <p className="text-[#c4c4ce]">{statusLine}</p> : null}
+      <ControlGroup
+        title="原理说明"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="exp-theory">
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">薄透镜成像公式：</span>
+            <span className="exp-theory__eq">1/f = 1/u + 1/v</span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">像距与放大率：</span>
+            <span className="exp-theory__eq">v = uf/(u − f) · m = |v|/u，虚像时 v 为负</span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">规律：</span>
+            <span className="exp-theory__eq exp-theory__eq--amber">一倍焦距分虚实，二倍焦距分大小；物近像远像变大</span>
+          </div>
+          <div className="exp-theory__dp">
+            <span>m = |v| / u</span>
+            <strong>{data && data.kind !== "none" ? `${data.magnification.toFixed(2)} ×` : "—"}</strong>
+          </div>
+          {statusLine ? <p className="exp-theory__note">{statusLine}</p> : null}
         </div>
       </ControlGroup>
 
@@ -226,20 +257,20 @@ export default function ConvexLensPage() {
             data.kind === "none"
               ? "不成像"
               : `${data.orientation}·${data.sizeRelation}·${data.kind === "real" ? "实像" : "虚像"}`,
-          color: data.kind === "real" ? "#7dd3fc" : "#c4b5fd",
+          color: data.kind === "real" ? "#34d399" : "#c084fc",
         },
         物距: { value: data.uCm, unit: "cm", color: "#fbbf24", decimals: 1 },
-        焦距: { value: data.fCm, unit: "cm", color: "#22d3ee", decimals: 1 },
+        焦距: { value: data.fCm, unit: "cm", color: "#38bdf8", decimals: 1 },
         像距: {
           value: data.kind === "none" ? "∞" : data.vCm,
           unit: "cm",
-          color: "#7dd3fc",
+          color: "#67e8f9",
           decimals: 1,
         },
         放大率: {
           value: data.kind === "none" ? "—" : data.magnification,
           unit: "×",
-          color: "#c4b5fd",
+          color: "#c084fc",
           decimals: 2,
         },
       }}
@@ -253,6 +284,7 @@ export default function ConvexLensPage() {
       experimentRoute="convex-lens"
       cameraPosition={[10, 9, 15]}
       backgroundColor="#000000"
+      consoleSubtitle="调节物距与焦距，观察成像规律"
       controls={parameterControls}
       dataPanel={hud}
       demoAdapter={demoAdapter}

@@ -190,14 +190,14 @@ export function DataPanel({
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-[#8d90a0] hover:text-white text-sm p-1 transition-colors"
+              className="text-[#6b7280] hover:text-white text-sm p-1 transition-colors"
               aria-label={isCollapsed ? "Expand" : "Collapse"}
             >
               {isCollapsed ? "▼" : "▲"}
             </button>
             <button
               onClick={handleToggle}
-              className="text-[#8d90a0] hover:text-white text-sm p-1 transition-colors"
+              className="text-[#6b7280] hover:text-white text-sm p-1 transition-colors"
               aria-label="Hide"
             >
               ✕
@@ -206,7 +206,7 @@ export function DataPanel({
         </div>
 
         {!isCollapsed && (
-          <div className="sx-overlay-body-scroll max-h-[50vh] sm:max-h-[calc(100vh-150px)] text-[#dfe2f1]/90">
+          <div className="sx-overlay-body-scroll max-h-[50vh] sm:max-h-[calc(100vh-150px)] text-[#d1d5db]/90">
             {children}
           </div>
         )}

@@ -43,7 +43,7 @@ export default function WaveMechanicsDetailsPage() {
                 <th className="py-2.5 px-4 text-white">纵波</th>
               </tr>
             </thead>
-            <tbody className="text-[#dfe2f1]/85">
+            <tbody className="text-[#d1d5db]/85">
               <tr className="border-b border-[#232838]/60">
                 <td className="py-2.5 px-4">振动方向</td>
                 <td className="py-2.5 px-4">⊥ 传播方向</td>

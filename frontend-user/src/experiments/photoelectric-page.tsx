@@ -14,7 +14,6 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  ControlPresetButtons,
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
@@ -28,7 +27,8 @@ const DEFAULT_MATERIAL = "na";
 interface Scenario {
   key: string;
   label: string;
-  emoji: string;
+  icon: string;
+  iconColor: string;
   wavelengthNm: number;
   intensityPct: number;
   voltageV: number;
@@ -36,11 +36,22 @@ interface Scenario {
 
 /** 典型场景：波长覆盖截止/激发，电压覆盖拦截/饱和 */
 const SCENARIOS: Scenario[] = [
-  { key: "red", label: "红光截止", emoji: "🔴", wavelengthNm: 660, intensityPct: 60, voltageV: 0 },
-  { key: "uv", label: "紫外激发", emoji: "🟣", wavelengthNm: 255, intensityPct: 80, voltageV: 0 },
-  { key: "reverse", label: "反向拦截", emoji: "🛑", wavelengthNm: 255, intensityPct: 80, voltageV: -3 },
-  { key: "saturation", label: "饱和电流", emoji: "⚡", wavelengthNm: 255, intensityPct: 100, voltageV: 2 },
+  { key: "red", label: "红光截止", icon: "fa-solid fa-lightbulb", iconColor: "#f87171", wavelengthNm: 660, intensityPct: 60, voltageV: 0 },
+  { key: "uv", label: "紫外激发", icon: "fa-solid fa-bolt", iconColor: "#c084fc", wavelengthNm: 255, intensityPct: 80, voltageV: 0 },
+  { key: "reverse", label: "反向拦截", icon: "fa-solid fa-arrow-rotate-left", iconColor: "#fbbf24", wavelengthNm: 255, intensityPct: 80, voltageV: -3 },
+  { key: "saturation", label: "饱和电流", icon: "fa-solid fa-gauge-high", iconColor: "#34d399", wavelengthNm: 255, intensityPct: 100, voltageV: 2 },
 ];
+
+/** 材料选项卡图标色：按逸出功由低到高（绿→黄→蓝→紫，易逸出→难逸出） */
+const MATERIAL_ICON_COLORS: Record<string, string> = {
+  cs: "#34d399",
+  k: "#4ade80",
+  na: "#a3e635",
+  ca: "#fbbf24",
+  zn: "#38bdf8",
+  cu: "#fb923c",
+  pt: "#c084fc",
+};
 
 function clampNum(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
@@ -175,9 +186,8 @@ export default function PhotoelectricPage() {
     setVoltageV(s.voltageV);
   };
 
-  const material = peMaterialById(materialId);
   const waveHex = waveColorHex(wavelengthNm);
-  const voltageColor = voltageV >= 0 ? "#53c3ff" : "#ff6b8a";
+  const voltageColor = voltageV >= 0 ? "#38bdf8" : "#f472b6";
 
   const statusLine = useMemo(() => {
     if (!data) return null;
@@ -189,7 +199,12 @@ export default function PhotoelectricPage() {
 
   const parameterControls = (
     <div className="space-y-4">
-      <ControlGroup title="光源参数">
+      <ControlGroup
+        title="光源参数"
+        icon="fa-solid fa-lightbulb"
+        status={`λ = ${wavelengthNm} nm`}
+        statusTone="sky"
+      >
         <ControlSlider
           label="波长 λ"
           value={wavelengthNm}
@@ -223,21 +238,40 @@ export default function PhotoelectricPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="光电材料（阴极 K）">
-        <ControlPresetButtons
-          label="材料"
-          value={materialId}
-          presets={PHOTO_MATERIALS.map((m) => ({ label: m.name, value: m.id }))}
-          onChange={(value) => {
-            notifyUserEdit();
-            setMaterialId(String(value));
-          }}
-          displayValue={(v) => `φ = ${peMaterialById(String(v)).phi.toFixed(2)} eV`}
-          demoId="material"
-        />
+      <ControlGroup
+        title="光电材料（阴极 K）"
+        icon="fa-solid fa-atom"
+        tone="emerald"
+        status={`φ = ${peMaterialById(materialId).phi.toFixed(2)} eV`}
+        statusTone="emerald"
+      >
+        <div className="exp-option-switch" role="group" aria-label="光电材料" data-demo-id="material">
+          {PHOTO_MATERIALS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className={`exp-option${materialId === m.id ? " is-on" : ""}`}
+              onClick={() => {
+                notifyUserEdit();
+                setMaterialId(m.id);
+              }}
+              aria-pressed={materialId === m.id}
+              data-tooltip={`${m.name}，逸出功 φ = ${m.phi.toFixed(1)} eV`}
+            >
+              <i className="fa-solid fa-atom" style={{ color: MATERIAL_ICON_COLORS[m.id] }} aria-hidden />
+              <span>{m.name}</span>
+            </button>
+          ))}
+        </div>
       </ControlGroup>
 
-      <ControlGroup title="极间电压">
+      <ControlGroup
+        title="极间电压"
+        icon="fa-solid fa-bolt"
+        tone="amber"
+        status={activeScenario ? SCENARIOS.find((s) => s.key === activeScenario)?.label : "自由调节"}
+        statusTone={activeScenario ? "emerald" : "muted"}
+      >
         <ControlSlider
           label="电压 U"
           value={voltageV}
@@ -253,39 +287,54 @@ export default function PhotoelectricPage() {
           decimals={1}
           demoId="voltageV"
         />
-        <ControlPresetButtons
-          label="典型场景"
-          value={activeScenario}
-          presets={SCENARIOS.map((s) => ({ label: s.label, value: s.key, emoji: s.emoji }))}
-          onChange={applyScenario}
-          displayValue={() => ""}
-          demoId="scenePreset"
-        />
+        <div className="exp-option-switch" role="group" aria-label="典型场景" data-demo-id="scenePreset">
+          {SCENARIOS.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              className={`exp-option${activeScenario === s.key ? " is-on" : ""}`}
+              onClick={() => applyScenario(s.key)}
+              aria-pressed={activeScenario === s.key}
+            >
+              <i className={s.icon} style={{ color: s.iconColor }} aria-hidden />
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
       </ControlGroup>
 
-      <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
-          <p>
-            <strong className="text-[#dfe2f1]">光子能量：</strong>
-            E = hν = 1239.84 / λ（eV·nm）
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">光电方程：</strong>
-            Kmax = E − φ，只有 E &gt; φ 才能逸出光电子
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">截止电压：</strong>
-            eUc = Kmax，反向电压达到 Uc 时光电流为零
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">极限波长：</strong>
-            λ₀ = 1239.84 / φ，λ &gt; λ₀ 时无论光强多大都无逸出
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">饱和电流：</strong>
-            与光强成正比，与电压无关（正向电压下）
-          </p>
-          {statusLine ? <p className="text-[#c4c4ce]">{statusLine}</p> : null}
+      <ControlGroup
+        title="原理说明"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="exp-theory">
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">光子能量：</span>
+            <span className="exp-theory__eq">
+              E = hν = 1239.84 / λ (eV·nm) → {data ? data.photonEnergyEv.toFixed(2) : "—"} eV
+            </span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">光电方程：</span>
+            <span className="exp-theory__eq">Kmax = E − φ，仅当 E &gt; φ 时逸出光电子</span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">极限波长：</span>
+            <span className="exp-theory__eq">
+              λ₀ = 1239.84 / φ → {data ? data.thresholdNm.toFixed(0) : "—"} nm
+            </span>
+          </div>
+          <div className="exp-theory__row">
+            <span className="exp-theory__label">饱和电流：</span>
+            <span className="exp-theory__eq exp-theory__eq--amber">与光强成正比，与（正向）电压无关</span>
+          </div>
+          <div className="exp-theory__dp">
+            <span>eUc = Kmax</span>
+            <strong>{data && data.emitting ? `${data.stopVoltageV.toFixed(2)} V` : "—"}</strong>
+          </div>
+          {statusLine ? <p className="exp-theory__note">{statusLine}</p> : null}
         </div>
       </ControlGroup>
 
@@ -298,24 +347,24 @@ export default function PhotoelectricPage() {
       data={{
         状态: {
           value: data.emitting ? "逸出发生" : "低于阈值·无光电子",
-          color: data.emitting ? "#4ade80" : "#ff8fa6",
+          color: data.emitting ? "#34d399" : "#f472b6",
         },
         "光子能量 E": { value: data.photonEnergyEv, unit: "eV", color: waveHex, decimals: 2 },
         逸出功: { value: data.workFunctionEv, unit: "eV", color: "#f59e0b", decimals: 2 },
         "最大初动能 Kmax": {
           value: data.emitting ? data.maxKineticEv : "0.00",
           unit: "eV",
-          color: "#4ade80",
+          color: "#34d399",
           decimals: 2,
         },
         截止电压: {
           value: data.emitting ? data.stopVoltageV : "—",
           unit: data.emitting ? "V" : undefined,
-          color: "#ff8fa6",
+          color: "#f9a8d4",
           decimals: 2,
         },
-        极限波长: { value: data.thresholdNm, unit: "nm", color: "#22d3ee", decimals: 0 },
-        光电流: { value: data.currentUa, unit: "μA", color: "#53c3ff", decimals: 2 },
+        极限波长: { value: data.thresholdNm, unit: "nm", color: "#67e8f9", decimals: 0 },
+        光电流: { value: data.currentUa, unit: "μA", color: "#38bdf8", decimals: 2 },
       }}
     />
   ) : null;
@@ -329,6 +378,7 @@ export default function PhotoelectricPage() {
       enableFog={false}
       backgroundColor="#030616"
       toneMappingExposure={1.12}
+      consoleSubtitle="调节波长、光强与极间电压"
       controls={parameterControls}
       dataPanel={hud}
       demoAdapter={demoAdapter}

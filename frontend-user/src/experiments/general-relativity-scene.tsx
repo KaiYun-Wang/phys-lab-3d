@@ -40,11 +40,6 @@ interface GeneralRelativitySceneProps {
   particleTangentialVelocity?: number;
   particleRadialVelocity?: number;
   photonImpactParam?: number;
-  showSpacetimeGrid?: boolean;
-  showAccretionDisk?: boolean;
-  showStarfield?: boolean;
-  showPhotonPaths?: boolean;
-  showParticleTrails?: boolean;
   launchParticleTrigger?: number;
   launchPhotonTrigger?: number;
   isPlaying?: boolean;
@@ -141,11 +136,6 @@ export function GeneralRelativitySceneComponent({
   particleTangentialVelocity = 0.4,
   particleRadialVelocity = 0,
   photonImpactParam = 25,
-  showSpacetimeGrid = true,
-  showAccretionDisk = true,
-  showStarfield = true,
-  showPhotonPaths = true,
-  showParticleTrails = true,
   launchParticleTrigger = 0,
   launchPhotonTrigger = 0,
   isPlaying = true,
@@ -338,7 +328,7 @@ export function GeneralRelativitySceneComponent({
     if (diskSpinRef.current) diskSpinRef.current.rotation.y = t * 0.22;
 
     // Starfield — 缓慢自转 + 星点闪烁
-    if (showStarfield && starfieldRef.current) {
+    if (starfieldRef.current) {
       starfieldRef.current.rotation.y = t * 0.012;
       starfieldRef.current.rotation.x = Math.sin(t * 0.04) * 0.02;
       const twinkle = starTwinkleRef.current;
@@ -356,7 +346,7 @@ export function GeneralRelativitySceneComponent({
     }
 
     // Spacetime grid — 向下漏斗形弯曲
-    if (showSpacetimeGrid && gridRef.current) {
+    if (gridRef.current) {
       const pos = gridGeo.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
@@ -369,7 +359,7 @@ export function GeneralRelativitySceneComponent({
     }
 
     // 吸积盘尘埃 — 在 XZ 赤道面内公转，随盘组一起绕 Y 轴转
-    if (showAccretionDisk && dustRef.current) {
+    if (dustRef.current) {
       const spin = diskSpinRef.current?.rotation.y ?? 0;
       for (let i = 0; i < dustCount; i++) {
         const ang = spin + (i / dustCount) * Math.PI * 2;
@@ -515,25 +505,21 @@ export function GeneralRelativitySceneComponent({
       <ambientLight intensity={0.08} color="#0a0a22" />
 
       {/* Starfield — 全天空球壳 */}
-      {showStarfield && (
-        <group ref={starfieldRef}>
-          <points geometry={starGeo} material={starMat} frustumCulled={false} renderOrder={-10} />
-        </group>
-      )}
+      <group ref={starfieldRef}>
+        <points geometry={starGeo} material={starMat} frustumCulled={false} renderOrder={-10} />
+      </group>
 
       {/* Spacetime grid — 向下漏斗形弯曲时空 */}
-      {showSpacetimeGrid && (
-        <mesh ref={gridRef} geometry={gridGeo}>
-          <meshStandardMaterial
-            color="#152040"
-            wireframe
-            emissive="#3344aa"
-            emissiveIntensity={0.35}
-            transparent
-            opacity={0.65}
-          />
-        </mesh>
-      )}
+      <mesh ref={gridRef} geometry={gridGeo}>
+        <meshStandardMaterial
+          color="#152040"
+          wireframe
+          emissive="#3344aa"
+          emissiveIntensity={0.35}
+          transparent
+          opacity={0.65}
+        />
+      </mesh>
 
       {/* 参考环：光子球 & ISCO */}
       <Line points={photonRing} color="#ffaa44" lineWidth={1} opacity={0.3} transparent dashed />
@@ -541,18 +527,16 @@ export function GeneralRelativitySceneComponent({
 
       {/* 吸积盘 + 黑洞：同一赤道高度 */}
       <group position={[0, holeCenterY, 0]}>
-        {showAccretionDisk && (
-          <group ref={diskSpinRef}>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <torusGeometry args={[rs * 4.2, rs * 0.2, 2, 96]} />
-              <primitive object={diskMat} attach="material" />
-            </mesh>
-            <instancedMesh ref={dustRef} args={[undefined, undefined, dustCount]}>
-              <sphereGeometry args={[1, 6, 6]} />
-              <meshBasicMaterial color="#ffaa66" transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
-            </instancedMesh>
-          </group>
-        )}
+        <group ref={diskSpinRef}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[rs * 4.2, rs * 0.2, 2, 96]} />
+            <primitive object={diskMat} attach="material" />
+          </mesh>
+          <instancedMesh ref={dustRef} args={[undefined, undefined, dustCount]}>
+            <sphereGeometry args={[1, 6, 6]} />
+            <meshBasicMaterial color="#ffaa66" transparent opacity={0.35} blending={THREE.AdditiveBlending} depthWrite={false} />
+          </instancedMesh>
+        </group>
 
         <mesh renderOrder={1}>
           <sphereGeometry args={[rs * 0.99, 64, 64]} />
@@ -572,7 +556,7 @@ export function GeneralRelativitySceneComponent({
       <points geometry={pGeo} material={pMat} />
 
       {/* Particle trails — 保留完整轨道，消失后轨迹不删 */}
-      {showParticleTrails && trailRender.map((pts, idx) => (
+      {trailRender.map((pts, idx) => (
         pts.length >= 2 ? (
           <Line key={`trail-${idx}`} points={pts}
             color="#66bbff" lineWidth={2.5} opacity={0.85} transparent />
@@ -580,7 +564,7 @@ export function GeneralRelativitySceneComponent({
       ))}
 
       {/* Photon paths — 逐帧延伸 + 光点 */}
-      {showPhotonPaths && photonRender.map((ph, idx) => (
+      {photonRender.map((ph, idx) => (
         <group key={`photon-${idx}`}>
           {ph.pts.length >= 2 && (
             <>

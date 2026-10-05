@@ -56,7 +56,7 @@ export default function DoubleSlitDetailsPage() {
             ["2012", "单分子实验：观察到单个分子的干涉条纹。"],
           ].map(([year, text]) => (
             <li key={year} className="flex gap-3">
-              <span className="text-[#8d90a0] shrink-0 w-12">{year}</span>
+              <span className="text-[#6b7280] shrink-0 w-12">{year}</span>
               <span>{text}</span>
             </li>
           ))}
@@ -85,7 +85,7 @@ export default function DoubleSlitDetailsPage() {
             "调节缝间距，观察干涉条纹如何变化。",
             "调整缝宽，观察衍射效应。",
             "切换观测模式，对比粒子行为与波动干涉。",
-            "开启理论曲线，查看干涉强度分布。",
+            "调整发射速率，观察干涉条纹如何逐点累积。",
           ].map((item, i) => (
             <li key={item} className="flex gap-3">
               <span className="text-white shrink-0">{i + 1}.</span>

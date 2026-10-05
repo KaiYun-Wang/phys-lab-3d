@@ -172,7 +172,7 @@ export function FloatingControlPanel({
           <h2 className="text-xs font-bold uppercase tracking-wider">{title}</h2>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-[#8d90a0] hover:text-white text-lg p-1 transition-colors"
+            className="text-[#6b7280] hover:text-white text-lg p-1 transition-colors"
             aria-label={isCollapsed ? "Expand" : "Collapse"}
           >
             {isCollapsed ? "▼" : "▲"}
