@@ -234,11 +234,6 @@ export default function AiChatWidget({
   );
   const hideOnLogin = pathname === "/login";
   const experimentId = context.experimentId;
-  /** 遥测快照转为可渲染条目 */
-  const telemetryEntries = useMemo(
-    () => Object.entries(contextOverride?.telemetry ?? {}),
-    [contextOverride?.telemetry],
-  );
   const canRefDemos = isRail && experimentId != null;
   // rail 必须等实验 id 到位，否则会误用首页（null）作用域
   const scopeReady = !isRail || experimentId != null;
@@ -671,33 +666,6 @@ export default function AiChatWidget({
         aria-hidden={!open && !isRail}
         style={isRail ? undefined : { width: panelW, height: panelH }}
       >
-        {/* 实验页：已挂载的实时遥测上下文 */}
-        {isRail && telemetryEntries.length > 0 && (
-          <div className="ai-telemetry">
-            <span className="ai-telemetry__dot" aria-hidden />
-            <span className="ai-telemetry__label">已挂载实时遥测</span>
-            <span className="ai-telemetry__values">
-              {telemetryEntries.map(([k, v]) => (
-                <span key={k} className="ai-telemetry__chip">
-                  {k}=<b>{v}</b>
-                </span>
-              ))}
-            </span>
-            <button
-              type="button"
-              className="ai-telemetry__quote"
-              title="把当前工况写进输入框"
-              onClick={() => {
-                const line = `当前工况：${telemetryEntries
-                  .map(([k, v]) => `${k}=${v}`)
-                  .join("，")}。请结合该工况`;
-                setDraft((d) => (d.trim() ? `${d}\n${line}` : line));
-              }}
-            >
-              引用数据
-            </button>
-          </div>
-        )}
         {!isRail && (
           <>
             <div className="ai-resize ai-resize--w" title="拖动调整宽度" onPointerDown={onResizePointerDown("w")} />

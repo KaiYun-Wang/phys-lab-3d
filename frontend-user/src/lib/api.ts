@@ -280,25 +280,34 @@ export function deleteComment(experimentId: number, commentId: number) {
  * 👍 有帮助 / 💡 启发思路（幂等）。
  *
  * 灰度兼容：后端尚未部署反应接口时（404/405），HELPFUL 回退到旧的点赞接口，
- * 保证前端可以先上线。INSPIRE 无旧接口可退，按失败处理由调用方回滚。
+ * 保证前端可以先上线。探测结果本会话缓存：一旦确认未部署，后续直接走旧接口，
+ * 不再产生多余的 404 探测请求；后端部署后刷新页面即可重新探测。
  */
+let reactionsEndpoint: boolean | null = null;
+
 export async function addCommentReaction(
   experimentId: number,
   commentId: number,
   type: CommentReaction,
 ) {
-  try {
-    await apiFetch<void>(
-      `/api/experiments/${experimentId}/comments/${commentId}/reactions/${type}`,
-      { method: "POST" },
-    );
-  } catch (e) {
-    if (type === "HELPFUL" && isEndpointMissing(e)) {
-      await likeComment(experimentId, commentId);
+  if (reactionsEndpoint !== false) {
+    try {
+      await apiFetch<void>(
+        `/api/experiments/${experimentId}/comments/${commentId}/reactions/${type}`,
+        { method: "POST" },
+      );
+      reactionsEndpoint = true;
       return;
+    } catch (e) {
+      if (!isEndpointMissing(e)) throw e;
+      reactionsEndpoint = false;
     }
-    throw e;
   }
+  if (type === "HELPFUL") {
+    await likeComment(experimentId, commentId);
+    return;
+  }
+  throw new Error("当前后端暂不支持该反应类型");
 }
 
 export async function removeCommentReaction(
@@ -306,18 +315,24 @@ export async function removeCommentReaction(
   commentId: number,
   type: CommentReaction,
 ) {
-  try {
-    await apiFetch<void>(
-      `/api/experiments/${experimentId}/comments/${commentId}/reactions/${type}`,
-      { method: "DELETE" },
-    );
-  } catch (e) {
-    if (type === "HELPFUL" && isEndpointMissing(e)) {
-      await unlikeComment(experimentId, commentId);
+  if (reactionsEndpoint !== false) {
+    try {
+      await apiFetch<void>(
+        `/api/experiments/${experimentId}/comments/${commentId}/reactions/${type}`,
+        { method: "DELETE" },
+      );
+      reactionsEndpoint = true;
       return;
+    } catch (e) {
+      if (!isEndpointMissing(e)) throw e;
+      reactionsEndpoint = false;
     }
-    throw e;
   }
+  if (type === "HELPFUL") {
+    await unlikeComment(experimentId, commentId);
+    return;
+  }
+  throw new Error("当前后端暂不支持该反应类型");
 }
 
 /** 旧后端没有该路由时抛出的错误特征 */

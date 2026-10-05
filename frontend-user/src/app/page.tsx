@@ -224,6 +224,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("subject");
+    if (code) setSubjectFilter(code);
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(
       () => {
         loadExperiments(search || undefined);

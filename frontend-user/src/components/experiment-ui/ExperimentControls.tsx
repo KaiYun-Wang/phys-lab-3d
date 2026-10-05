@@ -5,19 +5,41 @@ import { ReactNode, useRef, useState } from "react";
 export interface ControlGroupProps {
   title: string;
   children: ReactNode;
-  /** 右侧状态胶囊，如「实时计算就绪」「动态同步」 */
+  /** 右侧状态文字，如「实时计算就绪」「ρ = 1000 kg/m³」 */
   status?: string;
+  /** 标题前置 Font Awesome 图标类名，如 "fa-solid fa-gauge" */
+  icon?: string;
+  /** 图标色调（对齐原型卡片头部） */
+  tone?: "sky" | "emerald" | "pink" | "amber";
+  /** 状态文字色调 */
+  statusTone?: "muted" | "emerald" | "sky";
 }
 
 /**
  * Grouped controls section
  */
-export function ControlGroup({ title, children, status }: ControlGroupProps) {
+export function ControlGroup({
+  title,
+  children,
+  status,
+  icon,
+  tone,
+  statusTone = "muted",
+}: ControlGroupProps) {
   return (
-    <div className="sx-control-group">
+    <div className="sx-control-group" data-tone={tone}>
       <div className="sx-control-group-head">
-        <h3 className="sx-control-group-title">{title}</h3>
-        {status && <span className="sx-control-group-status">{status}</span>}
+        <h3 className="sx-control-group-title">
+          {icon && <i className={`${icon} sx-control-group-icon`} aria-hidden />}
+          {title}
+        </h3>
+        {status && (
+          <span
+            className={`sx-control-group-status${statusTone !== "muted" ? ` is-${statusTone}` : ""}`}
+          >
+            {status}
+          </span>
+        )}
       </div>
       <div className="sx-control-stack">{children}</div>
     </div>
@@ -117,7 +139,7 @@ export function ControlSlider({
   const canDec = !disabled && value > min + 1e-9;
   const canInc = !disabled && value < max - 1e-9;
   const stepBtnClass =
-    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[15px] font-medium leading-none text-[#c4c4ce] transition-all hover:border-white/25 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30";
+    "flex h-6 w-6 shrink-0 items-center justify-center rounded border border-[#27354f] bg-[#131b2b] text-xs font-bold leading-none text-[#cbd5e1] transition-all hover:border-[#4b5563] hover:bg-[#1e2a42] hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30";
 
   return (
     <div
@@ -125,7 +147,7 @@ export function ControlSlider({
       data-demo-id={demoId || undefined}
     >
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[#dfe2f1]/90">{label}</span>
+        <span className="font-medium text-[#d1d5db]">{label}</span>
         <span className="flex items-baseline">
           <input
             type="text"
@@ -151,10 +173,10 @@ export function ControlSlider({
               }
               commitDraft(e.target.value);
             }}
-            className="w-16 rounded border border-transparent bg-transparent px-1 text-right font-mono text-xs outline-none transition-colors hover:border-white/15 hover:bg-white/5 focus:border-current focus:bg-white/5 disabled:cursor-not-allowed"
+            className="w-16 rounded border border-transparent bg-transparent px-1 text-right font-mono text-sm font-bold outline-none transition-colors hover:border-white/15 hover:bg-white/5 focus:border-current focus:bg-white/5 disabled:cursor-not-allowed"
             style={{ color }}
           />
-          {unit && <span className="ml-1 text-xs text-[#8d90a0]">{unit}</span>}
+          {unit && <span className="ml-1 text-[10px] text-[#6b7280]">{unit}</span>}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -175,7 +197,7 @@ export function ControlSlider({
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           disabled={disabled}
-          className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-[#232838] disabled:cursor-not-allowed disabled:opacity-50 touch-none"
+          className="h-1 flex-1 cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-50 touch-none"
           style={{ accentColor: color, ...(trackBackground ? { background: trackBackground } : null) }}
         />
         <button

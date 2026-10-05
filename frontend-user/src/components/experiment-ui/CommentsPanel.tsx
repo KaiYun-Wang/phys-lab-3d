@@ -15,7 +15,7 @@ import {
   type CommentSort,
 } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
-import { Flame, Lightbulb, Star, ThumbsUp } from "lucide-react";
+import { Flame, Star, ThumbsUp } from "lucide-react";
 
 type Filter = "all" | "mine";
 
@@ -256,7 +256,7 @@ export function CommentsPanel({
         )}
         <div className="exp-composer-box">
           <textarea
-            rows={3}
+            rows={2}
             value={draft}
             placeholder={
               loggedIn ? "记录实验心得、讨论推导异常或提出疑问…" : "登录后即可评论…"
@@ -306,7 +306,6 @@ function Thread({
   const isAdmin = comment.ownerType === 1;
   const canDelete = myId != null && comment.ownerType === 0 && comment.ownerId === myId;
   const helpful = comment.helpfulCount ?? comment.likeCount ?? 0;
-  const inspire = comment.inspireCount ?? 0;
 
   return (
     <article
@@ -355,16 +354,6 @@ function Thread({
           <ThumbsUp size={11} aria-hidden />
           有帮助
           <span className="exp-react-count">{helpful}</span>
-        </button>
-        <button
-          type="button"
-          className={`exp-react-btn inspire${hasReaction(comment, "INSPIRE") ? " is-on" : ""}`}
-          aria-pressed={hasReaction(comment, "INSPIRE")}
-          onClick={() => onReact(comment, "INSPIRE")}
-        >
-          <Lightbulb size={11} aria-hidden />
-          启发思路
-          <span className="exp-react-count">{inspire}</span>
         </button>
         <button type="button" className="exp-react-reply" onClick={() => onReply(comment)}>
           回复

@@ -12,7 +12,6 @@ import { useRouter } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { ArrowLeft, Crosshair, Maximize, Minimize, Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 import * as THREE from "three";
 import { CommentsPanel } from "./CommentsPanel";
 import { DemoPanel, type DemoAdapter, type DemoStageUi } from "@/components/demo/DemoPanel";
@@ -72,13 +71,6 @@ export interface SimulationBarProps {
   speed: number;
   onSpeedChange: (speed: number) => void;
   timeElapsed?: number;
-  /**
-   * 单帧步进。仅当实验场景真正支持定步长推进时才传：
-   * 传了才渲染「单帧步进」按钮，避免出现按了没反应的假控件。
-   */
-  onStep?: () => void;
-  /** 速度档位预设，默认 [0.5, 1, 2, 5] */
-  speedPresets?: number[];
 }
 
 export interface ExperimentContainerProps {
@@ -168,6 +160,7 @@ export function ExperimentContainer({
   const [experimentId, setExperimentId] = useState<number | null>(null);
   /** 顶栏面包屑用的学科名 */
   const [subjectLabel, setSubjectLabel] = useState<string | null>(null);
+  const [subjectCode, setSubjectCode] = useState<string | null>(null);
   const [webgl2, setWebgl2] = useState(false);
   const [activeDemoId, setActiveDemoId] = useState<number | null>(null);
   const [demoUi, setDemoUi] = useState<DemoStageUi>({
@@ -241,9 +234,8 @@ export function ExperimentContainer({
       .then((exp) => {
         setExperimentId(exp.id);
         setCommentCount(exp.commentCount ?? 0);
-        setSubjectLabel(
-          exp.subjectTypeLabel ?? exp.subjectType ?? null,
-        );
+        setSubjectLabel(exp.subjectTypeLabel ?? exp.subjectType ?? null);
+        setSubjectCode(exp.subjectType ?? null);
       })
       .catch(() => {
         setExperimentId(null);
@@ -364,9 +356,6 @@ export function ExperimentContainer({
     setRightPanel("demo");
   };
 
-  const railTitle =
-    rightPanel === "chat" ? "对话" : rightPanel === "demo" ? "AI 演示" : "评论";
-  const railMeta = rightPanel === "comments" ? `${commentCount} 条讨论 · ${title}` : null;
 
   const mergedChatContext: AiChatContext = {
     path: experimentRoute ? `/experiments/${experimentRoute}` : undefined,
@@ -402,45 +391,36 @@ export function ExperimentContainer({
         <div className="exp-rail-inner">
           <div className="exp-rail-header">
             <div className="exp-rail-header__title">
-              <h2>实验控制台</h2>
-              {consoleTag && <span className="exp-rail-tag">{consoleTag}</span>}
-              <div className="exp-rail-meta">
-                {consoleSubtitle ?? description ?? "调节实验参数"}
+              <div className="exp-rail-heading-row">
+                <h2>实验控制台</h2>
               </div>
+              <div className="exp-rail-meta">{consoleSubtitle ?? "调节实验参数"}</div>
             </div>
-            <button
-              type="button"
-              className="exp-icon-btn"
-              onClick={() => setLeftOpen(false)}
-              aria-label="关闭控制"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="exp-panel-scroll">{controls}</div>
-          {(coordinateSystem || resetLabel) && (
-            <div className="exp-console-foot">
-              {coordinateSystem ? (
-                <span className="exp-console-coord">
-                  <span className="exp-console-coord__badge" aria-hidden>
-                    N
-                  </span>
-                  坐标系：{coordinateSystem}
-                </span>
-              ) : (
-                <span />
-              )}
+            <div className="exp-rail-header__actions">
               {resetLabel && (
                 <button
                   type="button"
-                  className="exp-console-reset"
+                  className="exp-icon-btn"
                   onClick={simulationBar?.onReset}
+                  data-tooltip="一键恢复标准工况"
+                  aria-label="一键恢复标准工况"
                 >
-                  {resetLabel}
+                  <i className="fa-solid fa-arrows-rotate" aria-hidden />
                 </button>
               )}
+              <button
+                type="button"
+                className="exp-icon-btn"
+                onClick={() => setLeftOpen(false)}
+                data-tooltip="收起控制台"
+                aria-label="收起控制台"
+              >
+                <i className="fa-solid fa-xmark" aria-hidden />
+              </button>
             </div>
-          )}
+          </div>
+          <div className="exp-panel-scroll">{controls}</div>
+
         </div>
       </aside>
 
@@ -535,60 +515,49 @@ export function ExperimentContainer({
             className="exp-topbar-back"
             title="返回实验大厅"
           >
-            <ArrowLeft size={14} aria-hidden />
+            <i className="fa-solid fa-arrow-left" aria-hidden />
             <span className="hidden sm:inline">返回大厅</span>
           </button>
 
           <div className="exp-topbar-title">
-            {subjectLabel && (
-              <nav className="exp-topbar-crumb" aria-label="位置">
-                <a href="/" className="exp-topbar-crumb__link">
-                  {subjectLabel}实验室
-                </a>
-                <span className="exp-topbar-crumb__sep" aria-hidden>
-                  ›
+            <div className="exp-topbar-crumb exp-topbar-crumb--main">
+              <a href={`/?subject=${encodeURIComponent(subjectCode ?? "")}#experiments`}>
+                {subjectLabel ? `${subjectLabel}实验室` : "实验大厅"}
+              </a>
+              <span className="exp-topbar-crumb__sep" aria-hidden>
+                ›
+              </span>
+              <strong className="exp-topbar-crumb__here">{title}</strong>
+              <div className="exp-topbar-status">
+                <span
+                  className={`exp-runstate${simulationBar?.isPlaying ? " is-live" : ""}`}
+                >
+                  <span className="exp-runstate__dot" aria-hidden />
+                  {simulationBar?.isPlaying ? "仿真进行中" : "已暂停"}
                 </span>
-                <span className="exp-topbar-crumb__here">{title}</span>
-              </nav>
-            )}
-            <h2>{title}</h2>
-            {description && <p>{description}</p>}
+                {webgl2 && <span className="exp-topbar-badge">WebGL2</span>}
+              </div>
+            </div>
           </div>
-
-          <div className="exp-topbar-status">
-            <span
-              className={`exp-runstate${simulationBar?.isPlaying ? " is-live" : ""}`}
-              title={simulationBar?.isPlaying ? "仿真正在运行" : "仿真已暂停"}
-            >
-              <span className="exp-runstate__dot" aria-hidden />
-              {simulationBar?.isPlaying ? "仿真进行中" : "已暂停"}
-            </span>
-            {webgl2 && <span className="exp-topbar-badge">WebGL2</span>}
-          </div>
-        </header>
-
-        {dataPanel ? <div className="exp-scene-hud">{dataPanel}</div> : null}
-
-        {hasLeft && (
-          <div className="exp-float-stack left">
+        <div className="exp-topbar-actions">
+          {hasLeft && (
             <button
               type="button"
               className={`exp-chip${leftOpen ? " active" : ""}`}
               onClick={() => setLeftOpen((v) => !v)}
             >
-              控制
+              <i className="fa-solid fa-sliders" aria-hidden />
+              控制台
             </button>
-          </div>
-        )}
-
-        <div className="exp-float-stack right">
+          )}
           {experimentRoute && (
             <button
               type="button"
               className={`exp-chip${rightPanel === "chat" ? " active" : ""}`}
               onClick={() => toggleRight("chat")}
             >
-              对话
+              <i className="fa-solid fa-wand-magic-sparkles" aria-hidden />
+              实验助手
             </button>
           )}
           {demoAdapter && (
@@ -597,7 +566,8 @@ export function ExperimentContainer({
               className={`exp-chip${rightPanel === "demo" ? " active" : ""}`}
               onClick={() => toggleRight("demo")}
             >
-              AI 演示
+              <i className="fa-solid fa-circle-play" aria-hidden />
+              演示
             </button>
           )}
           {experimentRoute && (
@@ -606,27 +576,18 @@ export function ExperimentContainer({
               className={`exp-chip${rightPanel === "comments" ? " active" : ""}`}
               onClick={() => toggleRight("comments")}
             >
+              <i className="fa-regular fa-comments" aria-hidden />
               评论
               {commentCount > 0 && <span className="exp-badge">{commentCount}</span>}
             </button>
           )}
         </div>
+        </header>
+
+        {dataPanel ? <div className="exp-scene-hud">{dataPanel}</div> : null}
 
         {simulationBar && (
           <div className="exp-sim-bar">
-            {/* 单帧步进：仅在场景支持定步长推进时出现 */}
-            {simulationBar.onStep && (
-              <button
-                type="button"
-                onClick={simulationBar.onStep}
-                className="exp-sim-btn"
-                title="单帧前进一步（自动暂停）"
-                aria-label="单帧步进"
-              >
-                <SkipForward size={14} aria-hidden />
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => {
@@ -635,46 +596,31 @@ export function ExperimentContainer({
                 simulationBar.onPlayPause();
               }}
               className="exp-sim-btn primary"
-              title={simulationBar.isPlaying ? "暂停" : "播放"}
-              aria-label={simulationBar.isPlaying ? "暂停" : "播放"}
+              data-tooltip={simulationBar.isPlaying ? "暂停仿真" : "播放仿真"}
+              aria-label={simulationBar.isPlaying ? "暂停仿真" : "播放仿真"}
             >
-              {simulationBar.isPlaying ? <Pause size={14} aria-hidden /> : <Play size={14} aria-hidden />}
+              {simulationBar.isPlaying ? <i className="fa-solid fa-pause" aria-hidden /> : <i className="fa-solid fa-play" aria-hidden />}
             </button>
 
             <button
               type="button"
-              onClick={simulationBar.onReset}
+              onClick={() => {
+                simulationBar.onReset();
+                resetView();
+              }}
               className="exp-sim-btn muted"
-              title="重新播放 / 恢复初始状态"
-              aria-label="重新播放"
+              data-tooltip="重新播放并恢复参数与视角"
+              aria-label="重新播放并恢复参数与视角"
             >
-              <RotateCcw size={14} aria-hidden />
+              <i className="fa-solid fa-arrow-rotate-left" aria-hidden />
             </button>
 
             <span className="exp-sim-sep" />
 
-            {/* 速度档位预设；「其他」时保留滑块微调 */}
-            <div className="exp-speed-presets" role="group" aria-label="播放速度">
-              {(simulationBar.speedPresets ?? [0.5, 1, 2, 5]).map((p) => {
-                const on = Math.abs(simulationBar.speed - p) < 1e-9;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`exp-speed-preset${on ? " is-on" : ""}`}
-                    aria-pressed={on}
-                    onClick={() => simulationBar.onSpeedChange(p)}
-                  >
-                    {p.toFixed(1)}x
-                  </button>
-                );
-              })}
-            </div>
-
             <input
               type="range"
               min="0.1"
-              max={Math.max(...(simulationBar.speedPresets ?? [0.5, 1, 2, 5]))}
+              max="5"
               step="0.1"
               value={simulationBar.speed}
               onChange={(e) => simulationBar.onSpeedChange(parseFloat(e.target.value))}
@@ -689,20 +635,20 @@ export function ExperimentContainer({
               type="button"
               onClick={resetView}
               className="exp-sim-btn muted"
-              title="视角重置为默认中心"
+              data-tooltip="重置视角"
               aria-label="重置视角"
             >
-              <Crosshair size={14} aria-hidden />
+              <i className="fa-solid fa-crosshairs" aria-hidden />
             </button>
 
             <button
               type="button"
               onClick={toggleFullscreen}
               className="exp-sim-btn muted"
-              title={isFullscreen ? "退出全屏" : "全屏视口"}
+              data-tooltip={isFullscreen ? "退出全屏" : "全屏视口"}
               aria-label={isFullscreen ? "退出全屏" : "全屏视口"}
             >
-              {isFullscreen ? <Minimize size={14} aria-hidden /> : <Maximize size={14} aria-hidden />}
+              {isFullscreen ? <i className="fa-solid fa-compress" aria-hidden /> : <i className="fa-solid fa-expand" aria-hidden />}
             </button>
           </div>
         )}
@@ -739,21 +685,6 @@ export function ExperimentContainer({
           title="拖动调整宽度"
         />
         <div className="exp-rail-inner">
-          <div className="exp-rail-header">
-            <div>
-              <h2>{railTitle}</h2>
-              {railMeta ? <div className="exp-rail-meta">{railMeta}</div> : null}
-            </div>
-            <button
-              type="button"
-              className="exp-icon-btn"
-              onClick={() => setRightPanel(null)}
-              aria-label="关闭"
-            >
-              ✕
-            </button>
-          </div>
-
           {rightPanel === "chat" && (
             <div className="exp-rail-chat">
               <AiChatWidget

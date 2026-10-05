@@ -11,7 +11,6 @@ import {
   ExperimentContainer,
   ControlGroup,
   ControlSlider,
-  ControlPresetButtons,
   HudReadings,
   DetailsLinkButton,
 } from "@/components/experiment-ui";
@@ -24,8 +23,6 @@ export default function BernoulliVenturiPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const [resetTrigger, setResetTrigger] = useState(0);
-  /** 单帧步进信号；自增即让场景推进一个固定步长（1/60 s） */
-  const [stepSignal, setStepSignal] = useState(0);
 
   const [v1, setV1] = useState(2.0);
   const [areaRatio, setAreaRatio] = useState(0.5);
@@ -42,12 +39,6 @@ export default function BernoulliVenturiPage() {
   }, []);
 
   const handlePlayPause = () => setIsPlaying((p) => !p);
-
-  /** 单帧步进：自动暂停后推进一帧，便于逐帧观察粒子输运 */
-  const handleStep = () => {
-    setIsPlaying(false);
-    setStepSignal((n) => n + 1);
-  };
 
   const handleReset = () => {
     notifyUserEdit();
@@ -105,15 +96,6 @@ export default function BernoulliVenturiPage() {
     [],
   );
 
-  const fluidPresets = [
-    { label: "水", value: "water", emoji: "💧" },
-    { label: "甘油", value: "glycerol", emoji: "🧪" },
-  ];
-
-  const fluidLabel = useMemo(
-    () => fluidPresets.find((p) => p.value === fluid)?.label || fluid,
-    [fluid],
-  );
 
   const statusLine = !data
     ? null
@@ -125,7 +107,7 @@ export default function BernoulliVenturiPage() {
 
   const parameterControls = (
     <div className="space-y-4">
-      <ControlGroup title="流体参数">
+      <ControlGroup title="流体参数" icon="fa-solid fa-gauge" status="实时计算就绪">
         <ControlSlider
           label="入口流速 v₁"
           value={v1}
@@ -133,7 +115,7 @@ export default function BernoulliVenturiPage() {
           min={0}
           max={5}
           step={0.1}
-          color="#3b82f6"
+          color="#38bdf8"
           onChange={(v) => {
             notifyUserEdit();
             setV1(v);
@@ -148,7 +130,7 @@ export default function BernoulliVenturiPage() {
           min={0.2}
           max={2.0}
           step={0.05}
-          color="#8b5cf6"
+          color="#c084fc"
           onChange={(v) => {
             notifyUserEdit();
             setAreaRatio(v);
@@ -158,46 +140,67 @@ export default function BernoulliVenturiPage() {
         />
       </ControlGroup>
 
-      <ControlGroup title="流体介质">
-        <ControlPresetButtons
-          label="当前介质"
-          value={fluid}
-          presets={fluidPresets}
-          onChange={(value) => {
-            notifyUserEdit();
-            setFluid(value as FluidType);
-          }}
-          displayValue={() => fluidLabel}
-          demoId="fluid"
-        />
-        <div className="mt-2 flex items-center justify-between text-xs text-gray-900">
-          <span>当前密度 ρ</span>
-          <span className="font-mono text-gray-900">
-            {FLUID_DENSITIES[fluid].toFixed(1)} kg/m³
-          </span>
+      <ControlGroup
+        title="流体介质"
+        icon="fa-solid fa-flask-vial"
+        tone="emerald"
+        status={`ρ = ${FLUID_DENSITIES[fluid].toFixed(0)} kg/m³`}
+        statusTone="emerald"
+      >
+        <div className="venturi-fluid-switch" role="group" aria-label="流体介质">
+          <button
+            type="button"
+            className={`venturi-fluid-option${fluid === "water" ? " is-on" : ""}`}
+            onClick={() => {
+              notifyUserEdit();
+              setFluid("water");
+            }}
+            aria-pressed={fluid === "water"}
+            data-tooltip="水，ρ 998.2 kg/m³"
+          >
+            <i className="fa-solid fa-droplet" style={{ color: "#38bdf8" }} aria-hidden />
+            <span>常温水</span>
+          </button>
+          <button
+            type="button"
+            className={`venturi-fluid-option${fluid === "glycerol" ? " is-on" : ""}`}
+            onClick={() => {
+              notifyUserEdit();
+              setFluid("glycerol");
+            }}
+            aria-pressed={fluid === "glycerol"}
+            data-tooltip="甘油，ρ 1260.0 kg/m³"
+          >
+            <i className="fa-solid fa-oil-well" style={{ color: "#fbbf24" }} aria-hidden />
+            <span>甘油 (高密)</span>
+          </button>
         </div>
       </ControlGroup>
 
-      <ControlGroup title="原理说明">
-        <div className="space-y-2 text-xs text-[#8d90a0] leading-relaxed">
-          <p>
-            <strong className="text-[#dfe2f1]">连续性方程：</strong>
-            A₁v₁ = A₂v₂ → v₂ = v₁ / (A₂/A₁)
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">伯努利方程：</strong>
-            P₁ + ½ρv₁² = P₂ + ½ρv₂²
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">压强差：</strong>
-            ΔP = ½ρ(v₂² − v₁²)
-            {data ? ` = ${data.deltaP.toFixed(2)} Pa` : ""}
-          </p>
-          <p>
-            <strong className="text-[#dfe2f1]">测压说明：</strong>
-            左管固定为参考液面，右管液面随 ΔP 升降；两侧液面高度差正比于压强差。
-          </p>
-          {statusLine ? <p className="text-[#c4c4ce]">{statusLine}</p> : null}
+      <ControlGroup
+        title="物理规律联动"
+        icon="fa-solid fa-square-root-variable"
+        tone="pink"
+        status="动态同步"
+      >
+        <div className="venturi-theory">
+          <div className="venturi-theory__row">
+            <span className="venturi-theory__label">连续性方程：</span>
+            <span className="venturi-theory__eq">
+              A₁v₁ = A₂v₂ → v₂ = {data ? data.v2.toFixed(2) : "—"} m/s
+            </span>
+          </div>
+          <div className="venturi-theory__row">
+            <span className="venturi-theory__label">伯努利方程（忽略黏性与重力势能）：</span>
+            <span className="venturi-theory__eq venturi-theory__eq--amber">
+              P₁ + ½ρv₁² = P₂ + ½ρv₂²
+            </span>
+          </div>
+          <div className="venturi-theory__dp">
+            <span>ΔP = ½ρ(v₂² - v₁²)</span>
+            <strong>{data ? `${data.deltaP.toFixed(0)} Pa` : "—"}</strong>
+          </div>
+          {statusLine ? <p className="venturi-theory__note">{statusLine}</p> : null}
         </div>
       </ControlGroup>
 
@@ -208,10 +211,10 @@ export default function BernoulliVenturiPage() {
   const hud = data ? (
     <HudReadings
       data={{
-        v1: { value: data.v1, unit: "m/s", color: "#7dd3fc", decimals: 2 },
-        v2: { value: data.v2, unit: "m/s", color: "#c4b5fd", decimals: 2 },
-        rho: { value: data.rho, unit: "kg/m³", color: "#6ee7b7", decimals: 1 },
-        deltaP: { value: data.deltaP, unit: "Pa", color: "#f9a8d4", decimals: 2 },
+        v1: { value: data.v1, unit: "m/s", color: "#38bdf8", decimals: 2 },
+        v2: { value: data.v2, unit: "m/s", color: "#67e8f9", decimals: 2 },
+        rho: { value: data.rho, unit: "kg/m³", color: "#34d399", decimals: 1 },
+        deltaP: { value: data.deltaP, unit: "Pa", color: "#f59e0b", decimals: 2 },
       }}
     />
   ) : null;
@@ -236,9 +239,7 @@ export default function BernoulliVenturiPage() {
       experimentRoute="bernoulli-venturi"
       cameraPosition={[22, 12, 22]}
       backgroundColor="#000000"
-      consoleTag="VENTURI"
       consoleSubtitle="调节流速、截面比与流体介质"
-      coordinateSystem="绝对流场"
       controls={parameterControls}
       dataPanel={hud}
       demoAdapter={demoAdapter}
@@ -247,7 +248,6 @@ export default function BernoulliVenturiPage() {
         isPlaying,
         onPlayPause: handlePlayPause,
         onReset: handleReset,
-        onStep: handleStep,
         speed: simulationSpeed,
         onSpeedChange: setSimulationSpeed,
       }}
@@ -259,7 +259,6 @@ export default function BernoulliVenturiPage() {
         isPlaying={isPlaying}
         simulationSpeed={simulationSpeed}
         resetTrigger={resetTrigger}
-        stepSignal={stepSignal}
         onDataChange={onDataChange}
       />
     </ExperimentContainer>

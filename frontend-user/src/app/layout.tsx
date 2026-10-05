@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 
 const SITE_URL = "https://sciencelab-two.vercel.app";
 const SITE_NAME = "PhysLab 3D";
-const SITE_TITLE = "PhysLab 3D — Interactive Physics Education | 6 Virtual Physics Experiments";
+const SITE_TITLE = "PhysLab 3D";
 const SITE_DESCRIPTION =
   "PhysLab 3D — Free interactive physics education platform with 6 virtual experiments. 3D visualizations, real-time data analysis. Learn physics by doing.";
 
@@ -178,6 +178,14 @@ export default function RootLayout({
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
           rel="stylesheet"
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
