@@ -30,9 +30,10 @@ public class SpecialRelativityExperimentDefinition implements ExperimentDefiniti
     @Override
     public String capabilityPrompt() {
         return "实验：狭义相对论实验室（route=special-relativity）\n"
-                + "界面：左侧控制栏主要是飞船速度滑块（自上而下）。口播勿说从左到右。\n"
+                + "界面：左侧控制栏自上而下为「飞船速度」组（速度滑块按百分比显示，0～99.5% c，"
+                + "下方带快捷档位：静止、0.5c、0.9c、0.95c、0.99c、0.995c）与原理说明。口播勿说从左到右。\n"
                 + "可调参数（仅一个）：\n"
-                + "- velocity：飞船速度，单位为光速 c（v/c），范围 [0, 0.995]，步长 0.001；0.9 表示 0.9 倍光速\n"
+                + "- velocity：飞船速度，params 里用「倍光速」的小数，范围 [0, 0.995]，步长 0.001；0.9 表示 0.9 倍光速\n"
                 + "理想模型（光速归一为 1）：gamma=1/sqrt(1-velocity^2)；"
                 + "lengthPercent=100/gamma（收缩后剩余长度百分比）；"
                 + "relativisticMass=gamma（相对论质量是静质量的 gamma 倍）；"
@@ -42,9 +43,9 @@ public class SpecialRelativityExperimentDefinition implements ExperimentDefiniti
                 + "animate=true：须给 params 与 focus（仅 velocity），前端会拧参动画并高亮飞船速度滑块。\n"
                 + "animate=false：只口播，不要 params/focus（或可省略）。\n"
                 + "参数可读名（口播对照，勿把键名直接念出）：velocity→飞船速度/ship speed（按倍率念，如 0.9 倍光速）；"
-                + "读数 gamma→洛伦兹因子/Lorentz factor，lengthPercent→剩余长度百分比，"
-                + "relativisticMass→相对论质量倍数，clockPeriod→飞船时钟周期。\n"
-                + "narration：2～4 句教学口语；引导学生看飞船长度收缩、船上时钟快慢与读数面板。\n";
+                + "左上角读数 velocity→飞船速度、gamma→洛伦兹因子/Lorentz factor、length→剩余长度百分比、"
+                + "mass→相对论质量倍数；飞船座舱时钟的快慢属于场景演示，可直接引导「看场景里的飞船与座舱时钟」。\n"
+                + "narration：2～4 句教学口语；引导学生看飞船长度收缩、船上时钟快慢与左上角读数。\n";
     }
 
     @Override
@@ -62,7 +63,7 @@ public class SpecialRelativityExperimentDefinition implements ExperimentDefiniti
                 + "请盯住控制栏里的飞船速度滑块，我会先把它停在 0，建立一个干净的对照基线。\"},"
                 + "{\"title\":\"读静止读数\","
                 + "\"animate\":false,"
-                + "\"narration\":\"看读数面板：洛伦兹因子是 1，剩余长度是 100%，相对论质量倍数也是 1，"
+                + "\"narration\":\"看左上角读数：洛伦兹因子是 1，剩余长度是 100%，相对论质量倍数也是 1，"
                 + "飞船上的钟和地球上的钟走得一样快。"
                 + "这就是之后的对照标准：速度为零时，所有相对论效应都消失。\"},"
                 + "{\"title\":\"加速到 0.5 倍光速\","
@@ -74,7 +75,7 @@ public class SpecialRelativityExperimentDefinition implements ExperimentDefiniti
                 + "速度不算高时，洛伦兹因子只有大约 1.15，效应已经出现，但还很温和。\"},"
                 + "{\"title\":\"读 0.5 倍光速读数\","
                 + "\"animate\":false,"
-                + "\"narration\":\"看读数：洛伦兹因子约 1.15，剩余长度约 87%，"
+                + "\"narration\":\"看左上角读数：洛伦兹因子约 1.15，剩余长度约 87%，"
                 + "飞船沿运动方向缩短了一成多；飞船上的钟比地球钟慢，质量也增大约 15%。"
                 + "请记住这几个数字之间的联动关系。\"},"
                 + "{\"title\":\"加速到 0.9 倍光速\","

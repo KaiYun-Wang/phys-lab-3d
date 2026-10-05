@@ -9,12 +9,14 @@ import {
   deleteExampleQuestion,
   fetchExampleQuestions,
   fetchMe,
+  reorderExampleQuestions,
   updateExampleQuestion,
   type AdminProfile,
   type ExampleQuestionInput,
   type ExampleQuestionRecord,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { useDragList } from "@/lib/useDragList";
 import Pager from "@/components/Pager";
 
 const PAGE_SIZE = 10;
@@ -24,7 +26,6 @@ const EMPTY_FORM: ExampleQuestionInput = {
   description: "",
   icon: "",
   question: "",
-  sortOrder: 0,
 };
 
 export default function ExampleQuestionsPage() {
@@ -41,6 +42,11 @@ export default function ExampleQuestionsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ExampleQuestionRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // 排序模式：拖拽全量列表后一次性保存
+  const [sortMode, setSortMode] = useState(false);
+  const [sortLoading, setSortLoading] = useState(false);
+  const [savingSort, setSavingSort] = useState(false);
+  const drag = useDragList<ExampleQuestionRecord>();
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -84,7 +90,6 @@ export default function ExampleQuestionsPage() {
       description: row.description ?? "",
       icon: row.icon ?? "",
       question: row.question,
-      sortOrder: row.sortOrder ?? 0,
     });
   }
 
@@ -101,7 +106,6 @@ export default function ExampleQuestionsPage() {
       description: form.description?.trim() || undefined,
       icon: form.icon?.trim() || undefined,
       question: form.question.trim(),
-      sortOrder: Number(form.sortOrder) || 0,
     };
     try {
       if (editing) {
@@ -135,6 +139,42 @@ export default function ExampleQuestionsPage() {
     }
   }
 
+  async function enterSortMode() {
+    setSortMode(true);
+    setSortLoading(true);
+    try {
+      const data = await fetchExampleQuestions({ page: 1, size: 1000 });
+      drag.reset(data.records ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "加载排序列表失败");
+      setSortMode(false);
+    } finally {
+      setSortLoading(false);
+    }
+  }
+
+  function exitSortMode() {
+    if (savingSort) return;
+    setSortMode(false);
+    drag.reset([]);
+  }
+
+  async function saveSort() {
+    if (drag.items.length === 0) return;
+    setSavingSort(true);
+    try {
+      await reorderExampleQuestions(drag.items.map((row) => row.id));
+      toast.success("排序已保存");
+      setSortMode(false);
+      drag.reset([]);
+      await loadList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "保存排序失败");
+    } finally {
+      setSavingSort(false);
+    }
+  }
+
   if (!admin) return <div className="auth-loading">加载中…</div>;
 
   const formOpen = creating || editing != null;
@@ -144,12 +184,96 @@ export default function ExampleQuestionsPage() {
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">示例问题管理</h2>
+          <p className="caption">列表顺序即用户端展示顺序，点「调整排序」拖拽设置</p>
         </div>
-        <button type="button" className="btn-pill btn-pill--primary btn-pill--sm" onClick={openCreate}>
-          + 新增示例
-        </button>
+        <div className="toolbar-actions">
+          <button
+            type="button"
+            className="btn-pill btn-pill--outline btn-pill--sm"
+            onClick={enterSortMode}
+            disabled={sortMode || sortLoading}
+          >
+            {sortLoading ? "加载中…" : "调整排序"}
+          </button>
+          <button type="button" className="btn-pill btn-pill--primary btn-pill--sm" onClick={openCreate}>
+            + 新增示例
+          </button>
+        </div>
       </section>
 
+      {sortMode ? (
+        <section className="card card--elevated">
+          <div className="sort-toolbar">
+            <p className="caption">拖拽行调整顺序（共 {drag.items.length} 个）</p>
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                className="btn-pill btn-pill--outline btn-pill--sm"
+                onClick={exitSortMode}
+                disabled={savingSort}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn-pill btn-pill--primary btn-pill--sm"
+                onClick={saveSort}
+                disabled={savingSort || sortLoading}
+              >
+                {savingSort ? "保存中…" : "保存排序"}
+              </button>
+            </div>
+          </div>
+
+          {sortLoading ? (
+            <p className="table-message caption">加载中…</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table sort-table">
+                <thead>
+                  <tr>
+                    <th>序号</th>
+                    <th>标题</th>
+                    <th>描述</th>
+                    <th>示例问题</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drag.items.map((row, i) => (
+                    <tr
+                      key={row.id}
+                      draggable
+                      className={drag.draggingIndex === i ? "is-dragging" : undefined}
+                      onDragStart={(e) => drag.onDragStart(e, i)}
+                      onDragEnter={() => drag.onDragEnter(i)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => e.preventDefault()}
+                      onDragEnd={drag.onDragEnd}
+                    >
+                      <td className="sort-table__pos">
+                        <i className="fa-solid fa-grip-vertical sort-handle" aria-hidden />
+                        {i + 1}
+                      </td>
+                      <td>
+                        <span className="data-table__title">
+                          {row.icon ? (
+                            <i className={`fa-solid ${row.icon} data-table__icon`} aria-hidden />
+                          ) : null}
+                          {row.title}
+                        </span>
+                      </td>
+                      <td className="data-table__desc">{row.description || "—"}</td>
+                      <td className="data-table__desc">
+                        {row.question.length > 48 ? `${row.question.slice(0, 48)}…` : row.question}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : (
       <section className="card card--elevated">
         {error ? <p className="form-error table-message">{error}</p> : null}
 
@@ -173,7 +297,6 @@ export default function ExampleQuestionsPage() {
                   <th>标题</th>
                   <th>描述</th>
                   <th>示例问题</th>
-                  <th>排序</th>
                   <th>更新时间</th>
                   <th aria-label="操作" />
                 </tr>
@@ -193,7 +316,6 @@ export default function ExampleQuestionsPage() {
                     <td className="data-table__desc">
                       {row.question.length > 48 ? `${row.question.slice(0, 48)}…` : row.question}
                     </td>
-                    <td className="data-table__num">{row.sortOrder}</td>
                     <td className="data-table__time">{formatDateTime(row.updateTime)}</td>
                     <td>
                       <div className="row-actions">
@@ -224,6 +346,7 @@ export default function ExampleQuestionsPage() {
           <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="jump" />
         ) : null}
       </section>
+      )}
 
       {formOpen ? (
         <div className="modal-overlay" role="presentation" onClick={() => !saving && closeForm()}>
@@ -277,16 +400,6 @@ export default function ExampleQuestionsPage() {
                     placeholder="用户点击后发送的完整问法"
                     value={form.question}
                     onChange={(e) => setForm((f) => ({ ...f, question: e.target.value }))}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="eq-sort">排序</label>
-                  <input
-                    id="eq-sort"
-                    className="text-input"
-                    type="number"
-                    value={form.sortOrder ?? 0}
-                    onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
                   />
                 </div>
               </div>

@@ -25,4 +25,7 @@ public interface ISubjectTypeService extends IService<SubjectType> {
     SubjectTypeResponse update(Long id, UpdateSubjectTypeRequest request);
 
     void delete(Long id);
+
+    /** 排序模式：一次性保存全量顺序（按传入顺序重编号 0..n-1） */
+    void adminReorder(List<Long> ids);
 }

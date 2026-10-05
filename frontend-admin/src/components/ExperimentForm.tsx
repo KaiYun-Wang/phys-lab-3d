@@ -84,7 +84,8 @@ export default function ExperimentForm({
       title: title.trim(),
       subjectTypeId,
       description: description.trim(),
-      coverUrl: coverUrl.trim() || undefined,
+      // 空值必须显式发空串：后端 updateById 跳过 null 字段，省略字段会导致「删除封面」保存不生效
+      coverUrl: coverUrl.trim(),
       topics: stringToTopics(topicsRaw),
       status,
     });

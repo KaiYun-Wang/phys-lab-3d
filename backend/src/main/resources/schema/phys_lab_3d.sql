@@ -191,6 +191,7 @@ CREATE TABLE "public"."experiments" (
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "subject_type_id" bigint NOT NULL,
+  "sort_order" integer NOT NULL DEFAULT 0,
   PRIMARY KEY ("id")
 );
 
@@ -210,6 +211,7 @@ COMMENT ON COLUMN "public"."experiments"."comment_count" IS '评论数（冗余�
 COMMENT ON COLUMN "public"."experiments"."create_time" IS '创建时间，插入时自动填充';
 COMMENT ON COLUMN "public"."experiments"."update_time" IS '更新时间，插入/更新时自动填充';
 COMMENT ON COLUMN "public"."experiments"."subject_type_id" IS '物理子学科 ID，逻辑关联 subject_types(id)';
+COMMENT ON COLUMN "public"."experiments"."sort_order" IS '首页展示排序（升序，越小越靠前；管理端上移/下移维护）';
 CREATE UNIQUE INDEX "uk_experiments_route" ON "public"."experiments" USING btree ("route");
 
 CREATE SEQUENCE IF NOT EXISTS "public"."ai_chat_sessions_id_seq"

@@ -21,6 +21,4 @@ public class ExampleQuestionRequest {
     @NotBlank
     @Size(max = 500)
     private String question;
-
-    private Integer sortOrder;
 }

@@ -7,10 +7,12 @@ import {
   deleteSubjectType,
   fetchMe,
   fetchSubjectTypes,
+  reorderSubjectTypes,
   type AdminProfile,
   type SubjectTypeRecord,
 } from "@/lib/api";
 import { formatCount, formatDateTime } from "@/lib/format";
+import { useDragList } from "@/lib/useDragList";
 import Pager from "@/components/Pager";
 import { useToast } from "@/components/Toast";
 
@@ -25,6 +27,11 @@ export default function SubjectTypesPage() {
   const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SubjectTypeRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // 排序模式：拖拽全量列表后一次性保存
+  const [sortMode, setSortMode] = useState(false);
+  const [sortLoading, setSortLoading] = useState(false);
+  const [savingSort, setSavingSort] = useState(false);
+  const drag = useDragList<SubjectTypeRecord>();
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -63,6 +70,42 @@ export default function SubjectTypesPage() {
     }
   }
 
+  async function enterSortMode() {
+    setSortMode(true);
+    setSortLoading(true);
+    try {
+      const data = await fetchSubjectTypes();
+      drag.reset(data.items ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "加载排序列表失败");
+      setSortMode(false);
+    } finally {
+      setSortLoading(false);
+    }
+  }
+
+  function exitSortMode() {
+    if (savingSort) return;
+    setSortMode(false);
+    drag.reset([]);
+  }
+
+  async function saveSort() {
+    if (drag.items.length === 0) return;
+    setSavingSort(true);
+    try {
+      await reorderSubjectTypes(drag.items.map((item) => item.id));
+      toast.success("排序已保存");
+      setSortMode(false);
+      drag.reset([]);
+      await loadList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "保存排序失败");
+    } finally {
+      setSavingSort(false);
+    }
+  }
+
   if (!admin) {
     return <div className="auth-loading">加载中…</div>;
   }
@@ -76,12 +119,95 @@ export default function SubjectTypesPage() {
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">学科分类</h2>
+          <p className="caption">列表顺序即前台展示顺序，点「调整排序」拖拽设置</p>
         </div>
-        <Link href="/subject-types/new" className="btn-pill btn-pill--primary btn-pill--sm">
-          新建分类
-        </Link>
+        <div className="toolbar-actions">
+          <button
+            type="button"
+            className="btn-pill btn-pill--outline btn-pill--sm"
+            onClick={enterSortMode}
+            disabled={sortMode || sortLoading}
+          >
+            {sortLoading ? "加载中…" : "调整排序"}
+          </button>
+          <Link href="/subject-types/new" className="btn-pill btn-pill--primary btn-pill--sm">
+            新建分类
+          </Link>
+        </div>
       </section>
 
+      {sortMode ? (
+        <section className="card card--elevated">
+          <div className="sort-toolbar">
+            <p className="caption">拖拽行调整顺序（共 {drag.items.length} 个）</p>
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                className="btn-pill btn-pill--outline btn-pill--sm"
+                onClick={exitSortMode}
+                disabled={savingSort}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn-pill btn-pill--primary btn-pill--sm"
+                onClick={saveSort}
+                disabled={savingSort || sortLoading}
+              >
+                {savingSort ? "保存中…" : "保存排序"}
+              </button>
+            </div>
+          </div>
+
+          {sortLoading ? (
+            <p className="table-message caption">加载中…</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table sort-table">
+                <thead>
+                  <tr>
+                    <th>序号</th>
+                    <th>代码</th>
+                    <th>名称</th>
+                    <th>描述</th>
+                    <th>实验数</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drag.items.map((item, i) => (
+                    <tr
+                      key={item.id}
+                      draggable
+                      className={drag.draggingIndex === i ? "is-dragging" : undefined}
+                      onDragStart={(e) => drag.onDragStart(e, i)}
+                      onDragEnter={() => drag.onDragEnter(i)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => e.preventDefault()}
+                      onDragEnd={drag.onDragEnd}
+                    >
+                      <td className="sort-table__pos">
+                        <i className="fa-solid fa-grip-vertical sort-handle" aria-hidden />
+                        {i + 1}
+                      </td>
+                      <td>
+                        <code className="mono-tag">{item.code}</code>
+                      </td>
+                      <td>
+                        <span className="data-table__title">{item.label}</span>
+                      </td>
+                      <td className="data-table__desc">{item.description || "—"}</td>
+                      <td className="data-table__num">
+                        {item.experimentCount !== undefined ? formatCount(item.experimentCount) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : (
       <section className="card card--elevated">
         {error ? <p className="form-error table-message">{error}</p> : null}
 
@@ -106,7 +232,6 @@ export default function SubjectTypesPage() {
                   <th>代码</th>
                   <th>名称</th>
                   <th>描述</th>
-                  <th>排序</th>
                   <th>实验数</th>
                   <th>更新时间</th>
                   <th aria-label="操作" />
@@ -122,7 +247,6 @@ export default function SubjectTypesPage() {
                       <span className="data-table__title">{item.label}</span>
                     </td>
                     <td className="data-table__desc">{item.description || "—"}</td>
-                    <td className="data-table__num">{item.sortOrder ?? "—"}</td>
                     <td className="data-table__num">
                       {item.experimentCount !== undefined ? formatCount(item.experimentCount) : "—"}
                     </td>
@@ -158,6 +282,7 @@ export default function SubjectTypesPage() {
           />
         ) : null}
       </section>
+      )}
 
       {deleteTarget ? (
         <div

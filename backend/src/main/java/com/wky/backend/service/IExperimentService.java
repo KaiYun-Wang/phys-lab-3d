@@ -25,6 +25,9 @@ public interface IExperimentService extends IService<Experiment> {
 
     void adminDelete(Long id);
 
+    /** 首页展示排序：一次性保存全量顺序（按传入顺序重编号 0..n-1） */
+    void adminReorder(List<Long> ids);
+
     long countAll();
 
     ExperimentResponse toResponse(Experiment experiment, Boolean favorited);

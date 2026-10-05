@@ -30,8 +30,9 @@ public class VenturiExperimentDefinition implements ExperimentDefinition {
     @Override
     public String capabilityPrompt() {
         return "实验：伯努利文丘里管（route=bernoulli-venturi）\n"
-                + "界面：左侧控制栏自上而下为入口流速、截面积比、流体介质按钮。口播勿说从左到右。"
-                + "介质用水/甘油按钮切换，属于参数 fluid，不是一次性动作。\n"
+                + "界面：左侧控制栏自上而下为「流体参数」组（入口流速、截面积比两个滑块）、"
+                + "「流体介质」组（常温水 / 甘油(高密) 两个按钮）、「物理规律联动」原理卡片。口播勿说从左到右。"
+                + "介质按钮对应参数 fluid（water / glycerol），是参数切换、不是一次性动作。\n"
                 + "可调参数（仅这些）：\n"
                 + "- v1：入口流速 m/s，范围 [0, 5]，步长 0.1\n"
                 + "- areaRatio：截面积比 A2/A1，范围 [0.2, 2.0]，步长 0.05\n"
@@ -44,9 +45,9 @@ public class VenturiExperimentDefinition implements ExperimentDefinition {
                 + "animate=false：只口播，不要 params/focus（或可省略）。\n"
                 + "参数可读名（口播对照，勿把键名直接念出）："
                 + "v1→入口流速/inlet velocity，areaRatio→面积比/area ratio，"
-                + "fluid water→水/water、glycerol→甘油/glycerol，"
+                + "fluid water→常温水/water、glycerol→甘油/glycerol，"
                 + "读数 v2→出口流速/outlet velocity，deltaP→压差/pressure difference。\n"
-                + "narration：2～4 句教学口语；引导学生看测压管或读数。\n";
+                + "narration：2～4 句教学口语；引导学生看测压管液面或左上角读数。\n";
     }
 
     @Override

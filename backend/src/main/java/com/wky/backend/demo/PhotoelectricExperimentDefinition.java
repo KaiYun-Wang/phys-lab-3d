@@ -47,7 +47,9 @@ public class PhotoelectricExperimentDefinition implements ExperimentDefinition {
         return "实验：光电效应（route=photoelectric）\n"
                 + "界面：左侧控制栏自上而下为「光源参数」（波长 λ 滑块、光强滑块）、「光电材料（阴极 K）」七种材料按钮"
                 + "（铯/钾/钠/钙/锌/铜/铂）、「极间电压」（电压 U 滑块 + 典型场景预设：红光截止/紫外激发/反向拦截/饱和电流）与原理说明。"
-                + "口播勿说从左到右。\n"
+                + "口播勿说从左到右。典型场景按钮会一次性设好三个参数"
+                + "（红光截止 660nm/60%/0V、紫外激发 255nm/80%/0V、反向拦截 255nm/80%/−3V、饱和电流 255nm/100%/+2V），"
+                + "演示步骤仍用 animate 拧滑块参数，口播可顺带提「预设按钮」但不写进 params。\n"
                 + "可调参数（仅这些）：\n"
                 + "- wavelengthNm：入射光波长，单位 nm，范围 [200,750]，步长 1；数值越小光子能量越高\n"
                 + "- intensityPct：光强，单位 %，范围 [0,100]，步长 1；只影响单位时间光子数（与电子数量、饱和电流相关）\n"
@@ -68,7 +70,8 @@ public class PhotoelectricExperimentDefinition implements ExperimentDefinition {
                 + "参数可读名（口播对照）：wavelengthNm→波长，intensityPct→光强，voltageV→极间电压/反向电压，"
                 + "material→阴极材料；读数 photonEnergyEv→光子能量，workFunctionEv→逸出功，maxKineticEv→最大初动能，"
                 + "stopVoltageV→截止电压，thresholdNm→极限波长，currentUa→光电流。\n"
-                + "narration：2～4 句教学口语；引导学生观察阴极处的光颜色与电子流，或数据面板读数。\n";
+                + "narration：2～4 句教学口语；引导学生观察阴极处的光颜色与电子流，或左上角读数"
+                + "（状态、光子能量、逸出功、最大初动能、截止电压、极限波长、光电流）。\n";
     }
 
     @Override

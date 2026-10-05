@@ -1,6 +1,7 @@
 package com.wky.backend.controller.admin;
 
 import com.wky.backend.domain.dto.CreateSubjectTypeRequest;
+import com.wky.backend.domain.dto.IdOrderRequest;
 import com.wky.backend.domain.dto.SubjectTypeResponse;
 import com.wky.backend.domain.dto.UpdateSubjectTypeRequest;
 import com.wky.backend.service.ISubjectTypeService;
@@ -53,5 +54,12 @@ public class AdminSubjectTypeController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         subjectTypeService.delete(id);
+    }
+
+    /** 排序模式：一次性保存全量顺序（拖拽后调用） */
+    @PutMapping("/order")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reorder(@Valid @RequestBody IdOrderRequest request) {
+        subjectTypeService.adminReorder(request.getIds());
     }
 }

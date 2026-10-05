@@ -74,9 +74,9 @@ export function DopplerSceneComponent({
     frameCountRef.current++;
 
     // === UPDATE SOURCE PHYSICS ===
-    // 固定自动模式：声源沿中轴往复振荡
+    // 自动模式：声源沿中轴往复振荡；峰值速度 = 源速度滑块（sourceVelocity）
     const oscillationSpeed = 0.5;
-    const amplitude = 10;
+    const amplitude = sourceVelocity / oscillationSpeed;
     sourceXRef.current = Math.sin(timeRef.current * oscillationSpeed) * amplitude;
     sourceVelRef.current = Math.cos(timeRef.current * oscillationSpeed) * amplitude * oscillationSpeed;
 
@@ -115,7 +115,9 @@ export function DopplerSceneComponent({
         shiftType = "none";
       } else if (sourceVelTowardObserver > 0) {
         // Source moving toward observer: blueshift
-        observedFreq = sourceFrequency * (waveSpeed / (waveSpeed - sourceVelTowardObserver));
+        // 数值防护：源速度达到波速（马赫≥1）时公式除零，夹取到亚音速上限稳定读数
+        const towardSafe = Math.min(sourceVelTowardObserver, waveSpeed * 0.999);
+        observedFreq = sourceFrequency * (waveSpeed / (waveSpeed - towardSafe));
         shiftType = "blueshift";
       } else {
         // Source moving away from observer: redshift

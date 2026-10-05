@@ -18,6 +18,4 @@ public class UpdateSubjectTypeRequest {
     private String label;
 
     private String description;
-
-    private Integer sortOrder;
 }

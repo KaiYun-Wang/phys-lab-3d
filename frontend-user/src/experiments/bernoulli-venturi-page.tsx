@@ -147,7 +147,7 @@ export default function BernoulliVenturiPage() {
         status={`ρ = ${FLUID_DENSITIES[fluid].toFixed(0)} kg/m³`}
         statusTone="emerald"
       >
-        <div className="venturi-fluid-switch" role="group" aria-label="流体介质">
+        <div className="venturi-fluid-switch" role="group" aria-label="流体介质" data-demo-id="fluid">
           <button
             type="button"
             className={`venturi-fluid-option${fluid === "water" ? " is-on" : ""}`}

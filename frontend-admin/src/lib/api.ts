@@ -173,7 +173,6 @@ export type ExampleQuestionRecord = {
   description?: string | null;
   icon?: string | null;
   question: string;
-  sortOrder: number;
   createTime?: string;
   updateTime?: string;
 };
@@ -183,7 +182,6 @@ export type ExampleQuestionInput = {
   description?: string;
   icon?: string;
   question: string;
-  sortOrder?: number;
 };
 
 export function fetchExampleQuestions(params: { q?: string; page?: number; size?: number } = {}) {
@@ -211,6 +209,14 @@ export function updateExampleQuestion(id: number, input: ExampleQuestionInput) {
 
 export function deleteExampleQuestion(id: number) {
   return apiFetch<void>(`/api/admin/example-questions/${id}`, { method: "DELETE" });
+}
+
+/** 排序模式：一次性保存全量顺序（拖拽后调用） */
+export function reorderExampleQuestions(ids: number[]) {
+  return apiFetch<void>("/api/admin/example-questions/order", {
+    method: "PUT",
+    body: JSON.stringify({ ids }),
+  });
 }
 
 export type ExperimentStatus = "PUBLISHED" | "DRAFT";
@@ -257,7 +263,6 @@ export type SubjectTypeRecord = {
   code: string;
   label: string;
   description?: string | null;
-  sortOrder?: number;
   experimentCount?: number;
   createTime?: string;
   updateTime?: string;
@@ -267,7 +272,6 @@ export type SubjectTypeInput = {
   code: string;
   label: string;
   description?: string;
-  sortOrder?: number;
 };
 
 export type SubjectTypeListResponse = {
@@ -289,7 +293,6 @@ export function getFallbackSubjectTypes(): SubjectTypeRecord[] {
     id: index + 1,
     code: opt.value,
     label: opt.label,
-    sortOrder: index,
   }));
 }
 
@@ -325,6 +328,14 @@ export function updateSubjectType(id: number, input: Omit<SubjectTypeInput, "cod
   return apiFetch<SubjectTypeRecord>(`/api/admin/subject-types/${id}`, {
     method: "PUT",
     body: JSON.stringify(input),
+  });
+}
+
+/** 排序模式：一次性保存全量顺序（拖拽后调用） */
+export function reorderSubjectTypes(ids: number[]) {
+  return apiFetch<void>("/api/admin/subject-types/order", {
+    method: "PUT",
+    body: JSON.stringify({ ids }),
   });
 }
 
@@ -451,13 +462,21 @@ export function deleteExperiment(id: number) {
   return apiFetch<void>(`/api/admin/experiments/${id}`, { method: "DELETE" });
 }
 
+/** 首页展示排序：一次性保存全量顺序（排序模式拖拽后调用） */
+export function reorderExperiments(ids: number[]) {
+  return apiFetch<void>("/api/admin/experiments/order", {
+    method: "PUT",
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export type CoverUploadResponse = {
   coverUrl: string;
 };
 
-export function uploadExperimentCover(file: Blob) {
+export function uploadExperimentCover(file: Blob, filename = "cover.jpg") {
   const form = new FormData();
-  form.append("file", file, "cover.jpg");
+  form.append("file", file, filename);
   return apiFetch<CoverUploadResponse>("/api/admin/experiments/cover", {
     method: "POST",
     body: form,

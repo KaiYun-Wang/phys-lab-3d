@@ -19,7 +19,7 @@ public class ExperimentCoverServiceImpl implements IExperimentCoverService {
     private static final String STORAGE_PLATFORM = "minio-covers";
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/webp");
+            "image/jpeg", "image/png", "image/webp", "image/svg+xml");
 
     private static final long MAX_SIZE = 2 * 1024 * 1024;
 
@@ -35,12 +35,15 @@ public class ExperimentCoverServiceImpl implements IExperimentCoverService {
         }
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
-            throw new ApiException(400, "仅支持 JPG / PNG / WebP");
+            throw new ApiException(400, "仅支持 JPG / PNG / WebP / SVG");
         }
 
         String ext = switch (contentType) {
             case "image/png" -> ".png";
             case "image/webp" -> ".webp";
+            // ponytail: SVG 以矢量取景形式上传（原图 + 2:1 viewBox 窗口）；
+            // serve 时对 SVG 加 CSP sandbox，直接打开 URL 也不会执行脚本
+            case "image/svg+xml" -> ".svg";
             default -> ".jpg";
         };
 

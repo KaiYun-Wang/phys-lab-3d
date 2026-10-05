@@ -28,7 +28,16 @@ public class CoverController {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        response.setContentType(contentType(filename));
+        String type = contentType(filename);
+        response.setContentType(type);
+        // 防 MIME 嗅探：声明什么类型就按什么类型渲染
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        if ("image/svg+xml".equals(type)) {
+            // SVG 本质是可执行文档：sandbox 使其以唯一源、禁脚本加载，
+            // 即使被直接打开该 URL 也不构成同源 XSS；保留内联 style 供正常渲染
+            response.setHeader("Content-Security-Policy",
+                    "sandbox; default-src 'none'; style-src 'unsafe-inline'");
+        }
         fileStorageService.download(fileInfo).outputStream(response.getOutputStream());
     }
 
@@ -45,6 +54,9 @@ public class CoverController {
         }
         if (filename.endsWith(".webp")) {
             return "image/webp";
+        }
+        if (filename.endsWith(".svg")) {
+            return "image/svg+xml";
         }
         return "image/jpeg";
     }

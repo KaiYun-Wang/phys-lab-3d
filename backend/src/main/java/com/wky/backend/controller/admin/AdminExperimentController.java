@@ -3,6 +3,7 @@ package com.wky.backend.controller.admin;
 import com.wky.backend.domain.dto.CoverUploadResponse;
 import com.wky.backend.domain.dto.CreateExperimentRequest;
 import com.wky.backend.domain.dto.ExperimentResponse;
+import com.wky.backend.domain.dto.IdOrderRequest;
 import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.domain.dto.UpdateExperimentRequest;
 import com.wky.backend.service.IExperimentCoverService;
@@ -67,5 +68,12 @@ public class AdminExperimentController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         experimentService.adminDelete(id);
+    }
+
+    /** 首页展示排序：一次性保存全量顺序（排序模式拖拽后调用） */
+    @PutMapping("/order")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reorder(@Valid @RequestBody IdOrderRequest request) {
+        experimentService.adminReorder(request.getIds());
     }
 }

@@ -12,11 +12,13 @@ import {
   getExperimentSubjectLabel,
   getFallbackSubjectTypes,
   isExperimentPublished,
+  reorderExperiments,
   type AdminProfile,
   type Experiment,
   type ExperimentStatus,
   type SubjectTypeRecord,
 } from "@/lib/api";
+import { useDragList } from "@/lib/useDragList";
 import Pager from "@/components/Pager";
 import { resolveCoverUrl } from "@/lib/covers";
 import { formatCount, formatDateTime } from "@/lib/format";
@@ -40,6 +42,11 @@ export default function ExperimentsPage() {
   const [subjectFilter, setSubjectFilter] = useState<number | "all">("all");
   const [deleteTarget, setDeleteTarget] = useState<Experiment | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // 排序模式：拖拽全量列表后一次性保存
+  const [sortMode, setSortMode] = useState(false);
+  const [sortLoading, setSortLoading] = useState(false);
+  const [savingSort, setSavingSort] = useState(false);
+  const drag = useDragList<Experiment>();
   const [subjectTypes, setSubjectTypes] = useState<SubjectTypeRecord[]>([]);
 
   const loadList = useCallback(async () => {
@@ -101,6 +108,42 @@ export default function ExperimentsPage() {
     }
   }
 
+  async function enterSortMode() {
+    setSortMode(true);
+    setSortLoading(true);
+    try {
+      const data = await fetchExperiments({ page: 1, pageSize: 1000 });
+      drag.reset(data.items ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "加载排序列表失败");
+      setSortMode(false);
+    } finally {
+      setSortLoading(false);
+    }
+  }
+
+  function exitSortMode() {
+    if (savingSort) return;
+    setSortMode(false);
+    drag.reset([]);
+  }
+
+  async function saveSort() {
+    if (drag.items.length === 0) return;
+    setSavingSort(true);
+    try {
+      await reorderExperiments(drag.items.map((exp) => exp.id));
+      toast.success("排序已保存");
+      setSortMode(false);
+      drag.reset([]);
+      await loadList();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "保存排序失败");
+    } finally {
+      setSavingSort(false);
+    }
+  }
+
   if (!admin) {
     return <div className="auth-loading">加载中…</div>;
   }
@@ -110,12 +153,108 @@ export default function ExperimentsPage() {
       <section className="page-toolbar">
         <div className="page-toolbar__left">
           <h2 className="page-title">实验列表</h2>
+          <p className="caption">列表顺序即首页展示顺序，点「调整排序」拖拽设置</p>
         </div>
-        <Link href="/experiments/new" className="btn-pill btn-pill--primary btn-pill--sm">
-          新建实验
-        </Link>
+        <div className="toolbar-actions">
+          <button
+            type="button"
+            className="btn-pill btn-pill--outline btn-pill--sm"
+            onClick={enterSortMode}
+            disabled={sortMode || sortLoading}
+          >
+            {sortLoading ? "加载中…" : "调整排序"}
+          </button>
+          <Link href="/experiments/new" className="btn-pill btn-pill--primary btn-pill--sm">
+            新建实验
+          </Link>
+        </div>
       </section>
 
+      {sortMode ? (
+        <section className="card card--elevated">
+          <div className="sort-toolbar">
+            <p className="caption">
+              拖拽行调整顺序（共 {drag.items.length} 个，含草稿），保存后首页立即生效
+            </p>
+            <div className="toolbar-actions">
+              <button
+                type="button"
+                className="btn-pill btn-pill--outline btn-pill--sm"
+                onClick={exitSortMode}
+                disabled={savingSort}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn-pill btn-pill--primary btn-pill--sm"
+                onClick={saveSort}
+                disabled={savingSort || sortLoading}
+              >
+                {savingSort ? "保存中…" : "保存排序"}
+              </button>
+            </div>
+          </div>
+
+          {sortLoading ? (
+            <p className="table-message caption">加载中…</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data-table sort-table">
+                <thead>
+                  <tr>
+                    <th>序号</th>
+                    <th>封面</th>
+                    <th>标题</th>
+                    <th>学科</th>
+                    <th>路由</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drag.items.map((exp, i) => {
+                    const coverSrc = resolveCoverUrl(exp.coverUrl);
+                    return (
+                      <tr
+                        key={exp.id}
+                        draggable
+                        className={drag.draggingIndex === i ? "is-dragging" : undefined}
+                        onDragStart={(e) => drag.onDragStart(e, i)}
+                        onDragEnter={() => drag.onDragEnter(i)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => e.preventDefault()}
+                        onDragEnd={drag.onDragEnd}
+                      >
+                        <td className="sort-table__pos">
+                          <i className="fa-solid fa-grip-vertical sort-handle" aria-hidden />
+                          {i + 1}
+                        </td>
+                        <td>
+                          <div className="cover-thumb">
+                            {coverSrc ? (
+                              <img src={coverSrc} alt="" />
+                            ) : (
+                              <span className="cover-thumb__fallback" title={exp.title}>
+                                {exp.title.slice(0, 2)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="data-table__title">{exp.title}</span>
+                        </td>
+                        <td>{getExperimentSubjectLabel(exp, subjectTypes)}</td>
+                        <td>
+                          <code className="mono-tag">{exp.route}</code>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : (
       <section className="card card--elevated">
         <div className="table-toolbar">
           <form
@@ -263,6 +402,7 @@ export default function ExperimentsPage() {
           <Pager page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} variant="jump" />
         ) : null}
       </section>
+      )}
 
       {deleteTarget ? (
         <div className="modal-overlay" role="presentation" onClick={() => !deleting && setDeleteTarget(null)}>

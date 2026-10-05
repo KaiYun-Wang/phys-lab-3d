@@ -2,6 +2,7 @@ package com.wky.backend.controller.admin;
 
 import com.wky.backend.domain.dto.ExampleQuestionRequest;
 import com.wky.backend.domain.dto.ExampleQuestionResponse;
+import com.wky.backend.domain.dto.IdOrderRequest;
 import com.wky.backend.domain.dto.PageResponse;
 import com.wky.backend.service.IExampleQuestionService;
 import jakarta.validation.Valid;
@@ -55,5 +56,12 @@ public class AdminExampleQuestionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         exampleQuestionService.delete(id);
+    }
+
+    /** 排序模式：一次性保存全量顺序（拖拽后调用） */
+    @PutMapping("/order")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reorder(@Valid @RequestBody IdOrderRequest request) {
+        exampleQuestionService.adminReorder(request.getIds());
     }
 }

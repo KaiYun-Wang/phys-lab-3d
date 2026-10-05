@@ -74,7 +74,7 @@ public class SubjectTypeServiceImpl extends ServiceImpl<SubjectTypeMapper, Subje
         subjectType.setCode(request.getCode());
         subjectType.setLabel(request.getLabel());
         subjectType.setDescription(request.getDescription());
-        subjectType.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+        subjectType.setSortOrder(nextSortOrder());
         save(subjectType);
         return SubjectTypeResponse.from(subjectType);
     }
@@ -92,9 +92,6 @@ public class SubjectTypeServiceImpl extends ServiceImpl<SubjectTypeMapper, Subje
         subjectType.setCode(request.getCode());
         subjectType.setLabel(request.getLabel());
         subjectType.setDescription(request.getDescription());
-        if (request.getSortOrder() != null) {
-            subjectType.setSortOrder(request.getSortOrder());
-        }
         updateById(subjectType);
 
         if (!oldCode.equals(request.getCode())) {
@@ -116,5 +113,29 @@ public class SubjectTypeServiceImpl extends ServiceImpl<SubjectTypeMapper, Subje
         if (!removeById(id)) {
             throw new ApiException(404, "学科类型不存在");
         }
+    }
+
+    @Override
+    @Transactional
+    public void adminReorder(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new ApiException(400, "排序列表不能为空");
+        }
+        if (ids.stream().distinct().count() != ids.size()) {
+            throw new ApiException(400, "排序列表存在重复 id");
+        }
+        if (ids.size() != count()) {
+            throw new ApiException(409, "排序列表与学科分类总数不一致，请刷新后重试");
+        }
+        // 单条 SQL 原子覆盖（unnest + ORDINALITY）；不经过实体更新，update_time 不会被刷
+        baseMapper.updateSortOrder(ids.stream().map(String::valueOf).collect(Collectors.joining(",")));
+    }
+
+    private int nextSortOrder() {
+        SubjectType last = getOne(new LambdaQueryWrapper<SubjectType>()
+                .orderByDesc(SubjectType::getSortOrder)
+                .orderByDesc(SubjectType::getId)
+                .last("LIMIT 1"));
+        return last == null || last.getSortOrder() == null ? 0 : last.getSortOrder() + 1;
     }
 }

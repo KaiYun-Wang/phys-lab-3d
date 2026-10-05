@@ -141,8 +141,6 @@ function ExperimentCard({
             <ExperimentThumbnail route={exp.route} className="kh-card__thumb" />
           )}
 
-          <span className="kh-card__title-chip">{exp.title}</span>
-
           <button
             type="button"
             onClick={handleFavorite}

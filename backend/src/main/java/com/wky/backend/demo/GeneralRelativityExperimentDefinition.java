@@ -34,8 +34,11 @@ public class GeneralRelativityExperimentDefinition implements ExperimentDefiniti
     @Override
     public String capabilityPrompt() {
         return "实验：广义相对论 · 史瓦西黑洞（route=general-relativity）\n"
-                + "界面：左侧控制栏自上而下依次为黑洞质量、粒子发射距离/切向速度/径向速度与「发射粒子」、"
-                + "光子碰撞参数与「发射光子」、显示图层。口播勿说从左到右。\n"
+                + "界面：左侧控制栏自上而下为「黑洞参数」组（质量 M 滑块）、"
+                + "「测试粒子（测地线轨道）」组（坠入/逃逸 两个快捷预设按钮、发射距离 r、切向速度、径向速度滑块与「发射粒子」按钮）、"
+                + "「引力透镜（光子路径）」组（碰撞参数 b 滑块与「发射光子」按钮）、原理说明。口播勿说从左到右。"
+                + "旧的「显示图层」开关已移除，禁止再提（场景内容示意由场景本身表达）。\n"
+                + "「坠入」「逃逸」按钮会一次性设好发射距离与两个速度（简化快捷操作，不作为 focus 目标）。\n"
                 + "可调参数（仅这些）：\n"
                 + "- blackHoleMass：黑洞质量 M，范围 [2, 12]，步长 0.1\n"
                 + "- particleLaunchRadius：粒子发射距离 r，范围 [ceil(1.08*2M), 80]，步长 0.1；下限随质量变化\n"

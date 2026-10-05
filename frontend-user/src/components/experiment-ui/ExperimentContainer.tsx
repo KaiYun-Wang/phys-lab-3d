@@ -21,8 +21,7 @@ import { unlockMedia } from "@/lib/demoSpeech";
 import AiChatWidget from "@/components/AiChatWidget";
 import { fetchExperiment, type AiChatContext } from "@/lib/api";
 
-const LEFT_W_KEY = "physlab.rail.leftWidth";
-const RIGHT_W_KEY = "physlab.rail.rightWidth";
+/** 侧栏宽度只在本次进入实验页内生效：不做持久化，重新进实验页一律回默认值 */
 const DEFAULT_W = 340;
 const MIN_W = 240;
 
@@ -33,13 +32,6 @@ function maxW() {
 
 function clampW(n: number) {
   return Math.max(MIN_W, Math.min(maxW(), n));
-}
-
-function readStoredWidth(key: string) {
-  if (typeof window === "undefined") return DEFAULT_W;
-  const raw = localStorage.getItem(key);
-  const n = raw ? parseFloat(raw) : DEFAULT_W;
-  return Number.isFinite(n) ? clampW(n) : DEFAULT_W;
 }
 
 function CanvasResizeHandler({ suspend }: { suspend: boolean }) {
@@ -184,6 +176,7 @@ export function ExperimentContainer({
   const [resizing, setResizing] = useState<"left" | "right" | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dragRef = useRef({ startX: 0, startW: 0, currentW: 0 });
@@ -200,9 +193,9 @@ export function ExperimentContainer({
     cameraResetRef.current?.();
   }, []);
 
-  // 全屏：只把主视口区域放大，左右栏保持
+  // 全屏：整个工作台（含左右栏）一起进全屏，侧栏保持原样不动
   const toggleFullscreen = useCallback(async () => {
-    const el = mainRef.current;
+    const el = shellRef.current;
     if (!el) return;
     try {
       if (document.fullscreenElement) {
@@ -222,11 +215,6 @@ export function ExperimentContainer({
   }, []);
 
   const rightOpen = rightPanel !== null;
-
-  useEffect(() => {
-    setLeftWidth(readStoredWidth(LEFT_W_KEY));
-    setRightWidth(readStoredWidth(RIGHT_W_KEY));
-  }, []);
 
   // ?aiSession=<id> 深链：从个人中心点历史会话跳来时，自动打开右栏 AI 面板
   useEffect(() => {
@@ -308,14 +296,12 @@ export function ExperimentContainer({
     return () => window.removeEventListener("keydown", onKey);
   }, [leftOpen, rightPanel]);
 
-  const persistWidth = useCallback((side: "left" | "right", w: number) => {
+  const applyWidth = useCallback((side: "left" | "right", w: number) => {
     const clamped = clampW(w);
     if (side === "left") {
       setLeftWidth(clamped);
-      localStorage.setItem(LEFT_W_KEY, String(clamped));
     } else {
       setRightWidth(clamped);
-      localStorage.setItem(RIGHT_W_KEY, String(clamped));
     }
   }, []);
 
@@ -342,7 +328,7 @@ export function ExperimentContainer({
       else setRightWidth(next);
     };
     const onUp = () => {
-      persistWidth(resizing, dragRef.current.currentW);
+      applyWidth(resizing, dragRef.current.currentW);
       setResizing(null);
     };
     window.addEventListener("pointermove", onMove);
@@ -353,7 +339,7 @@ export function ExperimentContainer({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [resizing, persistWidth]);
+  }, [resizing, applyWidth]);
 
   const toggleRight = (panel: Exclude<RightPanel, null>) => {
     setRightPanel((cur) => (cur === panel ? null : panel));
@@ -383,6 +369,7 @@ export function ExperimentContainer({
 
   return (
     <div
+      ref={shellRef}
       className={`exp-shell${leftOpen ? " open-left" : ""}${rightOpen ? " open-right" : ""}${
         resizing ? " is-resizing" : ""
       }${narrow ? " is-narrow" : ""}`}
@@ -393,7 +380,7 @@ export function ExperimentContainer({
         <div
           className={`exp-rail-resizer${resizing === "left" ? " active" : ""}`}
           onPointerDown={onResizePointerDown("left")}
-          onDoubleClick={() => persistWidth("left", DEFAULT_W)}
+          onDoubleClick={() => applyWidth("left", DEFAULT_W)}
           title="拖动调整宽度"
         />
         <div className="exp-rail-inner">
@@ -689,7 +676,7 @@ export function ExperimentContainer({
         <div
           className={`exp-rail-resizer${resizing === "right" ? " active" : ""}`}
           onPointerDown={onResizePointerDown("right")}
-          onDoubleClick={() => persistWidth("right", DEFAULT_W)}
+          onDoubleClick={() => applyWidth("right", DEFAULT_W)}
           title="拖动调整宽度"
         />
         <div className="exp-rail-inner">

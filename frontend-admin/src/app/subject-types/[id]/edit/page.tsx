@@ -101,7 +101,6 @@ export default function EditSubjectTypePage() {
     code: subjectType.code,
     label: subjectType.label,
     description: subjectType.description ?? "",
-    sortOrder: subjectType.sortOrder,
   };
 
   return (

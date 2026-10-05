@@ -4,7 +4,14 @@ import { ChangeEvent, useCallback, useEffect, useId, useRef, useState } from "re
 import Cropper, { type Area, type MediaSize, type Size } from "react-easy-crop";
 import { uploadExperimentCover } from "@/lib/api";
 import { resolveCoverUrl } from "@/lib/covers";
-import { computeCoverZoom, cropImageToBlob, COVER_ASPECT } from "@/lib/cropImage";
+import {
+  computeCoverZoom,
+  cropImageToBlob,
+  cropSvgToBlob,
+  prepareSvgForCrop,
+  COVER_ASPECT,
+  type SvgCropSource,
+} from "@/lib/cropImage";
 import { useToast } from "@/components/Toast";
 
 type CoverUploadFieldProps = {
@@ -27,6 +34,9 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const coverInitializedRef = useRef(false);
+  // SVG 矢量取景：原图文档与显示用的 blob URL（栅格图时为空）
+  const svgSourceRef = useRef<SvgCropSource | null>(null);
+  const [cropIsSvg, setCropIsSvg] = useState(false);
 
   const previewSrc = resolveCoverUrl(value);
 
@@ -55,6 +65,47 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
     fileRef.current?.click();
   }
 
+  // 清空封面（需随表单保存才持久化）；不删 MinIO 文件，与更换封面行为一致
+  function handleRemoveCover() {
+    if (disabled || uploading) return;
+    setError("");
+    onChange("");
+  }
+
+  function resetCropState() {
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setMinZoom(1);
+    setMediaSize(null);
+    setCropSize(null);
+    setCroppedArea(null);
+  }
+
+  function releaseSvgSource() {
+    if (svgSourceRef.current) {
+      URL.revokeObjectURL(svgSourceRef.current.url);
+      svgSourceRef.current = null;
+    }
+    setCropIsSvg(false);
+  }
+
+  async function openSvgCropper(file: File) {
+    try {
+      const source = prepareSvgForCrop(await file.text());
+      if (!source) {
+        setError("无法解析该 SVG（需为有效矢量文件，且带 viewBox 或 px 宽高）");
+        return;
+      }
+      releaseSvgSource();
+      svgSourceRef.current = source;
+      setCropIsSvg(true);
+      resetCropState();
+      setImageSrc(source.url);
+    } catch {
+      setError("SVG 读取失败");
+    }
+  }
+
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -63,18 +114,23 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
       setError("请选择图片文件");
       return;
     }
+    // SVG 矢量图：同样 2:1 取景，但输出不栅格化（原图内容完整保留）
+    if (file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError("SVG 文件不能超过 2MB");
+        return;
+      }
+      void openSvgCropper(file);
+      return;
+    }
     if (file.size > 10 * 1024 * 1024) {
       setError("图片不能超过 10MB");
       return;
     }
+    releaseSvgSource();
     const reader = new FileReader();
     reader.onload = () => {
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setMinZoom(1);
-      setMediaSize(null);
-      setCropSize(null);
-      setCroppedArea(null);
+      resetCropState();
       setImageSrc(reader.result as string);
     };
     reader.readAsDataURL(file);
@@ -84,6 +140,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
     if (uploading) return;
     setImageSrc(null);
     setError("");
+    releaseSvgSource();
   }
 
   async function confirmCrop() {
@@ -91,10 +148,12 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
     setUploading(true);
     setError("");
     try {
-      const blob = await cropImageToBlob(imageSrc, croppedArea);
-      const { coverUrl } = await uploadExperimentCover(blob);
+      const source = svgSourceRef.current;
+      const blob = source ? cropSvgToBlob(source, croppedArea) : await cropImageToBlob(imageSrc, croppedArea);
+      const { coverUrl } = await uploadExperimentCover(blob, source ? "cover.svg" : "cover.jpg");
       onChange(coverUrl);
       setImageSrc(null);
+      releaseSvgSource();
       toast.success("封面上传成功");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "上传失败");
@@ -109,7 +168,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
         ref={fileRef}
         id={inputId}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/svg+xml"
         className="cover-upload__file-input"
         onChange={handleFileChange}
         tabIndex={-1}
@@ -129,19 +188,27 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
       </div>
 
       <div className="cover-upload__controls">
-        <button
-          type="button"
-          className="btn-pill btn-pill--outline btn-pill--sm"
-          onClick={openFilePicker}
-          disabled={disabled || uploading}
-        >
-          {uploading ? "上传中…" : value ? "更换封面" : "上传封面"}
-        </button>
-        <p className="field-hint">
-          JPG / PNG / WebP，原图不超过 10MB
-          <br />
-          固定 2:1 裁剪，输出 800 × 400（约 200KB 内）
-        </p>
+        <div className="cover-upload__buttons">
+          <button
+            type="button"
+            className="btn-pill btn-pill--outline btn-pill--sm"
+            onClick={openFilePicker}
+            disabled={disabled || uploading}
+          >
+            {uploading ? "上传中…" : value ? "更换封面" : "上传封面"}
+          </button>
+          {value ? (
+            <button
+              type="button"
+              className="btn-pill btn-pill--outline btn-pill--sm"
+              onClick={handleRemoveCover}
+              disabled={disabled || uploading}
+            >
+              删除封面
+            </button>
+          ) : null}
+        </div>
+        <p className="field-hint">JPG / PNG / WebP / SVG，统一 2:1 取景（位图 ≤10MB，SVG ≤2MB）</p>
         {error && !imageSrc ? <p className="form-error">{error}</p> : null}
       </div>
 
@@ -155,7 +222,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="heading-sm" id="cover-crop-title">
-              裁剪封面（2:1 · 800 × 400）
+              {cropIsSvg ? "裁剪封面（2:1 矢量取景）" : "裁剪封面（2:1 · 800 × 400）"}
             </h3>
             <div className="cover-cropper">
               <Cropper

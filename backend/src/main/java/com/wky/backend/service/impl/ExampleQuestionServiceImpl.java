@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExampleQuestionServiceImpl extends ServiceImpl<ExampleQuestionMapper, ExampleQuestion>
@@ -42,7 +43,7 @@ public class ExampleQuestionServiceImpl extends ServiceImpl<ExampleQuestionMappe
                     .or()
                     .like(ExampleQuestion::getQuestion, keyword));
         }
-        wrapper.orderByAsc(ExampleQuestion::getSortOrder).orderByDesc(ExampleQuestion::getId);
+        wrapper.orderByAsc(ExampleQuestion::getSortOrder).orderByAsc(ExampleQuestion::getId);
         Page<ExampleQuestion> result = page(new Page<>(page, size), wrapper);
         return new PageResponse<>(
                 result.getRecords().stream().map(ExampleQuestionResponse::from).toList(),
@@ -65,6 +66,7 @@ public class ExampleQuestionServiceImpl extends ServiceImpl<ExampleQuestionMappe
     public ExampleQuestionResponse create(ExampleQuestionRequest request) {
         ExampleQuestion row = new ExampleQuestion();
         apply(row, request);
+        row.setSortOrder(nextSortOrder());
         save(row);
         return ExampleQuestionResponse.from(row);
     }
@@ -94,7 +96,30 @@ public class ExampleQuestionServiceImpl extends ServiceImpl<ExampleQuestionMappe
         row.setDescription(blankToNull(request.getDescription()));
         row.setIcon(blankToNull(request.getIcon()));
         row.setQuestion(request.getQuestion().trim());
-        row.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
+    }
+
+    @Override
+    @Transactional
+    public void adminReorder(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new ApiException(400, "排序列表不能为空");
+        }
+        if (ids.stream().distinct().count() != ids.size()) {
+            throw new ApiException(400, "排序列表存在重复 id");
+        }
+        if (ids.size() != count()) {
+            throw new ApiException(409, "排序列表与示例问题总数不一致，请刷新后重试");
+        }
+        // 单条 SQL 原子覆盖（unnest + ORDINALITY）；不经过实体更新，update_time 不会被刷
+        baseMapper.updateSortOrder(ids.stream().map(String::valueOf).collect(Collectors.joining(",")));
+    }
+
+    private int nextSortOrder() {
+        ExampleQuestion last = getOne(new LambdaQueryWrapper<ExampleQuestion>()
+                .orderByDesc(ExampleQuestion::getSortOrder)
+                .orderByDesc(ExampleQuestion::getId)
+                .last("LIMIT 1"));
+        return last == null || last.getSortOrder() == null ? 0 : last.getSortOrder() + 1;
     }
 
     private static String blankToNull(String value) {

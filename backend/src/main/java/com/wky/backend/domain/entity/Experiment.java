@@ -33,6 +33,9 @@ public class Experiment {
 
     private String coverUrl;
 
+    /** 首页展示排序（升序，越小越靠前；管理端上移/下移维护） */
+    private Integer sortOrder;
+
     @TableField(typeHandler = JsonbTypeHandler.class)
     private List<String> topics;
 

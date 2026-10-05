@@ -3,11 +3,12 @@
 import { useId } from "react";
 
 /**
- * 实验卡片封面示意图。
+ * 实验卡片封面示意图（仅在没有自定义封面时作为兜底）。
  *
  * 设计稿的每张卡片都有一幅「技术示意」预览图（双缝干涉条纹、文丘里管、
  * 光锥、测地线、横/纵波、声波阵面、透镜光路、光电管），而不是纯色占位。
  * 这里按实验 route 逐一手绘为 SVG，配色沿用 Kinetic Horizon（蓝 → 青）。
+ * 注意：封面保持纯净 —— 不叠加任何文字（含实验名）；自定义封面走后台 cover_url。
  */
 
 const STROKE = "#22d3ee";
@@ -17,8 +18,6 @@ const WARM = "#fbbf24";
 
 type Props = {
   route: string;
-  /** 居中叠加的实验名；留空则不渲染（轮播卡自带标题时用） */
-  title?: string;
   className?: string;
 };
 
@@ -231,7 +230,7 @@ const SCHEMATICS: Record<string, () => React.ReactElement> = {
   photoelectric: Photoelectric,
 };
 
-export default function ExperimentThumbnail({ route, title, className }: Props) {
+export default function ExperimentThumbnail({ route, className }: Props) {
   const uid = useId().replace(/:/g, "");
   const Schematic = SCHEMATICS[route];
   const clipId = `thumb-clip-${uid}`;
@@ -258,8 +257,6 @@ export default function ExperimentThumbnail({ route, title, className }: Props) 
         </g>
       </svg>
 
-      {/* 居中叠加的实验名（设计稿：预览图内直接压标题） */}
-      {title ? <span className="kh-thumb__title">{title}</span> : null}
       <span className="kh-thumb__scan" aria-hidden />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, ExternalLink, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import ExperimentThumbnail from "@/components/ExperimentThumbnail";
 import {
   experimentCoverSrc,
@@ -19,19 +19,6 @@ function rankOffset(i: number, index: number, n: number) {
   if (d > n / 2) d -= n;
   if (d < -n / 2) d += n;
   return d;
-}
-
-/**
- * 轮播卡片上的参数行。
- *
- * 设计稿此处是 `λ = 532 nm · 双缝间距 d = 0.25mm`，但那是虚构数值，且与平台
- * 实际参数冲突（双缝无波长滑块、λ≈500nm、d 为 0.5–5mm），故不照抄。
- * 这里用实验自身的 topics 拼一行真实标签；若后端补 `specLine` 字段，替换此处即可。
- */
-function specLineFor(exp: Experiment): string | null {
-  const real = exp.topics?.filter(Boolean) ?? [];
-  if (real.length === 0) return null;
-  return real.slice(0, 2).join(" · ");
 }
 
 export default function FavoritesRankCarousel({ experiments }: Props) {
@@ -161,12 +148,7 @@ export default function FavoritesRankCarousel({ experiments }: Props) {
             const rotX = d === 0 ? 6 : 7;
             const scale = d === 0 ? 1 : Math.max(0.88, 1 - abs * 0.05);
 
-            let depth = "is-far";
-            if (d === 0) depth = "is-active";
-            else if (d === 1) depth = "is-next";
-            else if (d === -1) depth = "is-prev";
-
-            const spec = specLineFor(exp);
+            const depth = d === 0 ? "is-active" : d === 1 ? "is-next" : d === -1 ? "is-prev" : "is-far";
             const isActive = d === 0;
 
             return (
@@ -202,7 +184,7 @@ export default function FavoritesRankCarousel({ experiments }: Props) {
                     <ExperimentThumbnail route={exp.route} />
                   )}
 
-                  {/* 预览窗内的覆盖层 */}
+                  {/* 预览窗内的覆盖层（封面保持纯净，不叠加任何文字） */}
                   <span className="kh-card-grid" aria-hidden />
                   {isActive && (
                     <span className="kh-ripples" aria-hidden>
@@ -212,15 +194,6 @@ export default function FavoritesRankCarousel({ experiments }: Props) {
                     </span>
                   )}
                   <span className="sx-float-veil" aria-hidden />
-
-                  {/* 中央：参数行 + 标题 */}
-                  <span className="sx-float-center">
-                    {spec && <span className="sx-float-spec">{spec}</span>}
-                    <span className="sx-float-heading">
-                      <span className="sx-float-heading__text">{exp.title}</span>
-                      <ExternalLink size={13} aria-hidden />
-                    </span>
-                  </span>
                 </div>
 
                 {/* 底部信息条 */}

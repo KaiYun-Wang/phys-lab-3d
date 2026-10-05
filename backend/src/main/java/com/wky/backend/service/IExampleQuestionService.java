@@ -21,4 +21,7 @@ public interface IExampleQuestionService extends IService<ExampleQuestion> {
     ExampleQuestionResponse update(Long id, ExampleQuestionRequest request);
 
     void delete(Long id);
+
+    /** 排序模式：一次性保存全量顺序（按传入顺序重编号 0..n-1） */
+    void adminReorder(List<Long> ids);
 }

@@ -34,7 +34,8 @@ public class WaveMechanicsExperimentDefinition implements ExperimentDefinition {
     @Override
     public String capabilityPrompt() {
         return "实验：横波与纵波对比（route=wave-mechanics）\n"
-                + "界面：左侧控制栏自上而下为频率、振幅、波长与视图模式按钮。口播勿说从左到右。\n"
+                + "界面：左侧控制栏自上而下为「波动参数」组（频率、振幅、波长滑块）、"
+                + "「视图模式」组（对比/横波/纵波/叠加四个按钮）、原理说明。口播勿说从左到右。\n"
                 + "可调参数（仅这些）：\n"
                 + "- frequency：频率 f，单位 Hz，范围 [0.5, 4]，步长 0.1\n"
                 + "- amplitude：振幅 A，范围 [0.2, 2]，步长 0.1\n"
@@ -50,8 +51,9 @@ public class WaveMechanicsExperimentDefinition implements ExperimentDefinition {
                 + "animate=false：只口播，不要 params/focus（或可省略）。\n"
                 + "参数可读名（口播对照，勿把键名直接念出）："
                 + "frequency→频率/frequency，amplitude→振幅/amplitude，wavelength→波长/wavelength，"
-                + "viewMode→视图模式/view mode（说「对比视图」「横波视图」「纵波视图」）。\n"
-                + "narration：2～4 句教学口语；引导学生看两侧质点振动方式与读数面板（波速、波数、角频率）。\n";
+                + "viewMode→视图模式/view mode（按钮依次是「对比」「横波」「纵波」「叠加」，"
+                + "说「切到横波」「切到纵波」「左右对比」）。\n"
+                + "narration：2～4 句教学口语；引导学生看两侧质点振动方式与左上角读数（波速、波数 k、角频率 ω、位移极值）。\n";
     }
 
     @Override

@@ -46,6 +46,8 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
     @Override
     public List<ExperimentResponse> listPublished(String q, Long userId) {
         LambdaQueryWrapper<Experiment> wrapper = publishedWrapper(q);
+        // 首页展示顺序：管理端维护的 sort_order 升序，同值按 id 兜底
+        wrapper.orderByAsc(Experiment::getSortOrder);
         wrapper.orderByAsc(Experiment::getId);
         List<Experiment> experiments = list(wrapper);
         return toResponses(experiments, userId);
@@ -77,7 +79,8 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         if (subjectTypeId != null) {
             wrapper.eq(Experiment::getSubjectTypeId, subjectTypeId);
         }
-        wrapper.orderByDesc(Experiment::getUpdateTime).orderByDesc(Experiment::getId);
+        // 与首页同序，方便管理端「排序」列所见即所得
+        wrapper.orderByAsc(Experiment::getSortOrder).orderByAsc(Experiment::getId);
 
         Page<Experiment> result = page(new Page<>(page, pageSize), wrapper);
         List<ExperimentResponse> records = toResponses(result.getRecords(), null);
@@ -104,9 +107,10 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         experiment.setSubjectTypeId(subjectType.getId());
         experiment.setSubjectType(subjectType.getCode());
         experiment.setDescription(request.getDescription());
-        experiment.setCoverUrl(request.getCoverUrl());
+        experiment.setCoverUrl(normalizeCoverUrl(request.getCoverUrl()));
         experiment.setTopics(normalizeTopics(request.getTopics()));
         experiment.setStatus(request.getStatus() != null ? request.getStatus() : ExperimentStatus.PUBLISHED);
+        experiment.setSortOrder(nextSortOrder());
         experiment.setVisitorCount(0L);
         experiment.setFavoriteCount(0L);
         experiment.setViewCount(0L);
@@ -125,7 +129,7 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         experiment.setSubjectTypeId(subjectType.getId());
         experiment.setSubjectType(subjectType.getCode());
         experiment.setDescription(request.getDescription());
-        experiment.setCoverUrl(request.getCoverUrl());
+        experiment.setCoverUrl(normalizeCoverUrl(request.getCoverUrl()));
         experiment.setTopics(normalizeTopics(request.getTopics()));
         experiment.setStatus(request.getStatus());
         updateById(experiment);
@@ -138,6 +142,22 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
         if (!removeById(id)) {
             throw new ApiException(404, "实验不存在");
         }
+    }
+
+    @Override
+    @Transactional
+    public void adminReorder(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new ApiException(400, "排序列表不能为空");
+        }
+        if (ids.stream().distinct().count() != ids.size()) {
+            throw new ApiException(400, "排序列表存在重复 id");
+        }
+        if (ids.size() != count()) {
+            throw new ApiException(409, "排序列表与实验总数不一致，请刷新后重试");
+        }
+        // 单条 SQL 原子覆盖（unnest + ORDINALITY）；不经过实体更新，update_time 不会被刷
+        baseMapper.updateSortOrder(ids.stream().map(String::valueOf).collect(Collectors.joining(",")));
     }
 
     @Override
@@ -208,5 +228,19 @@ public class ExperimentServiceImpl extends ServiceImpl<ExperimentMapper, Experim
 
     private static List<String> normalizeTopics(List<String> topics) {
         return topics == null ? Collections.emptyList() : topics;
+    }
+
+    /** 新实验一律排在末尾 */
+    private int nextSortOrder() {
+        Experiment last = getOne(new LambdaQueryWrapper<Experiment>()
+                .orderByDesc(Experiment::getSortOrder)
+                .orderByDesc(Experiment::getId)
+                .last("LIMIT 1"));
+        return last == null || last.getSortOrder() == null ? 0 : last.getSortOrder() + 1;
+    }
+
+    /** updateById 默认跳过 null 字段：封面等可清空字段统一归一为 ''（空串会被纳入 UPDATE） */
+    private static String normalizeCoverUrl(String coverUrl) {
+        return coverUrl == null ? "" : coverUrl;
     }
 }

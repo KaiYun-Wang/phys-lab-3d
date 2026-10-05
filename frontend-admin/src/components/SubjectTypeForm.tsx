@@ -25,9 +25,6 @@ export default function SubjectTypeForm({
   const [code, setCode] = useState(initial.code);
   const [label, setLabel] = useState(initial.label);
   const [description, setDescription] = useState(initial.description ?? "");
-  const [sortOrder, setSortOrder] = useState(
-    initial.sortOrder !== undefined ? String(initial.sortOrder) : "",
-  );
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -35,7 +32,6 @@ export default function SubjectTypeForm({
       code: code.trim().toUpperCase(),
       label: label.trim(),
       description: description.trim() || undefined,
-      sortOrder: sortOrder.trim() ? Number(sortOrder) : undefined,
     });
   }
 
@@ -84,20 +80,6 @@ export default function SubjectTypeForm({
             placeholder="力学"
             required
           />
-        </div>
-
-        <div className="field">
-          <label htmlFor="sortOrder">排序</label>
-          <input
-            className="text-input"
-            id="sortOrder"
-            type="number"
-            min={0}
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            placeholder="0"
-          />
-          <p className="field-hint">数值越小越靠前，留空则按创建顺序。</p>
         </div>
 
         <div className="field field--full">

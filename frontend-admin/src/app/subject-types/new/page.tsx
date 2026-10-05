@@ -11,7 +11,6 @@ const DEFAULT_VALUES: SubjectTypeFormValues = {
   code: "",
   label: "",
   description: "",
-  sortOrder: 0,
 };
 
 export default function NewSubjectTypePage() {
