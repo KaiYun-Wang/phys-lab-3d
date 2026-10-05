@@ -9,11 +9,38 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  function collectErrors() {
+    const errs: { username?: string; password?: string } = {};
+    if (!username.trim()) errs.username = "请输入用户名";
+    if (!password) errs.password = "请输入密码";
+    return errs;
+  }
+
+  // 失焦即校验单字段（与用户端登录一致）
+  function handleBlur(field: "username" | "password") {
+    const errs = collectErrors();
+    setFieldErrors((prev) => ({ ...prev, [field]: errs[field] }));
+  }
+
+  function handleChange(field: "username" | "password", value: string) {
+    if (field === "username") setUsername(value);
+    else setPassword(value);
+    // 输入时即时清除该字段错误
+    if (fieldErrors[field]) setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const errs = collectErrors();
+    if (errs.username || errs.password) {
+      setFieldErrors(errs);
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -29,51 +56,122 @@ export default function LoginPage() {
 
   return (
     <main className="login-screen">
-      <div className="login-wrap">
-        <div className="login-brand">
-          <span className="login-brand__name">PhysLab 3D</span>
-          <span className="eyebrow">管理后台</span>
+      {/* 细密网格 + 光晕背景（与用户端 auth-backdrop 同款） */}
+      <div className="auth-backdrop" aria-hidden>
+        <span className="auth-backdrop__glyph" style={{ top: "24%", left: "3rem" }}>
+          ψ(r,θ,φ) = Rₙₗ(r)·Yₗₘ(θ,φ)
+        </span>
+        <span className="auth-backdrop__glyph" style={{ bottom: "26%", right: "3.5rem" }}>
+          ℏ = 1.0545718×10⁻³⁴ J·s
+        </span>
+        <span className="auth-backdrop__glyph" style={{ top: "68%", left: "9%" }}>
+          ∮ E·dA = Q/ε₀
+        </span>
+      </div>
+
+      <section className="auth-shell">
+        <div className="auth-brand">
+          <span className="auth-brand__logo">
+            <i className="fa-solid fa-atom" aria-hidden />
+          </span>
+          <span className="auth-brand__name">PhysLab 3D</span>
         </div>
 
-        <div className="login-card">
-          <div className="login-card__head">
-            <span className="pill-tag pill-tag--mint">Admin</span>
-            <h1>登录</h1>
-            <p className="caption">使用管理员账号访问后台</p>
+        <div className="auth-card">
+          <div className="auth-card__head">
+            <h1 className="auth-title">管理终端登录</h1>
+            <p className="auth-subtitle">仅限授权管理员访问</p>
           </div>
 
-          <form className="login-form" onSubmit={handleSubmit}>
-            <div className="field">
+          <form onSubmit={handleSubmit}>
+            <div className="auth-field">
               <label htmlFor="username">用户名</label>
-              <input
-                className="text-input"
-                id="username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
+              <div className="auth-input-wrap">
+                <span className="auth-input-wrap__icon">
+                  <i className="fa-solid fa-user" aria-hidden />
+                </span>
+                <input
+                  className={`text-input auth-input${fieldErrors.username ? " is-invalid" : ""}`}
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="管理员账号"
+                  value={username}
+                  onChange={(e) => handleChange("username", e.target.value)}
+                  onBlur={() => handleBlur("username")}
+                  aria-invalid={!!fieldErrors.username}
+                  aria-describedby={fieldErrors.username ? "username-error" : undefined}
+                  required
+                />
+                {fieldErrors.username ? (
+                  <span className="auth-input-wrap__state auth-input-wrap__state--tail" aria-hidden>
+                    <i className="fa-solid fa-circle-exclamation" />
+                  </span>
+                ) : null}
+              </div>
+              {fieldErrors.username ? (
+                <p className="auth-field-error" id="username-error">
+                  <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                  {fieldErrors.username}
+                </p>
+              ) : null}
             </div>
-            <div className="field">
+
+            <div className="auth-field">
               <label htmlFor="password">密码</label>
-              <input
-                className="text-input"
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="auth-input-wrap">
+                <span className="auth-input-wrap__icon">
+                  <i className="fa-solid fa-lock" aria-hidden />
+                </span>
+                <input
+                  className={`text-input auth-input auth-input--peek${fieldErrors.password ? " is-invalid" : ""}`}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  onBlur={() => handleBlur("password")}
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  className="auth-input-wrap__peek"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                >
+                  <i className={`fa-solid ${showPassword ? "fa-eye-slash" : "fa-eye"}`} aria-hidden />
+                </button>
+                {fieldErrors.password ? (
+                  <span className="auth-input-wrap__state" aria-hidden>
+                    <i className="fa-solid fa-circle-exclamation" />
+                  </span>
+                ) : null}
+              </div>
+              {fieldErrors.password ? (
+                <p className="auth-field-error" id="password-error">
+                  <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                  {fieldErrors.password}
+                </p>
+              ) : null}
             </div>
-            {error ? <p className="form-error">{error}</p> : null}
-            <button type="submit" className="btn-pill btn-pill--primary btn-pill--full" disabled={loading}>
-              {loading ? "登录中…" : "登录"}
+
+            {error ? (
+              <p className="auth-error" role="alert">
+                <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                {error}
+              </p>
+            ) : null}
+
+            <button type="submit" className="btn-pill btn-pill--primary auth-submit" disabled={loading}>
+              <i className="fa-solid fa-right-to-bracket" aria-hidden />
+              {loading ? "登录中…" : "进入控制台"}
             </button>
           </form>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

@@ -127,6 +127,7 @@ export function fetchDashboardAnalytics(days: 7 | 30 = 7) {
 export type AnnouncementRecord = {
   id: number;
   title: string;
+  description?: string | null;
   icon?: string | null;
   content: string;
   createTime?: string;
@@ -135,6 +136,7 @@ export type AnnouncementRecord = {
 
 export type AnnouncementInput = {
   title: string;
+  description?: string;
   icon?: string;
   content: string;
 };

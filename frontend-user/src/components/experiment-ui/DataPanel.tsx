@@ -160,7 +160,8 @@ export function DataPanel({
         <button
           onClick={handleToggle}
           className="w-10 h-10 sx-overlay rounded-full flex items-center justify-center text-white hover:border-white transition-colors"
-          title="Show Data"
+          data-tooltip="显示数据"
+          aria-label="显示数据"
         >
           📊
         </button>

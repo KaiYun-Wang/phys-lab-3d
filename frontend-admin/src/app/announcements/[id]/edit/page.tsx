@@ -3,14 +3,13 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import AnnouncementForm, { type AnnouncementFormValues } from "@/components/AnnouncementForm";
 import { useToast } from "@/components/Toast";
 import {
   deleteAnnouncement,
   fetchAnnouncement,
-  fetchMe,
   updateAnnouncement,
-  type AdminProfile,
   type AnnouncementRecord,
 } from "@/lib/api";
 
@@ -20,7 +19,7 @@ export default function EditAnnouncementPage() {
   const params = useParams();
   const id = Number(params.id);
 
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [announcement, setAnnouncement] = useState<AnnouncementRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,17 +28,13 @@ export default function EditAnnouncementPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (!admin || Number.isNaN(id)) return;
+    if (Number.isNaN(id)) return;
     setLoading(true);
     fetchAnnouncement(id)
       .then(setAnnouncement)
       .catch((err) => setLoadError(err instanceof Error ? err.message : "加载失败"))
       .finally(() => setLoading(false));
-  }, [admin, id]);
+  }, [id]);
 
   async function handleSubmit(values: AnnouncementFormValues) {
     if (!announcement) return;
@@ -68,10 +63,6 @@ export default function EditAnnouncementPage() {
     }
   }
 
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
-  }
-
   if (Number.isNaN(id)) {
     return (
       <AdminShell admin={admin}>
@@ -98,6 +89,7 @@ export default function EditAnnouncementPage() {
 
   const initial: AnnouncementFormValues = {
     title: announcement.title,
+    description: announcement.description ?? "",
     icon: announcement.icon ?? "",
     content: announcement.content,
   };

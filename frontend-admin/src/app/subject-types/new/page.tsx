@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import SubjectTypeForm, { type SubjectTypeFormValues } from "@/components/SubjectTypeForm";
 import { useToast } from "@/components/Toast";
-import { createSubjectType, fetchMe, type AdminProfile } from "@/lib/api";
+import { createSubjectType } from "@/lib/api";
 
 const DEFAULT_VALUES: SubjectTypeFormValues = {
   code: "",
@@ -16,12 +17,8 @@ const DEFAULT_VALUES: SubjectTypeFormValues = {
 export default function NewSubjectTypePage() {
   const router = useRouter();
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
 
   async function handleSubmit(values: SubjectTypeFormValues) {
     setSubmitting(true);
@@ -33,10 +30,6 @@ export default function NewSubjectTypePage() {
       toast.error(err instanceof Error ? err.message : "创建失败");
       setSubmitting(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   return (

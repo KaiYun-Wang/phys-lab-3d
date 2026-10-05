@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
+import AdminSelect from "@/components/AdminSelect";
 import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import { useToast } from "@/components/Toast";
 import {
   fetchAdminUsers,
-  fetchMe,
   updateAdminUserStatus,
-  type AdminProfile,
   type AdminUser,
   type UserStatus,
 } from "@/lib/api";
@@ -19,7 +19,7 @@ const PAGE_SIZE = 20;
 
 export default function UsersPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -54,12 +54,8 @@ export default function UsersPage() {
   }, [filters, statusFilter, page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function toggleStatus(user: AdminUser) {
     const next: UserStatus = user.status === "ENABLED" ? "DISABLED" : "ENABLED";
@@ -74,8 +70,6 @@ export default function UsersPage() {
       setBusyId(null);
     }
   }
-
-  if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
     <AdminShell admin={admin}>
@@ -118,19 +112,20 @@ export default function UsersPage() {
               搜索
             </button>
           </form>
-          <select
-            className="text-input table-toolbar__select"
+          <AdminSelect
+            className="table-toolbar__select"
             value={statusFilter}
-            onChange={(e) => {
+            onChange={(v) => {
               setPage(1);
-              setStatusFilter(e.target.value as "all" | UserStatus);
+              setStatusFilter(v as "all" | UserStatus);
             }}
-            aria-label="状态筛选"
-          >
-            <option value="all">全部状态</option>
-            <option value="ENABLED">正常</option>
-            <option value="DISABLED">已禁用</option>
-          </select>
+            ariaLabel="状态筛选"
+            options={[
+              { value: "all", label: "全部状态" },
+              { value: "ENABLED", label: "正常" },
+              { value: "DISABLED", label: "已禁用" },
+            ]}
+          />
         </div>
 
         {error ? <p className="form-error table-message">{error}</p> : null}
@@ -139,8 +134,10 @@ export default function UsersPage() {
           <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">◉</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-users" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无用户
             </span>
           </div>
@@ -150,7 +147,7 @@ export default function UsersPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>序号</th>
                     <th>用户名</th>
                     <th>昵称</th>
                     <th>状态</th>
@@ -159,17 +156,17 @@ export default function UsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((row) => {
+                  {items.map((row, i) => {
                     const enabled = row.status === "ENABLED";
                     return (
                       <tr key={row.id}>
-                        <td className="data-table__num">{row.id}</td>
+                        <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                         <td>
                           <span className="data-table__title">{row.username}</span>
                         </td>
                         <td>{row.nickname || "—"}</td>
                         <td>
-                          <span className={`pill-tag ${enabled ? "pill-tag--mint" : "pill-tag--shade"}`}>
+                          <span className={`pill-tag ${enabled ? "pill-tag--ok" : "pill-tag--warn"}`}>
                             {enabled ? "正常" : "已禁用"}
                           </span>
                         </td>

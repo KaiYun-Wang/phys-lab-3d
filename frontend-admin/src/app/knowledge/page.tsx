@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import { useToast } from "@/components/Toast";
 import {
   deleteKnowledgePage,
   fetchKnowledgePages,
-  fetchMe,
-  type AdminProfile,
   type KnowledgePage,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
@@ -18,7 +17,7 @@ const PAGE_SIZE = 10;
 
 export default function KnowledgeListPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<KnowledgePage[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -50,12 +49,8 @@ export default function KnowledgeListPage() {
   }, [query, page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -71,8 +66,6 @@ export default function KnowledgeListPage() {
       setDeleting(false);
     }
   }
-
-  if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
     <AdminShell admin={admin}>
@@ -130,8 +123,10 @@ export default function KnowledgeListPage() {
           <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">📄</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-file-lines" aria-hidden />
+            </div>
+            <span className="heading-sm">
               {query ? "无匹配知识页" : "暂无知识页"}
             </span>
             {!query ? (
@@ -145,6 +140,7 @@ export default function KnowledgeListPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>序号</th>
                   <th>标题</th>
                   <th>描述</th>
                   <th>更新时间</th>
@@ -152,8 +148,9 @@ export default function KnowledgeListPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {items.map((row, i) => (
                   <tr key={row.id}>
+                    <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       <span className="data-table__title">{row.title}</span>
                     </td>
@@ -192,7 +189,7 @@ export default function KnowledgeListPage() {
         <div className="modal-overlay" role="dialog">
           <div className="modal card card--elevated">
             <h3 className="heading-sm">删除知识页</h3>
-            <p className="caption" style={{ marginTop: 8 }}>
+            <p className="caption mt-8">
               确定删除「{deleteTarget.title}」？
             </p>
             <div className="modal-actions">

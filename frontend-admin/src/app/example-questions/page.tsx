@@ -2,16 +2,15 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import IconPicker from "@/components/IconPicker";
 import { useToast } from "@/components/Toast";
 import {
   createExampleQuestion,
   deleteExampleQuestion,
   fetchExampleQuestions,
-  fetchMe,
   reorderExampleQuestions,
   updateExampleQuestion,
-  type AdminProfile,
   type ExampleQuestionInput,
   type ExampleQuestionRecord,
 } from "@/lib/api";
@@ -30,7 +29,7 @@ const EMPTY_FORM: ExampleQuestionInput = {
 
 export default function ExampleQuestionsPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<ExampleQuestionRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -69,12 +68,8 @@ export default function ExampleQuestionsPage() {
   }, [page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   function openCreate() {
     setEditing(null);
@@ -174,8 +169,6 @@ export default function ExampleQuestionsPage() {
       setSavingSort(false);
     }
   }
-
-  if (!admin) return <div className="auth-loading">加载中…</div>;
 
   const formOpen = creating || editing != null;
 
@@ -281,8 +274,10 @@ export default function ExampleQuestionsPage() {
           <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">?</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-circle-question" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无示例问题
             </span>
             <button type="button" className="btn-pill btn-pill--primary btn-pill--sm" onClick={openCreate}>
@@ -294,6 +289,7 @@ export default function ExampleQuestionsPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>序号</th>
                   <th>标题</th>
                   <th>描述</th>
                   <th>示例问题</th>
@@ -302,8 +298,9 @@ export default function ExampleQuestionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {items.map((row, i) => (
                   <tr key={row.id}>
+                    <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       <span className="data-table__title">
                         {row.icon ? (
@@ -351,14 +348,13 @@ export default function ExampleQuestionsPage() {
       {formOpen ? (
         <div className="modal-overlay" role="presentation" onClick={() => !saving && closeForm()}>
           <div
-            className="modal card card--elevated"
+            className="modal card card--elevated mw-520"
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 520 }}
           >
             <h3 className="heading-sm">{editing ? "编辑示例问题" : "新增示例问题"}</h3>
-            <form className="experiment-form" onSubmit={handleSave} style={{ marginTop: 16 }}>
+            <form className="experiment-form mt-16" onSubmit={handleSave}>
               <div className="form-grid">
                 <div className="field field--full">
                   <label htmlFor="eq-title">标题</label>

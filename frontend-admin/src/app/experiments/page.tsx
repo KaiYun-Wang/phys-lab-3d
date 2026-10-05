@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
+import AdminSelect from "@/components/AdminSelect";
 import {
   deleteExperiment,
   fetchExperiments,
-  fetchMe,
   fetchSubjectTypes,
   getExperimentStatusLabel,
   getExperimentSubjectLabel,
   getFallbackSubjectTypes,
   isExperimentPublished,
   reorderExperiments,
-  type AdminProfile,
   type Experiment,
   type ExperimentStatus,
   type SubjectTypeRecord,
@@ -30,7 +30,7 @@ const PAGE_SIZE = 10;
 
 export default function ExperimentsPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -76,10 +76,6 @@ export default function ExperimentsPage() {
   }, [query, statusFilter, subjectFilter, page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
     fetchSubjectTypes()
       .then((data) => {
         const types = data.items ?? [];
@@ -89,8 +85,8 @@ export default function ExperimentsPage() {
   }, []);
 
   useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -142,10 +138,6 @@ export default function ExperimentsPage() {
     } finally {
       setSavingSort(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   return (
@@ -233,7 +225,7 @@ export default function ExperimentsPage() {
                             {coverSrc ? (
                               <img src={coverSrc} alt="" />
                             ) : (
-                              <span className="cover-thumb__fallback" title={exp.title}>
+                              <span className="cover-thumb__fallback" data-tooltip={exp.title}>
                                 {exp.title.slice(0, 2)}
                               </span>
                             )}
@@ -276,36 +268,33 @@ export default function ExperimentsPage() {
               搜索
             </button>
           </form>
-          <select
-            className="text-input table-toolbar__select"
+          <AdminSelect
+            className="table-toolbar__select"
             value={subjectFilter === "all" ? "all" : String(subjectFilter)}
-            onChange={(e) => {
+            onChange={(v) => {
               setPage(1);
-              const v = e.target.value;
               setSubjectFilter(v === "all" ? "all" : Number(v));
             }}
-            aria-label="学科筛选"
-          >
-            <option value="all">全部学科</option>
-            {subjectTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="text-input table-toolbar__select"
+            ariaLabel="学科筛选"
+            options={[
+              { value: "all", label: "全部学科" },
+              ...subjectTypes.map((t) => ({ value: String(t.id), label: t.label })),
+            ]}
+          />
+          <AdminSelect
+            className="table-toolbar__select"
             value={statusFilter}
-            onChange={(e) => {
+            onChange={(v) => {
               setPage(1);
-              setStatusFilter(e.target.value as StatusFilter);
+              setStatusFilter(v as StatusFilter);
             }}
-            aria-label="状态筛选"
-          >
-            <option value="all">全部状态</option>
-            <option value="PUBLISHED">已发布</option>
-            <option value="DRAFT">草稿</option>
-          </select>
+            ariaLabel="状态筛选"
+            options={[
+              { value: "all", label: "全部状态" },
+              { value: "PUBLISHED", label: "已发布" },
+              { value: "DRAFT", label: "草稿" },
+            ]}
+          />
         </div>
 
         {error ? <p className="form-error table-message">{error}</p> : null}
@@ -314,8 +303,10 @@ export default function ExperimentsPage() {
           <p className="table-message caption">加载中…</p>
         ) : (experiments?.length ?? 0) === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">⚗</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-flask" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无实验
             </span>
             <p className="caption">创建第一个实验或调整搜索条件</p>
@@ -328,6 +319,7 @@ export default function ExperimentsPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>序号</th>
                   <th>封面</th>
                   <th>标题</th>
                   <th>学科</th>
@@ -342,16 +334,17 @@ export default function ExperimentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {experiments.map((exp) => {
+                {experiments.map((exp, i) => {
                   const coverSrc = resolveCoverUrl(exp.coverUrl);
                   return (
                     <tr key={exp.id}>
+                      <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                       <td>
                         <div className="cover-thumb">
                           {coverSrc ? (
                             <img src={coverSrc} alt="" />
                           ) : (
-                            <span className="cover-thumb__fallback" title={exp.title}>
+                            <span className="cover-thumb__fallback" data-tooltip={exp.title}>
                               {exp.title.slice(0, 2)}
                             </span>
                           )}
@@ -366,7 +359,7 @@ export default function ExperimentsPage() {
                       </td>
                       <td>
                         <span
-                          className={`pill-tag ${isExperimentPublished(exp.status) ? "pill-tag--mint" : "pill-tag--shade"}`}
+                          className={`pill-tag ${isExperimentPublished(exp.status) ? "pill-tag--ok" : "pill-tag--warn"}`}
                         >
                           {getExperimentStatusLabel(exp.status)}
                         </span>

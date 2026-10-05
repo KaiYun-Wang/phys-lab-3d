@@ -17,6 +17,7 @@ public class AnnouncementResponse {
 
     private Long id;
     private String title;
+    private String description;
     private String icon;
     private String content;
     private LocalDateTime createTime;
@@ -26,6 +27,7 @@ public class AnnouncementResponse {
         return AnnouncementResponse.builder()
                 .id(announcement.getId())
                 .title(announcement.getTitle())
+                .description(announcement.getDescription())
                 .icon(announcement.getIcon())
                 .content(announcement.getContent())
                 .createTime(announcement.getCreateTime())

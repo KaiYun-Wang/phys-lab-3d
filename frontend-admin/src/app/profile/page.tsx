@@ -1,42 +1,32 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   API_BASE,
-  fetchMe,
   resetAdminAvatar,
   updateAdminProfile,
   uploadAdminAvatar,
-  type AdminProfile,
 } from "@/lib/api";
 import { avatarSrc, clearToken, displayInitials } from "@/lib/auth";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import { useToast } from "@/components/Toast";
 
 export default function ProfilePage() {
   const router = useRouter();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
-  const [displayName, setDisplayName] = useState("");
+  const admin = useAdmin();
+  const [displayName, setDisplayName] = useState(admin.displayName);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchMe()
-      .then((a) => {
-        setAdmin(a);
-        setDisplayName(a.displayName);
-      })
-      .catch(() => setAdmin(null));
-  }, []);
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       const a = await updateAdminProfile(displayName.trim());
-      setAdmin(a);
+      admin.updateAdmin(a);
       setDisplayName(a.displayName);
       toast.success("已保存");
     } catch (err) {
@@ -51,7 +41,7 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       const a = await uploadAdminAvatar(file);
-      setAdmin(a);
+      admin.updateAdmin(a);
       toast.success("头像已更新");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "上传失败");
@@ -65,7 +55,7 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       const a = await resetAdminAvatar();
-      setAdmin(a);
+      admin.updateAdmin(a);
       toast.success("已恢复默认头像");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "操作失败");
@@ -79,13 +69,18 @@ export default function ProfilePage() {
     router.replace("/login");
   }
 
-  if (!admin) return <div className="auth-loading">加载中…</div>;
-
   const src = avatarSrc(admin.avatarUrl, API_BASE);
 
   return (
     <AdminShell admin={admin}>
-      <form className="experiment-form" onSubmit={saveProfile} style={{ maxWidth: 520 }}>
+      <section className="page-toolbar">
+        <div className="page-toolbar__left">
+          <h2 className="page-title">账号设置</h2>
+          <p className="caption">管理头像与展示名；修改密码请走账号安全流程</p>
+        </div>
+      </section>
+
+      <form className="experiment-form card card--elevated mw-520" onSubmit={saveProfile}>
         <div className="profile-avatar-row">
           <div className="profile-avatar">
             {src ? <img src={src} alt="" /> : displayInitials(admin.displayName)}
@@ -104,14 +99,16 @@ export default function ProfilePage() {
               disabled={loading}
               onClick={() => fileRef.current?.click()}
             >
+              <i className="fa-solid fa-camera" aria-hidden />
               上传头像
             </button>
             <button
               type="button"
-              className="btn-pill btn-pill--outline btn-pill--sm"
+              className="btn-pill btn-pill--warn btn-pill--sm"
               disabled={loading || !admin.avatarUrl}
               onClick={onAvatarReset}
             >
+              <i className="fa-solid fa-rotate-left" aria-hidden />
               恢复默认
             </button>
             <p className="micro">JPG / PNG / WebP，不超过 2MB</p>
@@ -139,14 +136,15 @@ export default function ProfilePage() {
         <div className="form-actions">
           <button
             type="button"
-            className="btn-pill btn-pill--outline row-actions__danger"
-            style={{ marginRight: "auto" }}
+            className="btn-pill btn-pill--outline row-actions__danger mr-auto"
             disabled={loading}
             onClick={logout}
           >
+            <i className="fa-solid fa-right-from-bracket" aria-hidden />
             退出登录
           </button>
           <button type="submit" className="btn-pill btn-pill--primary" disabled={loading}>
+            <i className="fa-solid fa-floppy-disk" aria-hidden />
             {loading ? "保存中…" : "保存"}
           </button>
         </div>

@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import {
   deleteAnnouncement,
   fetchAnnouncements,
-  fetchMe,
-  type AdminProfile,
   type AnnouncementRecord,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
@@ -18,7 +17,7 @@ const PAGE_SIZE = 10;
 
 export default function AnnouncementsPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<AnnouncementRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -48,12 +47,8 @@ export default function AnnouncementsPage() {
   }, [page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -68,10 +63,6 @@ export default function AnnouncementsPage() {
     } finally {
       setDeleting(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   return (
@@ -92,8 +83,10 @@ export default function AnnouncementsPage() {
           <p className="table-message caption">加载中…</p>
         ) : (items?.length ?? 0) === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">📢</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-bullhorn" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无公告
             </span>
             <p className="caption">发布第一条公告</p>
@@ -106,15 +99,17 @@ export default function AnnouncementsPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>序号</th>
                   <th>标题</th>
-                  <th>正文摘要</th>
+                  <th>描述</th>
                   <th>发布时间</th>
                   <th aria-label="操作" />
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {items.map((item, i) => (
                   <tr key={item.id}>
+                    <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       <span className="data-table__title">
                         {item.icon ? (
@@ -123,9 +118,7 @@ export default function AnnouncementsPage() {
                         {item.title}
                       </span>
                     </td>
-                    <td className="data-table__desc">
-                      {item.content.length > 60 ? `${item.content.slice(0, 60)}…` : item.content}
-                    </td>
+                    <td className="data-table__desc">{item.description || "—"}</td>
                     <td className="data-table__time">{formatDateTime(item.createTime)}</td>
                     <td>
                       <div className="row-actions">

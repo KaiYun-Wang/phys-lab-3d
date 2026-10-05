@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import {
   createAdminAiSession,
   deleteAdminAiSession,
   fetchAdminAiMessages,
   fetchAdminAiSessions,
-  fetchMe,
   renameAdminAiSession,
   streamAdminAiMessage,
-  type AdminProfile,
   type AiChatMessage,
   type AiChatSession,
 } from "@/lib/api";
@@ -46,47 +46,18 @@ function CollapsibleStep({
   const showBody = canOpen && (open || !!streaming);
   if (!label && !streaming && !canOpen) return null;
   return (
-    <div style={{ marginBottom: 6 }}>
+    <div className="ai-step">
       <button
         type="button"
+        className="ai-step__toggle"
         onClick={() => canOpen && setOpen((v) => !v)}
         aria-expanded={showBody}
         disabled={!canOpen}
-        style={{
-          border: "none",
-          background: "transparent",
-          padding: 0,
-          fontSize: 12,
-          color: "var(--ink-muted, #6b7280)",
-          cursor: canOpen ? "pointer" : "default",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          textAlign: "left",
-        }}
       >
-        <span style={{ width: 10, fontSize: 10 }}>{canOpen ? (showBody ? "▾" : "▸") : "·"}</span>
+        <span className="ai-step__caret">{canOpen ? (showBody ? "▾" : "▸") : "·"}</span>
         {streaming && !body ? "思考中…" : label}
       </button>
-      {showBody && (
-        <div
-          style={{
-            marginTop: 6,
-            padding: "8px 10px",
-            borderRadius: 8,
-            background: "rgba(0,0,0,0.04)",
-            color: "var(--ink-muted, #6b7280)",
-            fontSize: 12,
-            lineHeight: 1.5,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            maxHeight: 200,
-            overflowY: "auto",
-          }}
-        >
-          {body}
-        </div>
-      )}
+      {showBody && <div className="ai-step__body">{body}</div>}
     </div>
   );
 }
@@ -120,7 +91,7 @@ function toolStepDetail(role: "tool_call" | "tool_result", content: string, cont
 
 export default function AdminAiChatPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [sessions, setSessions] = useState<AiChatSession[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<AiChatMessage[]>([]);
@@ -136,12 +107,6 @@ export default function AdminAiChatPage() {
     setSideW(readSideW());
   }, []);
 
-  useEffect(() => {
-    fetchMe()
-      .then(setAdmin)
-      .catch(() => setAdmin(null));
-  }, []);
-
   const loadSessions = useCallback(async () => {
     try {
       const page = await fetchAdminAiSessions(1, 30);
@@ -152,8 +117,8 @@ export default function AdminAiChatPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (admin) loadSessions();
-  }, [admin, loadSessions]);
+    loadSessions();
+  }, [loadSessions]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -402,10 +367,6 @@ export default function AdminAiChatPage() {
     }
   };
 
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
-  }
-
   return (
     <AdminShell admin={admin}>
       <div className="page-toolbar">
@@ -416,19 +377,16 @@ export default function AdminAiChatPage() {
           <h2 className="page-title">试聊</h2>
         </div>
         <button type="button" className="btn-pill" onClick={startNew}>
+          <i className="fa-solid fa-plus" aria-hidden />
           新对话
         </button>
       </div>
 
       <div className="ai-chat-layout" style={{ ["--ai-side-w" as string]: `${sideW}px` }}>
         <aside className="card card--elevated ai-session-aside">
-          <p className="page-caption" style={{ marginTop: 0 }}>
-            历史会话
-          </p>
+          <p className="ai-aside-label">历史会话</p>
           {sessions.length === 0 ? (
-            <p className="empty-block" style={{ padding: 12 }}>
-              暂无
-            </p>
+            <p className="ai-empty">暂无</p>
           ) : (
             sessions.map((s) => (
               <SessionHistoryItem
@@ -452,49 +410,29 @@ export default function AdminAiChatPage() {
         />
 
         <section className="card card--elevated ai-chat-main">
-          <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+          <div className="ai-thread">
             {messages.length === 0 ? (
-              <p className="empty-block">发送一条消息开始对话。</p>
+              <p className="ai-empty">发送一条消息开始对话。</p>
             ) : (
               messages.map((m) =>
                 m.role === "status" ? (
-                  <div key={m.id} style={{ marginBottom: 10, textAlign: "left" }}>
-                    <div style={{ fontSize: 12, color: "var(--ink-muted, #6b7280)" }}>{m.content}</div>
+                  <div key={m.id} className="ai-status-line">
+                    {m.content}
                   </div>
                 ) : m.role === "tool_call" || m.role === "tool_result" ? (
-                  <div key={m.id} style={{ marginBottom: 8, textAlign: "left" }}>
-                    <CollapsibleStep
-                      label={toolStepLabel(m.role, m.content, m.context)}
-                      detail={toolStepDetail(m.role, m.content, m.context)}
-                    />
-                  </div>
-                ) : m.role === "thinking" ? (
-                  <div key={m.id} style={{ marginBottom: 8, textAlign: "left" }}>
-                    <CollapsibleStep label="思考过程" detail={m.content || m.thinking || ""} />
-                  </div>
-                ) : (
-                  <div
+                  <CollapsibleStep
                     key={m.id}
-                    style={{
-                      marginBottom: 14,
-                      textAlign: m.role === "user" ? "right" : "left",
-                    }}
-                  >
+                    label={toolStepLabel(m.role, m.content, m.context)}
+                    detail={toolStepDetail(m.role, m.content, m.context)}
+                  />
+                ) : m.role === "thinking" ? (
+                  <CollapsibleStep key={m.id} label="思考过程" detail={m.content || m.thinking || ""} />
+                ) : (
+                  <div key={m.id} className={`ai-msg-row${m.role === "user" ? " ai-msg-row--user" : ""}`}>
                     <div
-                      className={m.role === "assistant" ? "ai-md" : undefined}
-                      style={{
-                        display: "inline-block",
-                        maxWidth: "85%",
-                        padding: "10px 12px",
-                        borderRadius: 12,
-                        background: m.role === "user" ? "var(--shade-200)" : "var(--canvas-cream)",
-                        border: "1px solid var(--hairline-light)",
-                        whiteSpace: m.role === "assistant" ? "normal" : "pre-wrap",
-                        textAlign: "left",
-                        fontSize: 14,
-                        lineHeight: 1.5,
-                        minHeight: m.role === "assistant" && !m.content && sending ? 24 : undefined,
-                      }}
+                      className={`ai-msg${m.role === "user" ? " ai-msg--user" : ""}${
+                        m.role === "assistant" ? " ai-md" : ""
+                      }${m.role === "assistant" && !m.content && sending ? " ai-msg--pending" : ""}`}
                     >
                       {m.role === "assistant" && (m.thinking || (enableThinking && sending && m.id < 0)) && (
                         <CollapsibleStep
@@ -505,7 +443,7 @@ export default function AdminAiChatPage() {
                       )}
                       {m.role === "assistant" ? (
                         m.content ? (
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                         ) : sending ? (
                           "…"
                         ) : null
@@ -519,40 +457,32 @@ export default function AdminAiChatPage() {
             )}
             <div ref={bottomRef} />
           </div>
-          <form
-            onSubmit={send}
-            style={{
-              display: "flex",
-              gap: 8,
-              padding: 12,
-              borderTop: "1px solid var(--hairline-light)",
-              alignItems: "center",
-            }}
-          >
+          <form onSubmit={send} className="ai-composer">
             <button
               type="button"
-              className="btn-pill"
+              className={`btn-pill ai-composer__toggle${enableThinking ? " is-on" : ""}`}
               aria-pressed={enableThinking}
-              title={enableThinking ? "已开启思考过程" : "点击开启思考过程"}
+              data-tooltip={enableThinking ? "已开启思考过程" : "点击开启思考过程"}
               disabled={sending}
               onClick={() => setEnableThinking((v) => !v)}
-              style={{
-                opacity: enableThinking ? 1 : 0.55,
-                flexShrink: 0,
-              }}
             >
+              <i className="fa-solid fa-brain" aria-hidden />
               思考
             </button>
             <input
               className="text-input"
-              style={{ flex: 1 }}
               placeholder="输入测试问题…"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               disabled={sending}
             />
-            <button type="submit" className="btn-pill" disabled={sending}>
-              {sending ? "…" : "发送"}
+            <button type="submit" className="btn-pill btn-pill--primary" disabled={sending}>
+              {sending ? "…" : (
+                <>
+                  <i className="fa-solid fa-paper-plane" aria-hidden />
+                  发送
+                </>
+              )}
             </button>
           </form>
         </section>

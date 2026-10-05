@@ -594,6 +594,7 @@ export async function streamAiMessage(
 export type Announcement = {
   id: number;
   title: string;
+  description?: string | null;
   icon?: string | null;
   content: string;
   createTime?: string;

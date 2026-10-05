@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
+import AdminSelect from "@/components/AdminSelect";
 import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
   deleteAdminComment,
   fetchAdminComments,
-  fetchMe,
   replyAdminComment,
   updateAdminCommentStatus,
   type AdminComment,
-  type AdminProfile,
 } from "@/lib/api";
 import { formatCount, formatDateTime } from "@/lib/format";
 import Pager from "@/components/Pager";
@@ -34,7 +34,7 @@ function usernameCell(row: AdminComment) {
 
 export default function CommentsPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<AdminComment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -78,12 +78,8 @@ export default function CommentsPage() {
   }, [filters, statusFilter, page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function toggleStatus(row: AdminComment) {
     const next = row.status === "VISIBLE" ? "HIDDEN" : "VISIBLE";
@@ -137,8 +133,6 @@ export default function CommentsPage() {
     }
   }
 
-  if (!admin) return <div className="auth-loading">加载中…</div>;
-
   return (
     <AdminShell admin={admin}>
       <section className="page-toolbar">
@@ -180,20 +174,21 @@ export default function CommentsPage() {
               搜索
             </button>
           </form>
-          <select
-            className="text-input table-toolbar__select"
+          <AdminSelect
+            className="table-toolbar__select"
             value={statusFilter}
-            onChange={(e) => {
+            onChange={(v) => {
               setPage(1);
-              setStatusFilter(e.target.value as StatusFilter);
+              setStatusFilter(v as StatusFilter);
             }}
-            aria-label="状态筛选"
-          >
-            <option value="all">全部状态</option>
-            <option value="VISIBLE">可见</option>
-            <option value="HIDDEN">已隐藏</option>
-            <option value="DELETED">已删除</option>
-          </select>
+            ariaLabel="状态筛选"
+            options={[
+              { value: "all", label: "全部状态" },
+              { value: "VISIBLE", label: "可见" },
+              { value: "HIDDEN", label: "已隐藏" },
+              { value: "DELETED", label: "已删除" },
+            ]}
+          />
         </div>
 
         {error ? <p className="form-error table-message">{error}</p> : null}
@@ -202,8 +197,10 @@ export default function CommentsPage() {
           <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">💬</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-comments" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无评论
             </span>
           </div>
@@ -212,7 +209,7 @@ export default function CommentsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>序号</th>
                   <th>内容</th>
                   <th>用户名</th>
                   <th>昵称</th>
@@ -225,11 +222,11 @@ export default function CommentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {items.map((row, i) => (
                   <tr key={row.id}>
-                    <td className="data-table__num">{row.id}</td>
-                    <td style={{ maxWidth: 280 }}>
-                      <span className="data-table__title" title={row.content}>
+                    <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="cell-clip">
+                      <span className="data-table__title" data-tooltip={row.content}>
                         {row.content.length > 60 ? `${row.content.slice(0, 60)}…` : row.content}
                       </span>
                     </td>
@@ -252,10 +249,10 @@ export default function CommentsPage() {
                       <span
                         className={`pill-tag ${
                           row.status === "VISIBLE"
-                            ? "pill-tag--mint"
+                            ? "pill-tag--ok"
                             : row.status === "HIDDEN"
-                              ? "pill-tag--shade"
-                              : "pill-tag--shade"
+                              ? "pill-tag--warn"
+                              : "pill-tag--danger"
                         }`}
                       >
                         {row.status === "VISIBLE" ? "可见" : row.status === "HIDDEN" ? "隐藏" : "已删"}
@@ -321,7 +318,7 @@ export default function CommentsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="heading-sm">官方回复</h3>
-            <p className="caption" style={{ marginBottom: 12 }}>
+            <p className="caption mb-12">
               回复 {ownerLabel(replyTarget)}
               <br />
               「

@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import ExperimentForm, { type ExperimentFormValues } from "@/components/ExperimentForm";
 import { useToast } from "@/components/Toast";
-import { createExperiment, fetchMe, type AdminProfile } from "@/lib/api";
+import { createExperiment } from "@/lib/api";
 
 const DEFAULT_VALUES: ExperimentFormValues = {
   route: "",
@@ -20,12 +21,8 @@ const DEFAULT_VALUES: ExperimentFormValues = {
 export default function NewExperimentPage() {
   const router = useRouter();
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
 
   async function handleSubmit(values: ExperimentFormValues) {
     setSubmitting(true);
@@ -37,10 +34,6 @@ export default function NewExperimentPage() {
       toast.error(err instanceof Error ? err.message : "创建失败");
       setSubmitting(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   return (

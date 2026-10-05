@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import AdminSelect from "@/components/AdminSelect";
 import CoverUploadField from "@/components/CoverUploadField";
 import {
   EXPERIMENT_STATUS_OPTIONS,
@@ -118,7 +119,7 @@ export default function ExperimentForm({
                 onChange={(e) => setRoute(e.target.value)}
                 placeholder="double-slit"
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                title="小写字母、数字与连字符，如 double-slit"
+                data-tooltip="小写字母、数字与连字符，如 double-slit"
                 required
               />
               <p className="field-hint">
@@ -141,38 +142,25 @@ export default function ExperimentForm({
         </div>
 
         <div className="field">
-          <label htmlFor="subjectTypeId">学科</label>
-          <select
-            className="text-input"
-            id="subjectTypeId"
-            value={subjectTypeId}
-            onChange={(e) => setSubjectTypeId(Number(e.target.value))}
-            required
+          <label>学科</label>
+          <AdminSelect
+            value={String(subjectTypeId)}
+            onChange={(v) => setSubjectTypeId(Number(v))}
+            ariaLabel="学科"
             disabled={typesLoading || subjectTypes.length === 0}
-          >
-            {subjectTypes.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            options={subjectTypes.map((opt) => ({ value: String(opt.id), label: opt.label }))}
+          />
           {typesLoading ? <p className="field-hint">加载学科分类…</p> : null}
         </div>
 
         <div className="field">
-          <label htmlFor="status">状态</label>
-          <select
-            className="text-input"
-            id="status"
+          <label>状态</label>
+          <AdminSelect
             value={status}
-            onChange={(e) => setStatus(e.target.value as ExperimentStatus)}
-          >
-            {EXPERIMENT_STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setStatus(v as ExperimentStatus)}
+            ariaLabel="状态"
+            options={EXPERIMENT_STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+          />
         </div>
 
         <div className="field field--full">

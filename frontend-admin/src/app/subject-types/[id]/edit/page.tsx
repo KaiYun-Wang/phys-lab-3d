@@ -3,14 +3,13 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import SubjectTypeForm, { type SubjectTypeFormValues } from "@/components/SubjectTypeForm";
 import { useToast } from "@/components/Toast";
 import {
   deleteSubjectType,
-  fetchMe,
   fetchSubjectType,
   updateSubjectType,
-  type AdminProfile,
   type SubjectTypeRecord,
 } from "@/lib/api";
 
@@ -20,7 +19,7 @@ export default function EditSubjectTypePage() {
   const params = useParams();
   const id = Number(params.id);
 
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [subjectType, setSubjectType] = useState<SubjectTypeRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,17 +28,13 @@ export default function EditSubjectTypePage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (!admin || Number.isNaN(id)) return;
+    if (Number.isNaN(id)) return;
     setLoading(true);
     fetchSubjectType(id)
       .then(setSubjectType)
       .catch((err) => setLoadError(err instanceof Error ? err.message : "加载失败"))
       .finally(() => setLoading(false));
-  }, [admin, id]);
+  }, [id]);
 
   async function handleSubmit(values: SubjectTypeFormValues) {
     if (!subjectType) return;
@@ -67,10 +62,6 @@ export default function EditSubjectTypePage() {
       toast.error(err instanceof Error ? err.message : "删除失败");
       setDeleting(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   if (Number.isNaN(id)) {

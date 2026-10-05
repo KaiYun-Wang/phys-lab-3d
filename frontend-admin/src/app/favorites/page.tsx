@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
   deleteAdminFavorite,
   fetchAdminFavorites,
-  fetchMe,
   type AdminFavorite,
-  type AdminProfile,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import Pager from "@/components/Pager";
@@ -19,7 +18,7 @@ const PAGE_SIZE = 20;
 
 export default function FavoritesPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<AdminFavorite[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -58,12 +57,8 @@ export default function FavoritesPage() {
   }, [filters, page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -80,8 +75,6 @@ export default function FavoritesPage() {
       setDeleting(false);
     }
   }
-
-  if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
     <AdminShell admin={admin}>
@@ -132,8 +125,10 @@ export default function FavoritesPage() {
           <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">★</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-star" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无收藏
             </span>
           </div>
@@ -142,7 +137,7 @@ export default function FavoritesPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>序号</th>
                   <th>用户名</th>
                   <th>昵称</th>
                   <th>实验</th>
@@ -152,14 +147,14 @@ export default function FavoritesPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {items.map((row, i) => (
                   <tr key={row.id}>
-                    <td className="data-table__num">{row.id}</td>
+                    <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>{row.username || "—"}</td>
                     <td>{row.nickname || "—"}</td>
                     <td>
                       {row.experimentId ? (
-                        <Link href={`/experiments/${row.experimentId}/edit`} className="data-table__title">
+                        <Link href={`/experiments/${row.experimentId}/edit`}>
                           {row.experimentTitle || row.experimentId}
                         </Link>
                       ) : (

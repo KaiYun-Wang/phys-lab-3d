@@ -175,7 +175,8 @@ export function SimulationController({
                 ? "border-white text-white bg-white/10"
                 : "border-[#232838] text-white hover:border-white"
             }`}
-            title={isPlaying ? "Pause" : "Play"}
+            data-tooltip={isPlaying ? "暂停" : "播放"}
+            aria-label={isPlaying ? "暂停" : "播放"}
           >
             {isPlaying ? "⏸" : "▶"}
           </button>
@@ -184,7 +185,8 @@ export function SimulationController({
           <button
             onClick={onReset}
             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-[#232838] text-white text-sm hover:border-white transition-colors flex-shrink-0"
-            title="Reset"
+            data-tooltip="重置"
+            aria-label="重置"
           >
             🔄
           </button>

@@ -734,11 +734,11 @@ export default function AiChatWidget({
       >
         {!isRail && (
           <>
-            <div className="ai-resize ai-resize--w" title="拖动调整宽度" onPointerDown={onResizePointerDown("w")} />
-            <div className="ai-resize ai-resize--h" title="拖动调整高度" onPointerDown={onResizePointerDown("h")} />
+            <div className="ai-resize ai-resize--w" data-tooltip="拖动调整宽度" onPointerDown={onResizePointerDown("w")} />
+            <div className="ai-resize ai-resize--h" data-tooltip="拖动调整高度" onPointerDown={onResizePointerDown("h")} />
             <div
               className="ai-resize ai-resize--corner"
-              title="拖动调整大小"
+              data-tooltip="拖动调整大小"
               onPointerDown={onResizePointerDown("both")}
             />
           </>
@@ -762,7 +762,7 @@ export default function AiChatWidget({
           <button
             type="button"
             className={`ai-icon-btn${historyOpen ? " is-active" : ""}`}
-            title="历史记录"
+            data-tooltip="历史记录"
             aria-label="历史记录"
             onClick={() => {
               setHistoryOpen((v) => !v);
@@ -774,7 +774,7 @@ export default function AiChatWidget({
               <path d="M12 7v5l3 2" />
             </svg>
           </button>
-          <button type="button" className="ai-icon-btn" title="新对话" aria-label="新对话" onClick={startNew}>
+          <button type="button" className="ai-icon-btn" data-tooltip="新对话" aria-label="新对话" onClick={startNew}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -783,7 +783,7 @@ export default function AiChatWidget({
             <button
               type="button"
               className="ai-icon-btn"
-              title="关闭"
+              data-tooltip="关闭"
               aria-label="关闭"
               onClick={() => {
                 setHistoryOpen(false);
@@ -947,7 +947,7 @@ export default function AiChatWidget({
             {canRefDemos && (
               <div className="ai-refbar">
                 {visibleRefTags.map((d) => (
-                  <span key={d.id} className="ai-ref-tag" title={d.title || "未命名演示"}>
+                  <span key={d.id} className="ai-ref-tag" data-tooltip={d.title || "未命名演示"}>
                     <em>引用</em>
                     <span className="ai-ref-tag__t">{d.title || "未命名演示"}</span>
                     <button type="button" aria-label="移除引用" onClick={() => toggleRef(d.id)}>
@@ -959,7 +959,7 @@ export default function AiChatWidget({
                   <button
                     type="button"
                     className="ai-ref-more"
-                    title={`还有 ${hiddenRefCount} 个引用，点击查看`}
+                    data-tooltip={`还有 ${hiddenRefCount} 个引用，点击查看`}
                     onClick={openRefMenu}
                   >
                     +{hiddenRefCount}
@@ -1032,7 +1032,7 @@ export default function AiChatWidget({
                 type="button"
                 className={`ai-think-toggle${enableThinking ? " is-on" : ""}`}
                 aria-pressed={enableThinking}
-                title={enableThinking ? "已开启思考过程" : "点击开启思考过程"}
+                data-tooltip={enableThinking ? "已开启思考过程" : "点击开启思考过程"}
                 disabled={sending}
                 onClick={() => setEnableThinking((v) => !v)}
               >

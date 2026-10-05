@@ -82,7 +82,7 @@ function HeaderUser() {
 
   const src = avatarSrc(user.avatarUrl, API_BASE);
   return (
-    <a href="/profile" className="kh-header__user" title="个人中心">
+    <a href="/profile" className="kh-header__user" data-tooltip="个人中心">
       <span className="kh-avatar">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -145,7 +145,7 @@ function ExperimentCard({
             type="button"
             onClick={handleFavorite}
             className={`kh-card__fav${fav ? " is-on" : ""}`}
-            title={fav ? "取消收藏" : "收藏"}
+            data-tooltip={fav ? "取消收藏" : "收藏"}
             aria-label={fav ? `取消收藏 ${exp.title}` : `收藏 ${exp.title}`}
             aria-pressed={fav}
           >
@@ -172,7 +172,7 @@ function ExperimentCard({
       <div className="kh-card__foot">
         <div className="kh-card__metrics">
           {exp.viewCount != null && (
-            <span className="kh-metric" title="浏览量">
+            <span className="kh-metric" data-tooltip="浏览量" aria-label="浏览量">
               <Eye size={13} aria-hidden />
               {exp.viewCount}
             </span>
@@ -180,7 +180,8 @@ function ExperimentCard({
           {exp.favoriteCount != null && (
             <span
               className={`kh-metric kh-metric--fav${fav ? " is-on" : ""}`}
-              title={fav ? "已收藏" : "收藏数"}
+              data-tooltip={fav ? "已收藏" : "收藏数"}
+              aria-label={fav ? "已收藏" : "收藏数"}
             >
               <Star size={13} fill={fav ? "currentColor" : "none"} aria-hidden />
               {exp.favoriteCount}

@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import {
   deleteSubjectType,
-  fetchMe,
   fetchSubjectTypes,
   reorderSubjectTypes,
-  type AdminProfile,
   type SubjectTypeRecord,
 } from "@/lib/api";
 import { formatCount, formatDateTime } from "@/lib/format";
@@ -20,7 +19,7 @@ const PAGE_SIZE = 10;
 
 export default function SubjectTypesPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<SubjectTypeRecord[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -48,12 +47,8 @@ export default function SubjectTypesPage() {
   }, []);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -104,10 +99,6 @@ export default function SubjectTypesPage() {
     } finally {
       setSavingSort(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
@@ -215,8 +206,10 @@ export default function SubjectTypesPage() {
           <p className="table-message caption">加载中…</p>
         ) : (items?.length ?? 0) === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">◎</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-shapes" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无学科分类
             </span>
             <p className="caption">创建第一个学科分类</p>
@@ -229,6 +222,7 @@ export default function SubjectTypesPage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>序号</th>
                   <th>代码</th>
                   <th>名称</th>
                   <th>描述</th>
@@ -238,8 +232,9 @@ export default function SubjectTypesPage() {
                 </tr>
               </thead>
               <tbody>
-                {visibleItems.map((item) => (
+                {visibleItems.map((item, i) => (
                   <tr key={item.id}>
+                    <td className="data-table__num">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
                     <td>
                       <code className="mono-tag">{item.code}</code>
                     </td>

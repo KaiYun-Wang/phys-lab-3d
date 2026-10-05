@@ -25,6 +25,7 @@ export default function AnnouncementForm({
 }: AnnouncementFormProps) {
   const toast = useToast();
   const [title, setTitle] = useState(initial.title);
+  const [description, setDescription] = useState(initial.description ?? "");
   const [icon, setIcon] = useState(initial.icon ?? "");
   const [content, setContent] = useState(initial.content);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -49,7 +50,12 @@ export default function AnnouncementForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    onSubmit({ title: title.trim(), icon: icon.trim() || undefined, content: content.trim() });
+    onSubmit({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      icon: icon.trim() || undefined,
+      content: content.trim(),
+    });
   }
 
   return (
@@ -65,6 +71,18 @@ export default function AnnouncementForm({
             maxLength={100}
             placeholder="公告标题"
             required
+          />
+        </div>
+
+        <div className="field field--full">
+          <label htmlFor="description">描述（列表展示）</label>
+          <input
+            className="text-input"
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={200}
+            placeholder="一句话摘要：管理端列表与用户端公告卡展示，详情不展示（可选）"
           />
         </div>
 

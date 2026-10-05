@@ -196,13 +196,12 @@ export default function LoginPage() {
         </span>
       </div>
 
-      <header className="auth-navbar">
-        <div className="auth-navbar-inner">
-          <BrandLockup size={34} spin href="/" showTagline={false} />
-        </div>
-      </header>
-
       <main className="auth-shell">
+        <div className="auth-brand">
+          {/* 纯展示，不做超链接、不可点击 */}
+          <BrandLockup size={34} spin showTagline={false} />
+        </div>
+
         <section className="auth-card">
           <h1 className="auth-title">{isLogin ? "登录" : "注册"}</h1>
           <p className="auth-subtitle">
@@ -297,7 +296,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className="auth-input-wrap__peek"
-                  title={showPassword ? "隐藏密码" : "显示密码"}
+                  data-tooltip={showPassword ? "隐藏密码" : "显示密码"}
                   aria-label={showPassword ? "隐藏密码" : "显示密码"}
                   aria-pressed={showPassword}
                   onClick={() => setShowPassword((v) => !v)}

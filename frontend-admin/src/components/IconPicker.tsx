@@ -110,7 +110,7 @@ export default function IconPicker({
                 key={opt.icon}
                 type="button"
                 className={`icon-picker__item${value === opt.icon ? " is-active" : ""}`}
-                title={opt.icon}
+                data-tooltip={opt.icon}
                 onClick={() => {
                   onChange(opt.icon);
                   setOpen(false);

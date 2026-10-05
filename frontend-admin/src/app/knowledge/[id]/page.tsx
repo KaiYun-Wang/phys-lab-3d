@@ -4,13 +4,12 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import KnowledgeMarkdownEditor from "@/components/KnowledgeMarkdownEditor";
 import { useToast } from "@/components/Toast";
 import {
   fetchKnowledgePage,
-  fetchMe,
   updateKnowledgePage,
-  type AdminProfile,
   type KnowledgePageInput,
 } from "@/lib/api";
 
@@ -19,18 +18,14 @@ export default function KnowledgeEditPage() {
   const id = Number(params.id);
   const router = useRouter();
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [form, setForm] = useState<KnowledgePageInput | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (!admin || !Number.isFinite(id)) return;
+    if (!Number.isFinite(id)) return;
     setLoading(true);
     fetchKnowledgePage(id)
       .then((page) => {
@@ -45,7 +40,7 @@ export default function KnowledgeEditPage() {
         router.replace("/knowledge");
       })
       .finally(() => setLoading(false));
-  }, [admin, id, router]);
+  }, [id, router]);
 
   function onFile(file: File) {
     const lower = file.name.toLowerCase();
@@ -81,8 +76,6 @@ export default function KnowledgeEditPage() {
     }
   }
 
-  if (!admin) return <div className="auth-loading">加载中…</div>;
-
   return (
     <AdminShell admin={admin}>
       <section className="page-toolbar">
@@ -90,7 +83,7 @@ export default function KnowledgeEditPage() {
           <Link href="/knowledge" className="caption">
             ← 返回列表
           </Link>
-          <h2 className="page-title" style={{ marginTop: 8 }}>
+          <h2 className="page-title mt-8">
             编辑知识页
           </h2>
         </div>
@@ -135,7 +128,7 @@ export default function KnowledgeEditPage() {
                 />
               </div>
             </div>
-            <div className="modal-actions" style={{ marginTop: 16 }}>
+            <div className="modal-actions mt-16">
               <Link href="/knowledge" className="btn-pill btn-pill--ghost">
                 返回
               </Link>

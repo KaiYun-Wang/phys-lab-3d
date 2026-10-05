@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import AnnouncementForm, { type AnnouncementFormValues } from "@/components/AnnouncementForm";
 import { useToast } from "@/components/Toast";
-import { createAnnouncement, fetchMe, type AdminProfile } from "@/lib/api";
+import { createAnnouncement } from "@/lib/api";
 
 const DEFAULT_VALUES: AnnouncementFormValues = {
   title: "",
+  description: "",
   icon: "",
   content: "",
 };
@@ -16,12 +18,8 @@ const DEFAULT_VALUES: AnnouncementFormValues = {
 export default function NewAnnouncementPage() {
   const router = useRouter();
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
 
   async function handleSubmit(values: AnnouncementFormValues) {
     setSubmitting(true);
@@ -33,10 +31,6 @@ export default function NewAnnouncementPage() {
       toast.error(err instanceof Error ? err.message : "发布失败");
       setSubmitting(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   return (

@@ -62,7 +62,7 @@ export default function SubjectTypeForm({
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="MECHANICS"
                 pattern="[A-Z][A-Z0-9_]*"
-                title="大写字母、数字与下划线，如 MECHANICS"
+                data-tooltip="大写字母、数字与下划线，如 MECHANICS"
                 required
               />
               <p className="field-hint">大写 slug 风格，如 MECHANICS、FLUID_MECHANICS。</p>

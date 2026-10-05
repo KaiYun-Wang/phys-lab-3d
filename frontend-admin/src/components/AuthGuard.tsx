@@ -3,56 +3,41 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
-import { fetchMe } from "@/lib/api";
 
 const PUBLIC_PATHS = ["/login"];
 
+/**
+ * 只做本地 token 校验（同步、无网络）：首屏 ready 后不再整屏 loading。
+ * 身份有效性（fetchMe）与资料缓存由常驻的 AdminProvider 统一负责，
+ * 这样切换菜单时不会重复触发全屏重载。
+ */
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    const isPublic = PUBLIC_PATHS.includes(pathname);
+    const token = getToken();
+    const authed = !!token && !isTokenExpired(token);
 
-    async function check() {
-      const isPublic = PUBLIC_PATHS.includes(pathname);
-      const token = getToken();
-
-      if (isPublic) {
-        if (token && !isTokenExpired(token)) {
-          try {
-            await fetchMe();
-            if (!cancelled) router.replace("/");
-            return;
-          } catch {
-            clearToken();
-          }
-        }
-        if (!cancelled) setReady(true);
+    if (isPublic) {
+      if (authed) {
+        router.replace("/");
         return;
       }
-
-      if (!token || isTokenExpired(token)) {
-        clearToken();
-        if (!cancelled) router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
-        return;
-      }
-
-      try {
-        await fetchMe();
-        if (!cancelled) setReady(true);
-      } catch {
-        clearToken();
-        if (!cancelled) router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
-      }
+      if (token) clearToken();
+      setReady(true);
+      return;
     }
 
-    setReady(false);
-    check();
-    return () => {
-      cancelled = true;
-    };
+    if (!authed) {
+      clearToken();
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    setReady(true);
   }, [pathname, router]);
 
   if (!ready) {

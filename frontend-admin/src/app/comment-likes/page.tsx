@@ -1,14 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import DateRangePicker, { type DateRangeValue } from "@/components/DateRangePicker";
 import {
   deleteAdminCommentLike,
   fetchAdminCommentLikes,
-  fetchMe,
   type AdminCommentLike,
-  type AdminProfile,
 } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import Pager from "@/components/Pager";
@@ -18,7 +18,7 @@ const PAGE_SIZE = 20;
 
 export default function CommentLikesPage() {
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [items, setItems] = useState<AdminCommentLike[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -57,12 +57,8 @@ export default function CommentLikesPage() {
   }, [filters, page]);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (admin) loadList();
-  }, [admin, loadList]);
+    loadList();
+  }, [loadList]);
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -79,8 +75,6 @@ export default function CommentLikesPage() {
       setDeleting(false);
     }
   }
-
-  if (!admin) return <div className="auth-loading">加载中…</div>;
 
   return (
     <AdminShell admin={admin}>
@@ -131,8 +125,10 @@ export default function CommentLikesPage() {
           <p className="table-message caption">加载中…</p>
         ) : items.length === 0 ? (
           <div className="empty-block empty-block--compact">
-            <div className="empty-block__icon">♥</div>
-            <span className="heading-sm" style={{ color: "var(--shade-50)" }}>
+            <div className="empty-block__icon">
+              <i className="fa-solid fa-heart" aria-hidden />
+            </div>
+            <span className="heading-sm">
               暂无点赞
             </span>
           </div>
@@ -141,7 +137,7 @@ export default function CommentLikesPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>序号</th>
                   <th>用户名</th>
                   <th>昵称</th>
                   <th>评论</th>
@@ -151,17 +147,25 @@ export default function CommentLikesPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {items.map((row, i) => (
                   <tr key={row.id}>
-                    <td className="data-table__num">{row.id}</td>
+                    <td className="data-table__num">{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td>{row.username || "—"}</td>
                     <td>{row.nickname || "—"}</td>
-                    <td style={{ maxWidth: 280 }}>
-                      <div className="data-table__title" title={row.commentContent ?? ""}>
+                    <td className="cell-clip">
+                      <div className="data-table__title" data-tooltip={row.commentContent ?? ""}>
                         {row.commentContent || "—"}
                       </div>
                     </td>
-                    <td>{row.experimentTitle || row.experimentId || "—"}</td>
+                    <td>
+                      {row.experimentId ? (
+                        <Link href={`/experiments/${row.experimentId}/edit`}>
+                          {row.experimentTitle || row.experimentId}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="data-table__time">{formatDateTime(row.createTime)}</td>
                     <td>
                       <button

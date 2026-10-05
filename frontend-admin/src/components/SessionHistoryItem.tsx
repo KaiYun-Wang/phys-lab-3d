@@ -20,6 +20,8 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
   const [draft, setDraft] = useState(title);
   const [busy, setBusy] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
+  const [looping, setLooping] = useState(false);
+  const [loopDur, setLoopDur] = useState(8);
 
   useEffect(() => {
     if (!renaming) setDraft(title);
@@ -33,7 +35,7 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
         setOverflowing(false);
         return;
       }
-      setOverflowing(track.scrollWidth - wrap.clientWidth > 4);
+      setOverflowing(track.scrollWidth / 2 - wrap.clientWidth > 4);
     };
     measure();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
@@ -59,24 +61,20 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
     return () => document.removeEventListener("mousedown", onDoc);
   }, [menuOpen]);
 
-  const resetMarquee = () => {
-    const track = trackRef.current;
-    if (!track) return;
-    track.style.transition = "transform 0.35s ease";
-    track.style.transform = "translateX(0)";
-  };
+  const stopMarquee = () => setLooping(false);
 
   const startMarquee = () => {
     if (renaming || menuOpen) return;
     const wrap = wrapRef.current;
     const track = trackRef.current;
     if (!wrap || !track) return;
-    const overflow = track.scrollWidth - wrap.clientWidth;
+    const overflow = track.scrollWidth / 2 - wrap.clientWidth;
     setOverflowing(overflow > 4);
     if (overflow <= 4) return;
-    const seconds = Math.min(12, Math.max(2.2, overflow / 28));
-    track.style.transition = `transform ${seconds}s linear`;
-    track.style.transform = `translateX(-${overflow}px)`;
+    // 双份内容回环：单圈时长按半程宽度估算
+    const half = track.scrollWidth / 2;
+    setLoopDur(Math.min(16, Math.max(2.5, half / 30)));
+    setLooping(true);
   };
 
   const commitRename = async () => {
@@ -105,7 +103,7 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
       onMouseLeave={() => {
         if (!menuOpen) {
           setRowHot(false);
-          resetMarquee();
+          stopMarquee();
         }
       }}
     >
@@ -143,8 +141,15 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
           />
         ) : (
           <span className="ai-sess-title-wrap" ref={wrapRef}>
-            <span className="ai-sess-title-track" ref={trackRef}>
-              {title || "新对话"}
+            <span
+              className={`ai-sess-title-track${looping ? " is-looping" : ""}`}
+              ref={trackRef}
+              style={looping ? { animationDuration: `${loopDur}s` } : undefined}
+            >
+              <span className="ai-sess-title-seg">{title || "新对话"}</span>
+              <span className="ai-sess-title-seg" aria-hidden>
+                {title || "新对话"}
+              </span>
             </span>
           </span>
         )}
@@ -154,12 +159,12 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
         <button
           type="button"
           className="ai-sess-more-btn"
-          title="更多"
+          data-tooltip="更多"
           aria-label="更多操作"
           aria-expanded={menuOpen}
           onClick={(e) => {
             e.stopPropagation();
-            resetMarquee();
+            stopMarquee();
             setMenuOpen((v) => !v);
           }}
         >

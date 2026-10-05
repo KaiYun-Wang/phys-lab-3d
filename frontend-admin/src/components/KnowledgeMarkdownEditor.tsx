@@ -9,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Props = {
   value: string;
@@ -148,7 +149,7 @@ export default function KnowledgeMarkdownEditor({
               onScroll={() => syncScroll("preview")}
             >
               {value.trim() ? (
-                <ReactMarkdown>{value}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
               ) : (
                 <p className="caption">暂无内容</p>
               )}

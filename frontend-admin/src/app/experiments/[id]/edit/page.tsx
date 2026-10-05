@@ -3,14 +3,13 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import ExperimentForm, { type ExperimentFormValues } from "@/components/ExperimentForm";
 import { useToast } from "@/components/Toast";
 import {
   deleteExperiment,
   fetchExperiment,
-  fetchMe,
   updateExperiment,
-  type AdminProfile,
   type Experiment,
 } from "@/lib/api";
 
@@ -20,7 +19,7 @@ export default function EditExperimentPage() {
   const params = useParams();
   const id = Number(params.id);
 
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,17 +28,13 @@ export default function EditExperimentPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
-
-  useEffect(() => {
-    if (!admin || Number.isNaN(id)) return;
+    if (Number.isNaN(id)) return;
     setLoading(true);
     fetchExperiment(id)
       .then(setExperiment)
       .catch((err) => setLoadError(err instanceof Error ? err.message : "加载失败"))
       .finally(() => setLoading(false));
-  }, [admin, id]);
+  }, [id]);
 
   async function handleSubmit(values: ExperimentFormValues) {
     if (!experiment) return;
@@ -68,10 +63,6 @@ export default function EditExperimentPage() {
       setShowDelete(false);
       setDeleting(false);
     }
-  }
-
-  if (!admin) {
-    return <div className="auth-loading">加载中…</div>;
   }
 
   if (Number.isNaN(id)) {

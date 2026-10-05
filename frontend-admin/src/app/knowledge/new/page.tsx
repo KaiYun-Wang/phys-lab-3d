@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminShell from "@/components/AdminShell";
+import { useAdmin } from "@/components/AdminProvider";
 import KnowledgeMarkdownEditor from "@/components/KnowledgeMarkdownEditor";
 import { useToast } from "@/components/Toast";
 import {
   createKnowledgePage,
-  fetchMe,
-  type AdminProfile,
   type KnowledgePageInput,
 } from "@/lib/api";
 
@@ -18,14 +17,10 @@ const EMPTY: KnowledgePageInput = { title: "", description: "", content: "" };
 export default function KnowledgeNewPage() {
   const router = useRouter();
   const toast = useToast();
-  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const admin = useAdmin();
   const [form, setForm] = useState<KnowledgePageInput>(EMPTY);
   const [fileName, setFileName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetchMe().then(setAdmin).catch(() => setAdmin(null));
-  }, []);
 
   function onFile(file: File) {
     const lower = file.name.toLowerCase();
@@ -66,8 +61,6 @@ export default function KnowledgeNewPage() {
     }
   }
 
-  if (!admin) return <div className="auth-loading">加载中…</div>;
-
   return (
     <AdminShell admin={admin}>
       <section className="page-toolbar">
@@ -75,7 +68,7 @@ export default function KnowledgeNewPage() {
           <Link href="/knowledge" className="caption">
             ← 返回列表
           </Link>
-          <h2 className="page-title" style={{ marginTop: 8 }}>
+          <h2 className="page-title mt-8">
             新增知识页
           </h2>
         </div>
@@ -117,7 +110,7 @@ export default function KnowledgeNewPage() {
               />
             </div>
           </div>
-          <div className="modal-actions" style={{ marginTop: 16 }}>
+          <div className="modal-actions mt-16">
             <Link href="/knowledge" className="btn-pill btn-pill--ghost">
               取消
             </Link>

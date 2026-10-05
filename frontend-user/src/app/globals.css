@@ -116,6 +116,11 @@
   canvas {
     display: block;
   }
+
+  /* 悬浮提示的定位上下文：声明在 base 层，晚于它的组件定位规则（如 absolute 按钮）优先级更高，不会被误覆盖 */
+  [data-tooltip] {
+    position: relative;
+  }
 }
 
 /* 页面容器：对齐设计稿的 max-w-[1440px] + px-6 */
@@ -498,6 +503,12 @@
 .sx-input:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* 隐藏 Edge 原生密码显示按钮与 Chromium 自动填充图标，避免与自定义 peek 按钮重复 */
+.sx-input::-ms-reveal,
+.sx-input::-ms-clear,
+.sx-input::-webkit-credentials-auto-fill-button {
+  display: none;
 }
 
 /* 数值/遥测：等宽字体 */
@@ -1280,9 +1291,18 @@
   z-index: 10;
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 1.5rem 1rem 2.5rem;
+}
+
+/* 卡片上方的品牌锁定（居中） */
+.auth-brand {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1.6rem;
 }
 
 .auth-card {
@@ -3766,6 +3786,37 @@
   font-size: 10.5px;
   color: #6b7280;
 }
+/* 描述行：溢出时悬停滚动播放（与 AI 会话条目同款逻辑） */
+.announcement-card__desc-wrap {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+}
+.announcement-card.is-overflow .announcement-card__desc-wrap {
+  -webkit-mask-image: linear-gradient(to right, #000 74%, transparent);
+  mask-image: linear-gradient(to right, #000 74%, transparent);
+}
+.announcement-card.is-overflow:hover .announcement-card__desc-wrap {
+  -webkit-mask-image: linear-gradient(to right, #000 55%, transparent 88%);
+  mask-image: linear-gradient(to right, #000 55%, transparent 88%);
+}
+.announcement-card__desc-track {
+  display: inline-flex;
+  white-space: nowrap;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--sx-ink-mute);
+  will-change: transform;
+  transition: transform 0.3s ease;
+}
+.announcement-card__desc-seg {
+  display: inline-block;
+  white-space: nowrap;
+  padding-right: 32px;
+}
+.announcement-card__desc-track.is-looping {
+  animation: marquee-x linear infinite;
+}
 .announcement-empty {
   display: flex;
   flex-direction: column;
@@ -4149,9 +4200,6 @@
 }
 .exp-sim-btn.primary > i {
   font-size: 15px;
-}
-[data-tooltip] {
-  position: relative;
 }
 [data-tooltip]::after {
   content: attr(data-tooltip);
@@ -5893,11 +5941,29 @@
   mask-image: linear-gradient(to right, #000 55%, transparent 88%);
 }
 .ai-sess-title-track {
-  display: inline-block;
+  display: inline-flex;
   white-space: nowrap;
   font-size: 13px;
   line-height: 1.35;
   will-change: transform;
+  transition: transform 0.3s ease;
+}
+.ai-sess-title-seg {
+  display: inline-block;
+  white-space: nowrap;
+  padding-right: 36px;
+}
+/* 悬停无缝循环：内容双份，translateX(-50%) 到尾巴后从头接上 */
+.ai-sess-title-track.is-looping {
+  animation: marquee-x linear infinite;
+}
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 .ai-sess-rename {
   flex: 1 1 0;

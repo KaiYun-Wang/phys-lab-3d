@@ -64,6 +64,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toast-stack" aria-live="polite" aria-atomic="false">
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast--${t.type}`} role="status">
+            <i
+              className={`fa-solid ${t.type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}`}
+              aria-hidden
+            />
             {t.message}
           </div>
         ))}

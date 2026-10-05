@@ -70,7 +70,7 @@ export function DemoPlanCard({
           <button
             type="button"
             className="demo-plan-card__del"
-            title="删除"
+            data-tooltip="删除"
             aria-label="删除演示"
             onClick={(e) => {
               e.stopPropagation();

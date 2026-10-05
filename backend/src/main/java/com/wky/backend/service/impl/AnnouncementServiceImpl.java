@@ -56,6 +56,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
     public AnnouncementResponse create(CreateAnnouncementRequest request) {
         Announcement announcement = new Announcement();
         announcement.setTitle(request.getTitle().trim());
+        announcement.setDescription(blankToNull(request.getDescription()));
         announcement.setIcon(blankToNull(request.getIcon()));
         announcement.setContent(request.getContent().trim());
         save(announcement);
@@ -70,6 +71,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
             throw new ApiException(404, "公告不存在");
         }
         announcement.setTitle(request.getTitle().trim());
+        announcement.setDescription(blankToNull(request.getDescription()));
         announcement.setIcon(blankToNull(request.getIcon()));
         announcement.setContent(request.getContent().trim());
         updateById(announcement);

@@ -281,6 +281,7 @@ CREATE UNIQUE INDEX "uk_admins_username" ON "public"."admins" USING btree ("user
 CREATE TABLE "public"."announcements" (
   "id" bigint NOT NULL DEFAULT nextval('announcements_id_seq'::regclass),
   "title" character varying(100) NOT NULL,
+  "description" character varying(200),
   "icon" character varying(32),
   "content" text NOT NULL,
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -291,6 +292,7 @@ CREATE TABLE "public"."announcements" (
 COMMENT ON TABLE "public"."announcements" IS '平台公告';
 COMMENT ON COLUMN "public"."announcements"."id" IS '公告 ID，自增主键';
 COMMENT ON COLUMN "public"."announcements"."title" IS '公告标题';
+COMMENT ON COLUMN "public"."announcements"."description" IS '公告描述：列表摘要（用户端滚动播放），详情弹窗不展示';
 COMMENT ON COLUMN "public"."announcements"."icon" IS '列表图标（Font Awesome 类名如 fa-flask，空则不显示）';
 COMMENT ON COLUMN "public"."announcements"."content" IS '公告正文';
 COMMENT ON COLUMN "public"."announcements"."create_time" IS '创建时间，插入时自动填充';

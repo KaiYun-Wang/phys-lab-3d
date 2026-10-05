@@ -1,0 +1,151 @@
+/* ==========================================================================
+   PhysLab 3D · 管理端设计令牌（Kinetic Horizon 落地版）
+   基准：DESIGN-style-guide.md §2 色彩 / §三 字体 / §四 材质 / §五 形状动效
+   架构：Primitive（原始色值）→ Semantic（语义别名）
+   约束：admin.css 组件层只允许引用 Semantic 层，禁止直接写 hex
+   ========================================================================== */
+
+:root {
+  /* ── 1. Primitive：原始色值 ───────────────────────────────────── */
+
+  /* 表面阶梯（深 → 浅） */
+  --p-void: #06080e;         /* 页面底·最深 */
+  --p-deep: #090e1a;         /* 页面底·中段 */
+  --p-abyss: #04060a;        /* 页面底·收口 */
+  --p-panel: #0a0e17;        /* 侧栏 / 面板 */
+  --p-card: #0f1624;         /* 卡片底 */
+  --p-card-edge: #1e293b;    /* 卡片边 / 分隔线 */
+  --p-inset: #090d16;        /* 卡内凹槽底 */
+  --p-inset-edge: #1a2333;   /* 卡内凹槽边 */
+  --p-control: #131b2b;      /* 按钮 / 输入框底 */
+  --p-control-edge: #27354f; /* 按钮 / 输入框边 */
+  --p-control-hover: #1e2a42;/* 控件 hover 提亮 */
+  --p-active: #16233a;       /* 激活底 */
+
+  /* 文本 */
+  --p-text-white: #ffffff;
+  --p-text-strong: #d1d5db;
+  --p-text-body: #c3c6d7;
+  --p-text-mute: #9ca3af;
+  --p-text-faint: #6b7280;
+
+  /* 强调色（一个含义一个颜色，全站收敛） */
+  --p-sky: #38bdf8;
+  --p-sky-bright: #7dd3fc;
+  --p-purple: #c084fc;
+  --p-emerald: #34d399;
+  --p-amber: #f59e0b;
+  --p-amber-bright: #fbbf24;
+  --p-pink: #f472b6;
+  --p-pink-soft: #fda4af;
+  --p-pink-bright: #ffe4e1;
+
+  /* 白色 tint（列表 hover / 代码块 / 内嵌块） */
+  --p-tint-1: rgba(255, 255, 255, 0.04);
+  --p-tint-2: rgba(255, 255, 255, 0.08);
+  --p-tint-3: rgba(255, 255, 255, 0.12);
+
+  /* 输入框 hover 边框（提亮一档） */
+  --p-control-edge-strong: #31405f;
+
+  /* 光子渐变端点 */
+  --p-blue: #2563eb;
+  --p-cyan: #06b6d4;
+  --p-blue-deep: #1d4ed8;
+  --p-cyan-deep: #0891b2;
+
+  /* ── 2. Semantic：语义别名 ───────────────────────────────────── */
+
+  /* 页面底：三段渐变 + 两枚光斑（sky / purple，低透明度径向光晕） */
+  --bg-page: linear-gradient(180deg, var(--p-void) 0%, var(--p-deep) 52%, var(--p-abyss) 100%);
+  --bg-spot-sky: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, transparent 62%);
+  --bg-spot-purple: radial-gradient(circle, rgba(192, 132, 252, 0.05) 0%, transparent 62%);
+
+  /* 表面层级 */
+  --surface-panel: var(--p-panel);
+  --surface-card: var(--p-card);
+  --surface-inset: var(--p-inset);
+  --border-card: var(--p-card-edge);
+  --border-inset: var(--p-inset-edge);
+  --border-hairline: var(--p-card-edge);
+  --control-bg: var(--p-control);
+  --control-border: var(--p-control-edge);
+  --control-hover: var(--p-control-hover);
+  --control-border-strong: var(--p-control-edge-strong);
+
+  /* 白色 tint 语义 */
+  --tint-1: var(--p-tint-1);
+  --tint-2: var(--p-tint-2);
+  --tint-3: var(--p-tint-3);
+
+  --active-bg: var(--p-active);
+  --active-bg-soft: rgba(8, 47, 73, 0.4);
+
+  /* 文本 */
+  --text-title: var(--p-text-white);
+  --text-strong: var(--p-text-strong);
+  --text-body: var(--p-text-body);
+  --text-mute: var(--p-text-mute);
+  --text-faint: var(--p-text-faint);
+
+  /* 强调语义 */
+  --accent: var(--p-sky);
+  --accent-bright: var(--p-sky-bright);
+  --accent-2: var(--p-purple);
+  --ok: var(--p-emerald);
+  --warn: var(--p-amber);
+  --warn-bright: var(--p-amber-bright);
+  --danger: var(--p-pink);
+  --danger-soft: var(--p-pink-soft);
+
+  /* 强调底色（徽章 / 状态 / hover 着色） */
+  --accent-bg: rgba(56, 189, 248, 0.12);
+  --accent-bg-faint: rgba(56, 189, 248, 0.06);
+  --accent-border: rgba(56, 189, 248, 0.4);
+  --ok-bg: rgba(52, 211, 153, 0.12);
+  --ok-border: rgba(52, 211, 153, 0.34);
+  --warn-bg: rgba(245, 158, 11, 0.12);
+  --warn-border: rgba(245, 158, 11, 0.34);
+  --danger-bg: rgba(244, 114, 182, 0.12);
+  --danger-bg-strong: rgba(147, 0, 10, 0.16);
+  --danger-bg-strong-hover: rgba(147, 0, 10, 0.32);
+  --danger-border: rgba(244, 114, 182, 0.28);
+  --danger-border-hover: rgba(244, 114, 182, 0.5);
+  --danger-bright: var(--p-pink-bright);
+
+  /* 光子渐变（唯一允许的渐变；仅主行动按钮） */
+  --grad-primary: linear-gradient(135deg, var(--p-blue) 0%, var(--p-cyan) 100%);
+  --grad-primary-hover: linear-gradient(135deg, var(--p-blue-deep) 0%, var(--p-cyan-deep) 100%);
+  --grad-stroke: linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(6, 182, 212, 0.1));
+
+  /* 玻璃与深度 */
+  --glass-1: rgba(23, 27, 38, 0.85);
+  --glass-2: rgba(15, 23, 42, 0.92);
+  --rim: rgba(255, 255, 255, 0.08);
+  --blur-1: blur(16px);
+  --blur-2: blur(24px);
+
+  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-panel: 0 4px 16px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-float: 0 24px 48px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-glow-sky: 0 8px 32px -4px rgba(6, 182, 212, 0.12), 0 2px 8px -1px rgba(0, 0, 0, 0.4);
+  --shadow-glow-cta: 0 10px 30px -8px rgba(6, 182, 212, 0.4), 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-inset-card: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+
+  /* 形状 */
+  --radius-card: 12px;
+  --radius-inset: 8px;
+  --radius-overlay: 16px;
+  --radius-sm: 6px;
+  --radius-pill: 9999px;
+
+  /* 动效（统一 150ms，只服务于状态表达） */
+  --t: 150ms ease;
+
+  /* 字体三件套：display / body / mono（与用户端同源） */
+  --font-display: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
