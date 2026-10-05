@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Announcement } from "@/lib/api";
 
 function formatTime(value?: string) {
@@ -51,7 +52,18 @@ export default function AnnouncementDetailModal({
         </div>
         <div className="announcement-modal-body">
           {announcement.content.trim() ? (
-            <ReactMarkdown>{announcement.content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: ({ node, ...props }) => (
+                  <div className="announcement-modal-table-wrap">
+                    <table {...props} />
+                  </div>
+                ),
+              }}
+            >
+              {announcement.content}
+            </ReactMarkdown>
           ) : null}
         </div>
         <div className="announcement-modal-foot">

@@ -3698,6 +3698,27 @@
   padding: 0;
   background: none;
 }
+.announcement-modal-table-wrap {
+  margin: 0.65em 0;
+  overflow-x: auto;
+}
+.announcement-modal-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.announcement-modal-body th,
+.announcement-modal-body td {
+  padding: 6px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  text-align: left;
+  vertical-align: top;
+}
+.announcement-modal-body th {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.96);
+  background: rgba(148, 163, 184, 0.12);
+}
 .announcement-modal-body a {
   color: #7dd3fc;
   text-decoration: underline;
