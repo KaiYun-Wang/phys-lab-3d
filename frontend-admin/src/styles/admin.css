@@ -2206,3 +2206,126 @@ body.is-sidebar-resizing .sidebar {
   text-decoration: underline;
 }
 
+/* ── 图标选择器（公告 / 示例问题共用） ── */
+.icon-picker {
+  position: relative;
+}
+.icon-picker__trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--radius-md);
+  background: var(--canvas-light);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 420;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.icon-picker__trigger:hover,
+.icon-picker__trigger.is-open {
+  border-color: var(--shade-40);
+}
+.icon-picker__trigger.is-open {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+.icon-picker__preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--canvas-cream);
+  border: 1px solid var(--hairline-light);
+  font-size: 14px;
+  color: var(--shade-70);
+}
+.icon-picker__preview.is-none {
+  color: var(--shade-40);
+}
+.icon-picker__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.icon-picker__caret {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--shade-40);
+}
+.icon-picker__pop {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(430px, 100%);
+  max-height: 300px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--hairline-light);
+  border-radius: var(--radius-lg);
+  background: var(--canvas-light);
+  box-shadow: 0 16px 24px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+.icon-picker__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.icon-picker__item:hover {
+  background: var(--canvas-cream);
+}
+.icon-picker__item.is-active {
+  border-color: var(--ink);
+  background: var(--canvas-cream);
+}
+.icon-picker__ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--canvas-cream);
+  border: 1px solid var(--hairline-light);
+  font-size: 13px;
+  color: var(--shade-70);
+}
+.icon-picker__item--none .icon-picker__ico {
+  color: var(--shade-40);
+}
+.icon-picker__name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--shade-60);
+}
+
+/* 列表页图标（标题前内联小图标） */
+.data-table__icon {
+  display: inline-block;
+  width: 20px;
+  color: var(--shade-60);
+  font-size: 14px;
+}
+

@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
+import IconPicker from "@/components/IconPicker";
 import { useToast } from "@/components/Toast";
 import {
   createExampleQuestion,
@@ -21,6 +22,7 @@ const PAGE_SIZE = 10;
 const EMPTY_FORM: ExampleQuestionInput = {
   title: "",
   description: "",
+  icon: "",
   question: "",
   sortOrder: 0,
 };
@@ -80,6 +82,7 @@ export default function ExampleQuestionsPage() {
     setForm({
       title: row.title,
       description: row.description ?? "",
+      icon: row.icon ?? "",
       question: row.question,
       sortOrder: row.sortOrder ?? 0,
     });
@@ -96,6 +99,7 @@ export default function ExampleQuestionsPage() {
     const payload: ExampleQuestionInput = {
       title: form.title.trim(),
       description: form.description?.trim() || undefined,
+      icon: form.icon?.trim() || undefined,
       question: form.question.trim(),
       sortOrder: Number(form.sortOrder) || 0,
     };
@@ -178,7 +182,12 @@ export default function ExampleQuestionsPage() {
                 {items.map((row) => (
                   <tr key={row.id}>
                     <td>
-                      <span className="data-table__title">{row.title}</span>
+                      <span className="data-table__title">
+                        {row.icon ? (
+                          <i className={`fa-solid ${row.icon} data-table__icon`} aria-hidden />
+                        ) : null}
+                        {row.title}
+                      </span>
                     </td>
                     <td className="data-table__desc">{row.description || "—"}</td>
                     <td className="data-table__desc">
@@ -240,6 +249,12 @@ export default function ExampleQuestionsPage() {
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   />
                 </div>
+                <IconPicker
+                  label="图标（可选）"
+                  value={form.icon ?? ""}
+                  onChange={(icon) => setForm((f) => ({ ...f, icon }))}
+                  hint="用户端示例问题卡片上展示的图标；不选则不显示"
+                />
                 <div className="field field--full">
                   <label htmlFor="eq-desc">描述</label>
                   <input

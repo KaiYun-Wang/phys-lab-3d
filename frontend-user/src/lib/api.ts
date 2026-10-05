@@ -363,6 +363,7 @@ export type AiExampleQuestion = {
   id: number;
   title: string;
   description?: string | null;
+  icon?: string | null;
   question: string;
   sortOrder: number;
 };
@@ -593,6 +594,7 @@ export async function streamAiMessage(
 export type Announcement = {
   id: number;
   title: string;
+  icon?: string | null;
   content: string;
   createTime?: string;
   updateTime?: string;

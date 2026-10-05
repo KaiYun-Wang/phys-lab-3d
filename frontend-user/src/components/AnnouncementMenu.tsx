@@ -1,39 +1,40 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell } from "lucide-react";
 import { fetchAnnouncements, type Announcement } from "@/lib/api";
 import AnnouncementDetailModal from "@/components/AnnouncementDetailModal";
+import AnnouncementAllModal from "@/components/AnnouncementAllModal";
+import AnnouncementCard from "@/components/AnnouncementCard";
+
+/** 预览条数：最多展示 5 条，超出走「查看全部」弹框（与个人中心最近对话一致） */
+const RECENT_LIMIT = 5;
 
 export default function AnnouncementMenu() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Announcement[]>([]);
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [detail, setDetail] = useState<Announcement | null>(null);
+  const [allOpen, setAllOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
 
-  async function load(nextPage: number, append: boolean) {
+  async function load() {
     setLoading(true);
     try {
-      const data = await fetchAnnouncements(nextPage, 10);
-      setItems((prev) => (append ? [...prev, ...(data.records ?? [])] : data.records ?? []));
-      setPage(data.page);
+      const data = await fetchAnnouncements(1, RECENT_LIMIT);
+      setItems(data.records ?? []);
       setTotal(data.total);
-      setLoaded(true);
     } catch {
-      if (!append) setItems([]);
-      setLoaded(true);
+      setItems([]);
     } finally {
+      setLoaded(true);
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (open && !loaded && !loading) load(1, false);
+    if (open && !loaded && !loading) void load();
   }, [open, loaded, loading]);
 
   useEffect(() => {
@@ -44,14 +45,6 @@ export default function AnnouncementMenu() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
-
-  function onScroll() {
-    const el = listRef.current;
-    if (!el || loading || items.length >= total) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
-      load(page + 1, true);
-    }
-  }
 
   function openDetail(item: Announcement) {
     setDetail(item);
@@ -68,38 +61,57 @@ export default function AnnouncementMenu() {
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >
-          <Bell size={16} className="kh-announce__icon" aria-hidden />
+          <i className="fa-regular fa-bell kh-announce__icon" aria-hidden />
           <span>公告</span>
         </button>
         {open ? (
           <div className="announcement-popover" role="dialog" aria-label="公告">
             <div className="announcement-popover-head">
               <span className="sx-eyebrow">最近公告</span>
+              {loaded && total > 0 ? (
+                <span className="announcement-popover-count">{`共 ${total} 条`}</span>
+              ) : null}
             </div>
-            <div ref={listRef} className="announcement-popover-list" onScroll={onScroll}>
+            <div className="announcement-popover-list">
               {!loaded && loading ? (
                 <p className="sx-hint">加载中…</p>
               ) : items.length === 0 ? (
-                <p className="sx-hint">暂无公告</p>
+                <div className="announcement-empty">
+                  <i className="fa-regular fa-folder-open" aria-hidden />
+                  <p>暂无公告</p>
+                </div>
               ) : (
                 items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="announcement-item-btn"
-                    onClick={() => openDetail(item)}
-                  >
-                    {item.title}
-                  </button>
+                  <AnnouncementCard key={item.id} item={item} onClick={() => openDetail(item)} />
                 ))
               )}
-              {loaded && loading ? <p className="sx-hint">加载更多…</p> : null}
             </div>
+            {loaded && total > RECENT_LIMIT ? (
+              <div className="announcement-popover-foot">
+                <button
+                  type="button"
+                  className="pf-link"
+                  onClick={() => {
+                    setOpen(false);
+                    setAllOpen(true);
+                  }}
+                >
+                  查看全部 {total} 条公告
+                  <i className="fa-solid fa-arrow-right" aria-hidden />
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
       {detail ? (
         <AnnouncementDetailModal announcement={detail} onClose={() => setDetail(null)} />
+      ) : null}
+      {allOpen ? (
+        <AnnouncementAllModal
+          onClose={() => setAllOpen(false)}
+          onOpenDetail={(item) => setDetail(item)}
+        />
       ) : null}
     </>
   );

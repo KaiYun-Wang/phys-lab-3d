@@ -98,6 +98,7 @@ export default function EditAnnouncementPage() {
 
   const initial: AnnouncementFormValues = {
     title: announcement.title,
+    icon: announcement.icon ?? "",
     content: announcement.content,
   };
 

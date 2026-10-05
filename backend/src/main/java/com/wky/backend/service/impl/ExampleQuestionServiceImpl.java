@@ -92,6 +92,7 @@ public class ExampleQuestionServiceImpl extends ServiceImpl<ExampleQuestionMappe
     private static void apply(ExampleQuestion row, ExampleQuestionRequest request) {
         row.setTitle(request.getTitle().trim());
         row.setDescription(blankToNull(request.getDescription()));
+        row.setIcon(blankToNull(request.getIcon()));
         row.setQuestion(request.getQuestion().trim());
         row.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
     }

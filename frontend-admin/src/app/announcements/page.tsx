@@ -116,7 +116,12 @@ export default function AnnouncementsPage() {
                 {items.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <span className="data-table__title">{item.title}</span>
+                      <span className="data-table__title">
+                        {item.icon ? (
+                          <i className={`fa-solid ${item.icon} data-table__icon`} aria-hidden />
+                        ) : null}
+                        {item.title}
+                      </span>
                     </td>
                     <td className="data-table__desc">
                       {item.content.length > 60 ? `${item.content.slice(0, 60)}…` : item.content}

@@ -3,16 +3,10 @@
 import { lazy, Suspense, useMemo } from "react";
 import type { ExperimentId } from "@/experiments/registry";
 import { getExperimentEntry } from "@/experiments/registry";
+import LoadingScreen from "@/components/LoadingScreen";
 
 function ExperimentLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950">
-      <div className="text-center text-gray-400">
-        <div className="animate-spin text-4xl mb-4">⚛️</div>
-        <p>加载实验中...</p>
-      </div>
-    </div>
-  );
+  return <LoadingScreen title="正在加载实验…" hint="初始化 3D 场景与物理引擎" />;
 }
 
 export function ExperimentLoader({ id }: { id: ExperimentId }) {

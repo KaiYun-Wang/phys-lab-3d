@@ -14,6 +14,10 @@ public class ExampleQuestionRequest {
     @Size(max = 200)
     private String description;
 
+    /** 卡片图标（Font Awesome 类名，如 fa-atom）；空则不展示 */
+    @Size(max = 32)
+    private String icon;
+
     @NotBlank
     @Size(max = 500)
     private String question;

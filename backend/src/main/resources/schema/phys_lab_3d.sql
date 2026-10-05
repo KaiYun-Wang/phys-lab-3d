@@ -279,6 +279,7 @@ CREATE UNIQUE INDEX "uk_admins_username" ON "public"."admins" USING btree ("user
 CREATE TABLE "public"."announcements" (
   "id" bigint NOT NULL DEFAULT nextval('announcements_id_seq'::regclass),
   "title" character varying(100) NOT NULL,
+  "icon" character varying(32),
   "content" text NOT NULL,
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "update_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -288,6 +289,7 @@ CREATE TABLE "public"."announcements" (
 COMMENT ON TABLE "public"."announcements" IS '平台公告';
 COMMENT ON COLUMN "public"."announcements"."id" IS '公告 ID，自增主键';
 COMMENT ON COLUMN "public"."announcements"."title" IS '公告标题';
+COMMENT ON COLUMN "public"."announcements"."icon" IS '列表图标（Font Awesome 类名如 fa-flask，空则不显示）';
 COMMENT ON COLUMN "public"."announcements"."content" IS '公告正文';
 COMMENT ON COLUMN "public"."announcements"."create_time" IS '创建时间，插入时自动填充';
 COMMENT ON COLUMN "public"."announcements"."update_time" IS '更新时间，插入/更新时自动填充';
@@ -306,6 +308,7 @@ CREATE TABLE "public"."example_questions" (
   "id" bigint NOT NULL DEFAULT nextval('example_questions_id_seq'::regclass),
   "title" character varying(100) NOT NULL,
   "description" character varying(200),
+  "icon" character varying(32),
   "question" character varying(500) NOT NULL,
   "sort_order" integer NOT NULL DEFAULT 0,
   "create_time" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -317,6 +320,7 @@ COMMENT ON TABLE "public"."example_questions" IS 'AI 对话示例问题（用户
 COMMENT ON COLUMN "public"."example_questions"."id" IS '示例 ID，自增主键';
 COMMENT ON COLUMN "public"."example_questions"."title" IS '卡片标题';
 COMMENT ON COLUMN "public"."example_questions"."description" IS '简短描述（可选）';
+COMMENT ON COLUMN "public"."example_questions"."icon" IS '卡片图标（Font Awesome 类名如 fa-atom，空则不显示）';
 COMMENT ON COLUMN "public"."example_questions"."question" IS '点击后填入/发送的完整问题文案';
 COMMENT ON COLUMN "public"."example_questions"."sort_order" IS '排序权重，越小越靠前';
 COMMENT ON COLUMN "public"."example_questions"."create_time" IS '创建时间';

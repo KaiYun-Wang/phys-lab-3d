@@ -89,7 +89,14 @@ function CollapsibleStep({
         aria-expanded={showBody}
         disabled={!canOpen}
       >
-        <span className="ai-step-chevron">{canOpen ? (showBody ? "▾" : "▸") : "·"}</span>
+        {canOpen ? (
+          <i
+            className={`fa-solid ${showBody ? "fa-chevron-down" : "fa-chevron-right"} ai-step-chevron`}
+            aria-hidden
+          />
+        ) : (
+          <span className="ai-step-chevron">·</span>
+        )}
         {streaming && !body ? "思考中…" : label}
       </button>
       {showBody && <div className="ai-step-body">{body}</div>}
@@ -710,7 +717,7 @@ export default function AiChatWidget({
             <span className="ai-fab-tip" aria-hidden>
               <span className="ai-fab-tip__ping" />
               <span className="ai-fab-tip__text">解答任何物理推导与实验参数疑难</span>
-              <span className="ai-fab-tip__tag">PHY-GPT</span>
+              <span className="ai-fab-tip__tag">PhyLab-AI</span>
             </span>
           )}
         </>
@@ -747,6 +754,10 @@ export default function AiChatWidget({
           </div>
           <div className="ai-meta">
             <div className="ai-title">实验助手</div>
+            <div className="ai-status">
+              <span className="ai-status__dot kh-ping" aria-hidden />
+              PhyLab-AI · 知识库已接入
+            </div>
           </div>
           <button
             type="button"
@@ -842,11 +853,17 @@ export default function AiChatWidget({
                             disabled={sending}
                             onClick={() => send(ex.question)}
                           >
-                            <span className="ai-example-card__title">{ex.title}</span>
+                            <span className="ai-example-card__title">
+                              {ex.icon ? <i className={`fa-solid ${ex.icon}`} aria-hidden /> : null}
+                              {ex.title}
+                            </span>
                             {ex.description ? (
                               <span className="ai-example-card__desc">{ex.description}</span>
                             ) : null}
-                            <span className="ai-example-card__q">{ex.question}</span>
+                            <span className="ai-example-card__q">
+                              <b>Q</b>
+                              {ex.question}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -1035,7 +1052,7 @@ export default function AiChatWidget({
               />
               <button type="submit" className="send" aria-label="发送" disabled={sending}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
+                  <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>
               </button>
             </form>

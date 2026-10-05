@@ -127,6 +127,7 @@ export function fetchDashboardAnalytics(days: 7 | 30 = 7) {
 export type AnnouncementRecord = {
   id: number;
   title: string;
+  icon?: string | null;
   content: string;
   createTime?: string;
   updateTime?: string;
@@ -134,6 +135,7 @@ export type AnnouncementRecord = {
 
 export type AnnouncementInput = {
   title: string;
+  icon?: string;
   content: string;
 };
 
@@ -169,6 +171,7 @@ export type ExampleQuestionRecord = {
   id: number;
   title: string;
   description?: string | null;
+  icon?: string | null;
   question: string;
   sortOrder: number;
   createTime?: string;
@@ -178,6 +181,7 @@ export type ExampleQuestionRecord = {
 export type ExampleQuestionInput = {
   title: string;
   description?: string;
+  icon?: string;
   question: string;
   sortOrder?: number;
 };

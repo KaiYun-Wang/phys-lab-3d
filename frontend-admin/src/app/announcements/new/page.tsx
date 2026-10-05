@@ -9,6 +9,7 @@ import { createAnnouncement, fetchMe, type AdminProfile } from "@/lib/api";
 
 const DEFAULT_VALUES: AnnouncementFormValues = {
   title: "",
+  icon: "",
   content: "",
 };
 

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import KnowledgeMarkdownEditor from "@/components/KnowledgeMarkdownEditor";
+import IconPicker from "@/components/IconPicker";
 import { useToast } from "@/components/Toast";
 import type { AnnouncementInput } from "@/lib/api";
 
@@ -24,6 +25,7 @@ export default function AnnouncementForm({
 }: AnnouncementFormProps) {
   const toast = useToast();
   const [title, setTitle] = useState(initial.title);
+  const [icon, setIcon] = useState(initial.icon ?? "");
   const [content, setContent] = useState(initial.content);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -47,7 +49,7 @@ export default function AnnouncementForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    onSubmit({ title: title.trim(), content: content.trim() });
+    onSubmit({ title: title.trim(), icon: icon.trim() || undefined, content: content.trim() });
   }
 
   return (
@@ -65,6 +67,13 @@ export default function AnnouncementForm({
             required
           />
         </div>
+
+        <IconPicker
+          label="列表图标（可选）"
+          value={icon}
+          onChange={setIcon}
+          hint="用户端公告列表中展示的图标；不选则不显示"
+        />
 
         <div className="field field--full">
           <label>正文（Markdown）</label>

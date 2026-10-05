@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken, getToken, isTokenExpired } from "@/lib/auth";
 import { fetchMe } from "@/lib/api";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -56,11 +57,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   if (!ready) {
-    return (
-      <div className="min-h-screen bg-[var(--sx-void)] flex items-center justify-center">
-        <p className="sx-eyebrow text-[#8d90a0]">加载中…</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return <>{children}</>;

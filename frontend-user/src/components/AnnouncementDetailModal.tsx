@@ -55,7 +55,8 @@ export default function AnnouncementDetailModal({
           ) : null}
         </div>
         <div className="announcement-modal-foot">
-          <button type="button" className="btn-ghost btn-ghost-sm" onClick={onClose}>
+          <button type="button" className="btn-primary btn-primary-sm" onClick={onClose}>
+            <i className="fa-solid fa-check" aria-hidden />
             知道了
           </button>
         </div>

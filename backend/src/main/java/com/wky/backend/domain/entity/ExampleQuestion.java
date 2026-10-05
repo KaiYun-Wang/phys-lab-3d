@@ -20,6 +20,8 @@ public class ExampleQuestion {
 
     private String description;
 
+    private String icon;
+
     private String question;
 
     private Integer sortOrder;

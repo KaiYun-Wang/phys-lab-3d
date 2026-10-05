@@ -13,6 +13,7 @@ import com.wky.backend.mapper.AnnouncementMapper;
 import com.wky.backend.service.IAnnouncementService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Announcement>
@@ -55,6 +56,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
     public AnnouncementResponse create(CreateAnnouncementRequest request) {
         Announcement announcement = new Announcement();
         announcement.setTitle(request.getTitle().trim());
+        announcement.setIcon(blankToNull(request.getIcon()));
         announcement.setContent(request.getContent().trim());
         save(announcement);
         return AnnouncementResponse.from(announcement);
@@ -68,6 +70,7 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
             throw new ApiException(404, "公告不存在");
         }
         announcement.setTitle(request.getTitle().trim());
+        announcement.setIcon(blankToNull(request.getIcon()));
         announcement.setContent(request.getContent().trim());
         updateById(announcement);
         return AnnouncementResponse.from(announcement);
@@ -79,5 +82,12 @@ public class AnnouncementServiceImpl extends ServiceImpl<AnnouncementMapper, Ann
         if (!removeById(id)) {
             throw new ApiException(404, "公告不存在");
         }
+    }
+
+    private static String blankToNull(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
     }
 }
