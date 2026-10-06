@@ -75,7 +75,7 @@ public class AiChatServiceImpl implements IAiChatService {
     private final DemoAiTools demoAiTools;
     private final ExperimentDefinitionRegistry experimentDefinitionRegistry;
 
-    /** userBase=实验+知识; userDemo=+demo; admin=仅知识页. */
+    /** userBase=实验+知识; userDemo=+demo; admin=仅知识库. */
     private ToolBundle userBaseTools;
     private ToolBundle userDemoTools;
     private ToolBundle adminTools;
@@ -583,8 +583,8 @@ public class AiChatServiceImpl implements IAiChatService {
     private static String toolLabel(String name) {
         return switch (name) {
             case "listPublishedExperiments" -> "查询已发布实验";
-            case "listKnowledgePages" -> "查询知识页目录";
-            case "getKnowledgePageContents" -> "读取知识页正文";
+            case "listKnowledgePages" -> "查询知识库目录";
+            case "getKnowledgePageContents" -> "读取知识库正文";
             case "createDemo" -> "生成演示计划";
             case "lookupDemo" -> "查询演示剧本";
             default -> name;
@@ -688,13 +688,13 @@ public class AiChatServiceImpl implements IAiChatService {
     private String buildSystemPrompt(Map<String, Object> context, boolean demoEnabled, boolean admin) {
         StringBuilder sb = new StringBuilder();
         if (admin) {
-            sb.append("你是 PhysLab 3D 管理端的知识助手，只根据知识页工具回答。\n")
+            sb.append("你是 PhysLab 3D 管理端的知识助手，只根据知识库工具回答。\n")
                     .append("回答语言：跟随用户——用户用中文则中文回复；用户用英文（或其它外语）则用英文回复。\n")
                     .append("回答规则：\n")
                     .append("1. 涉及平台文档、实验原理说明、操作说明时：先调用 listKnowledgePages（可带关键词或留空看全目录），")
                     .append("根据 description 选出相关文档，再调用 getKnowledgePageContents 拉取必要正文；不要一次拉取全部正文。\n")
-                    .append("2. 一般性问题可用自身可靠知识回答，但不要假装来自知识页。\n")
-                    .append("3. 不要编造知识页中没有的内容；资料不足时直接说不知道。\n")
+                    .append("2. 一般性问题可用自身可靠知识回答，但不要假装来自知识库。\n")
+                    .append("3. 不要编造知识库中没有的内容；资料不足时直接说不知道。\n")
                     .append("4. 对用户只说人话：禁止在回复里出现程序内部字段、tool 名、JSON 键名等。\n");
             return sb.toString();
         }
@@ -706,9 +706,9 @@ public class AiChatServiceImpl implements IAiChatService {
                 .append("必须先调用工具 listPublishedExperiments 查询，再根据工具结果回答；不要凭记忆编造平台实验。\n")
                 .append("2. 涉及实验原理、操作说明、平台知识文档时：先调用 listKnowledgePages（可带关键词或留空看全目录），")
                 .append("根据返回的 description 判断相关文档，再调用 getKnowledgePageContents 拉取必要正文；")
-                .append("不要一次拉取全部正文；知识页有相关内容时必须依据正文回答，并可说明来自知识页。\n")
+                .append("不要一次拉取全部正文；知识库有相关内容时必须依据正文回答，并可说明来自知识库。\n")
                 .append("3. 一般性问题（如自我介绍、问候、通用物理概念解释等）：可用你自身可靠知识回答，")
-                .append("但不要假装来自本平台知识页。\n")
+                .append("但不要假装来自本平台知识库。\n")
                 .append("4. 禁止编造：不要虚构本平台不存在的实验名称/功能；不要捏造未给出的实验参数或文档内容。\n")
                 .append("5. 确实不知道或资料不足时，直接说不知道，不要猜测凑答。\n")
                 .append("6. 对用户只说人话：禁止在回复里出现程序内部字段、协议名或机器标识，")

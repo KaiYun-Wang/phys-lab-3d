@@ -110,8 +110,8 @@ function toolStepLabel(role: "tool_call" | "tool_result", content: string, conte
   if (typeof name === "string" && name) {
     const map: Record<string, string> = {
       listPublishedExperiments: "查询已发布实验",
-      listKnowledgePages: "查询知识页目录",
-      getKnowledgePageContents: "读取知识页正文",
+      listKnowledgePages: "查询知识库目录",
+      getKnowledgePageContents: "读取知识库正文",
       createDemo: "生成演示计划",
       lookupDemo: "查询演示剧本",
     };

@@ -103,7 +103,10 @@ const HOVER_RULES: HoverRule[] = [
   { sel: ".ai-ref-btn", scale: 1.05 },
   { sel: ".demo-panel__back", scale: 1.06 },
   { sel: ".demo-panel__btn", scale: 1.06, push: true },
-  { sel: ".demo-scrubber__node", scale: 1.6 },
+  // 语音讲解 / 字幕开关：整行轻放大 + tick/press 音效（胶囊滑动由 CSS 负责）
+  { sel: ".demo-tool", scale: 1.02 },
+  // 进度节点：轻放大（光晕/颜色反馈由 CSS 过渡负责，组合成「发光悬浮」质感）
+  { sel: ".demo-scrubber__node", scale: 1.35 },
   { sel: ".demo-panel__quiz-opts button", scale: 1.04 },
   // 演示字幕条（底部浮动讲解）：关闭讲解 / 上一步·下一步 / 实验页顶栏返回大厅
   { sel: ".demo-caption__stop", scale: 1.1 },

@@ -43,8 +43,8 @@ CREATE TABLE "public"."knowledge_pages" (
   PRIMARY KEY ("id")
 );
 
-COMMENT ON TABLE "public"."knowledge_pages" IS 'AI 知识页（标题+描述供目录工具，正文按需拉取）';
-COMMENT ON COLUMN "public"."knowledge_pages"."id" IS '知识页 ID，自增主键';
+COMMENT ON TABLE "public"."knowledge_pages" IS 'AI 知识库（标题+描述供目录工具，正文按需拉取）';
+COMMENT ON COLUMN "public"."knowledge_pages"."id" IS '知识库 ID，自增主键';
 COMMENT ON COLUMN "public"."knowledge_pages"."title" IS '文档名';
 COMMENT ON COLUMN "public"."knowledge_pages"."description" IS '摘要，供 AI 列表选型';
 COMMENT ON COLUMN "public"."knowledge_pages"."content" IS '正文（markdown/纯文本）';

@@ -7000,16 +7000,79 @@
   border-radius: 50%;
   background: #101820;
   cursor: pointer;
+  /* 状态切换（当前播放/完成/hover 光晕）平滑过渡 */
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    margin 0.2s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.2s ease;
 }
 .demo-scrubber__node:hover {
   border-color: #2aa8d0;
+  /* 近环 + 柔光：与引擎的轻放大组合成「发光悬浮」质感 */
+  box-shadow:
+    0 0 0 4px rgba(42, 168, 208, 0.22),
+    0 0 10px rgba(42, 168, 208, 0.5);
 }
 .demo-scrubber__node.done {
   background: #1a7a9c;
   border-color: #1a7a9c;
 }
+/* 当前播放节点：加大 + 亮青实心 + 呼吸脉冲（暂停时降为静态光圈，不再跳动） */
 .demo-scrubber__node.active {
-  box-shadow: 0 0 0 3px rgba(26, 122, 156, 0.35);
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  z-index: 1;
+  background: #67e8f9;
+  border-color: #67e8f9;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.28);
+}
+.demo-scrubber__node.active.pulsing {
+  animation: demo-node-pulse 1.8s ease-out infinite;
+}
+.demo-scrubber__node.active:hover {
+  box-shadow:
+    0 0 0 4px rgba(103, 232, 249, 0.45),
+    0 0 12px rgba(103, 232, 249, 0.6);
+}
+@keyframes demo-node-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(103, 232, 249, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(103, 232, 249, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(103, 232, 249, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-scrubber__node.active.pulsing {
+    animation: none;
+  }
+}
+/* 实验小结节点：蓝色标识演示终点站（亮青描边与步骤节点区分，尺寸略大） */
+.demo-scrubber__node--sum {
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-color: #2aa8d0;
+  background: #101820;
+}
+.demo-scrubber__node--sum.done {
+  background: #1a7a9c;
+  border-color: #1a7a9c;
+}
+.demo-scrubber__node--sum.active {
+  /* 与普通节点 active 同款亮青实心（该规则须在 --sum.done 之后才能赢得级联） */
+  background: #67e8f9;
+  border-color: #67e8f9;
+}
+.demo-scrubber__node--sum:hover {
+  border-color: #67e8f9;
 }
 .demo-scrubber__hint {
   margin: 2px 0 0;
@@ -7020,10 +7083,10 @@
   opacity: 0.7;
 }
 .demo-scrubber__tip {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  z-index: 2;
-  transform: translateX(-50%);
+  /* body 级 portal + fixed：顶层覆盖，不受右栏容器 overflow 裁剪（最左/最右端点的气泡完整可见） */
+  position: fixed;
+  z-index: 200;
+  transform: translate(-50%, -100%);
   max-width: 180px;
   padding: 5px 8px;
   border-radius: 6px;
@@ -7042,7 +7105,8 @@
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
+  /* 小三角随 --tip-arrow 偏移：气泡被收边时仍精准指向节点 */
+  left: calc(50% + var(--tip-arrow, 0px));
   margin-left: -4px;
   border: 4px solid transparent;
   border-top-color: #1a596b;
@@ -7302,17 +7366,85 @@
 
 .demo-panel__tools {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
   margin-top: 12px;
   font-size: 12px;
   color: var(--sx-ink-mute, #8d90a0);
 }
-.demo-panel__tools label {
+/* 语音讲解 / 字幕：纵向开关行（图标 + 文字 + 右侧胶囊，整行可点） */
+.demo-tool {
   display: flex;
-  gap: 6px;
   align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #b9c0d4;
+  background: rgba(19, 27, 43, 0.55);
+  border: 1px solid #27354f;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 150ms, border-color 150ms, color 150ms;
+}
+.demo-tool:hover {
+  color: #dbe3f0;
+  border-color: #35507a;
+}
+.demo-tool > i {
+  width: 14px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.7;
+  transition: color 150ms, opacity 150ms;
+}
+.demo-tool__label {
+  flex: 1;
+  text-align: left;
+}
+.demo-tool__chip {
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 16px;
+  border-radius: 999px;
+  background: #131b2b;
+  border: 1px solid #27354f;
+  transition: background 150ms, border-color 150ms;
+}
+.demo-tool__chip::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6b7280;
+  transition: transform 150ms, background 150ms, box-shadow 150ms;
+}
+.demo-tool.on {
+  color: #e2e8f0;
+  background: rgba(8, 47, 73, 0.35);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+.demo-tool.on > i {
+  opacity: 1;
+  color: #38bdf8;
+}
+.demo-tool.on .demo-tool__chip {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(8, 47, 73, 0.6);
+}
+.demo-tool.on .demo-tool__chip::after {
+  transform: translateX(14px);
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+}
+.demo-tool:focus-visible {
+  outline: 2px solid var(--kh-secondary-soft);
+  outline-offset: 2px;
 }
 
 /* ── 教学演示：移动框高亮（无压暗遮罩） ── */
@@ -7373,6 +7505,21 @@
   font-size: 14px;
   line-height: 1.55;
   color: #dfe2f1;
+}
+/* 字幕关闭态：仅保留「关闭讲解 + 上一步/下一步」的紧凑横条 */
+.demo-caption--nocap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: auto;
+  padding: 8px 12px;
+}
+.demo-caption--nocap .demo-caption__stop {
+  position: static;
+  flex-shrink: 0;
+}
+.demo-caption--nocap .demo-caption__nav {
+  margin-top: 0;
 }
 .demo-caption__nav {
   pointer-events: auto;

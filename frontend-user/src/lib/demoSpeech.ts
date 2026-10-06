@@ -55,6 +55,10 @@ export async function awaitSoftPause(signal?: AbortSignal): Promise<void> {
 
 let sharedAudio: HTMLAudioElement | null = null;
 
+/** 解锁用的静音 wav 桩（0 采样 data URI）；unlockMedia 的清理守卫也以它为标记 */
+const DATA_PING =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+
 function getAudio(): HTMLAudioElement {
   if (!sharedAudio) {
     sharedAudio = new Audio();
@@ -91,8 +95,12 @@ export function stopSpeaking() {
  */
 export function unlockMedia() {
   const audio = getAudio();
+  // 只凭 currentSrc/src 判断「是否正在播放」不可靠：stopSpeaking 的 removeAttribute+load()
+  // 之后 currentSrc 仍会残留旧 URL（实测 400ms+），会把「已清空」误判成「正在播」而跳过解锁桩。
+  // 改用真实播放进度判定：只有确实在推进播放时才视为 midClip。
   const src = audio.currentSrc || audio.src || "";
-  const midClip = !!src && !src.startsWith("data:") && !audio.ended;
+  const midClip =
+    !audio.paused && !audio.ended && audio.readyState >= 2 && !src.startsWith("data:");
   if (midClip) {
     // Don't wipe a paused demo clip — resume under this click instead.
     softPaused = false;
@@ -104,26 +112,30 @@ export function unlockMedia() {
   softPaused = false;
   try {
     // Tiny silent wav — enough to mark this element as user-activated.
-    audio.src =
-      "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
-    audio.muted = true;
+    // 0 采样本身无声，且绝不触碰 muted：避免解锁流程遗留静音状态（会导致讲解"能走但没声音"）。
+    audio.src = DATA_PING;
     void audio
       .play()
       .then(() => {
-        audio.pause();
-        audio.muted = false;
-        try {
-          audio.removeAttribute("src");
-          audio.load();
-        } catch {
-          /* ignore */
+        // 守卫：只在元素「仍是这枚静音桩」时清理它。
+        // 点节点重播场景下，正式讲解音频可能在桩的 play() resolve 之前就已接管元素，
+        // 若无差别 pause + 清 src，会把刚起播的讲解音频打断（onended 永不触发），
+        // 导致整个讲解循环被永久挂起：无声、不推进、也不显示暂停。
+        if (audio.src.startsWith("data:audio/wav")) {
+          audio.pause();
+          try {
+            audio.removeAttribute("src");
+            audio.load();
+          } catch {
+            /* ignore */
+          }
         }
       })
       .catch(() => {
-        audio.muted = false;
+        /* 桩播放失败不影响后续正式播放 */
       });
   } catch {
-    audio.muted = false;
+    /* ignore */
   }
   if (canSpeak()) {
     try {
@@ -185,8 +197,13 @@ export function playAudio(url: string, opts?: SpeakOpts): Promise<void> {
   return new Promise((resolve, reject) => {
     let settled = false;
     const audio = getAudio();
+    let watchdog: ReturnType<typeof setInterval> | null = null;
 
     const cleanup = () => {
+      if (watchdog != null) {
+        clearInterval(watchdog);
+        watchdog = null;
+      }
       opts?.signal?.removeEventListener("abort", onAbort);
       opts?.skipSignal?.removeEventListener("abort", onSkip);
       audio.onended = null;
@@ -236,16 +253,23 @@ export function playAudio(url: string, opts?: SpeakOpts): Promise<void> {
     };
 
     const src = mediaUrl(url);
-    const cur = audio.currentSrc || audio.src || "";
-    const already = cur === src || cur.endsWith(url);
-    if (!already) {
-      try {
-        audio.src = src;
-        audio.load();
-        audio.currentTime = 0;
-      } catch {
-        /* ignore */
-      }
+    // 无条件重设资源，保证每次播放都从零重新加载。
+    // 不能依据 currentSrc 判断「已加载同一音频」而跳过设置：stopSpeaking 清空元素后
+    // currentSrc 会残留旧 URL（实测 400ms+），「点当前节点重播」时目标恰等于残留值，
+    // 误判会让空元素上的 play() 失败——无声、不报错、当前步被静默跳过。
+    try {
+      audio.src = src;
+      audio.load();
+    } catch {
+      /* ignore */
+    }
+    // 讲解音频必须有声（解锁桩等外部状态一律不保留静音），且每次都从头开始：
+    // 「点当前节点重播」与「切换进度」效果一致——直接重播该步语音。
+    audio.muted = false;
+    try {
+      audio.currentTime = 0;
+    } catch {
+      /* ignore */
     }
 
     const tryPlay = () => {
@@ -270,6 +294,32 @@ export function playAudio(url: string, opts?: SpeakOpts): Promise<void> {
         }
       });
     };
+    // 看门狗：播放进行中 currentTime 长期停滞（设备异常 / 极端竞态）时按「已播完」放行。
+    // 防止 onended 丢失导致讲解循环永久挂起；元素处于暂停或 soft-pause 期间不计停滞。
+    let lastT = -1;
+    let stale = 0;
+    watchdog = setInterval(() => {
+      if (settled || audio.paused || softPaused) {
+        stale = 0;
+        return;
+      }
+      const t = audio.currentTime;
+      if (t > lastT + 0.01) {
+        lastT = t;
+        stale = 0;
+        return;
+      }
+      stale += 1;
+      if (stale >= 3) {
+        try {
+          audio.pause();
+        } catch {
+          /* ignore */
+        }
+        finishOk();
+      }
+    }, 2000);
+
     tryPlay();
   });
 }
@@ -277,9 +327,37 @@ export function playAudio(url: string, opts?: SpeakOpts): Promise<void> {
 function speakOne(text: string, opts?: SpeakOpts): Promise<void> {
   return new Promise((resolve, reject) => {
     let settled = false;
+    // 看门狗：浏览器 TTS 的 onend 偶发丢失（cancel 竞态等）时，按文本长度限时放行，
+    // 避免讲解循环永久驻留；soft-pause 期间不计时。
+    let elapsed = 0;
+    let lastTick = performance.now();
+    const maxMs = Math.min(90000, 10000 + text.length * 350);
+    let watchdog: ReturnType<typeof setInterval> | null = null;
     const cleanup = () => {
+      if (watchdog != null) {
+        clearInterval(watchdog);
+        watchdog = null;
+      }
       opts?.signal?.removeEventListener("abort", onAbort);
       opts?.skipSignal?.removeEventListener("abort", onSkip);
+    };
+    const startWatchdog = () => {
+      if (watchdog != null) return;
+      lastTick = performance.now();
+      watchdog = setInterval(() => {
+        const now = performance.now();
+        if (!softPaused) elapsed += now - lastTick;
+        lastTick = now;
+        if (settled) return;
+        if (elapsed >= maxMs) {
+          try {
+            window.speechSynthesis.cancel();
+          } catch {
+            /* ignore */
+          }
+          finishOk();
+        }
+      }, 1000);
     };
     const finishOk = () => {
       if (settled) return;
@@ -339,6 +417,7 @@ function speakOne(text: string, opts?: SpeakOpts): Promise<void> {
       u.pitch = opts?.pitch ?? 1;
       u.onend = finishOk;
       u.onerror = () => finishOk();
+      startWatchdog();
       try {
         window.speechSynthesis.speak(u);
       } catch {

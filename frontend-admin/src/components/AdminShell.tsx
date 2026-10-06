@@ -93,7 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { icon: "fa-flask", label: "实验管理", href: "/experiments" },
       { icon: "fa-shapes", label: "学科分类", href: "/subject-types" },
-      { icon: "fa-book-open", label: "知识页", href: "/knowledge" },
+      { icon: "fa-book-open", label: "知识库", href: "/knowledge" },
     ],
   },
   {

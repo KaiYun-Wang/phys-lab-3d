@@ -665,7 +665,7 @@ export function deleteAdminCommentLike(id: number) {
   return apiFetch<void>(`/api/admin/comment-likes/${id}`, { method: "DELETE" });
 }
 
-/* ── 知识页 / 知识检索试测 ── */
+/* ── 知识库 / 知识检索试测 ── */
 
 export type KnowledgePage = {
   id: number;

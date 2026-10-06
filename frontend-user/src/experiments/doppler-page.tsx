@@ -245,7 +245,7 @@ export default function DopplerPage() {
         title="多普勒效应"
         description="观察运动声源引起的频率变化"
         experimentRoute="doppler"
-        cameraPosition={[0, 30, 40]}
+        cameraPosition={[0, 19, 42]}
         backgroundColor="#000000"
         consoleSubtitle="调节声源频率、速度与观察者位置"
         controls={parameterControls}
@@ -266,6 +266,8 @@ export default function DopplerPage() {
           waveSpeed={waveSpeed}
           observerPosition={observerPosition}
           resetTrigger={resetTrigger}
+          isPlaying={isPlaying}
+          simulationSpeed={simulationSpeed}
         />
       </ExperimentContainer>
     </>

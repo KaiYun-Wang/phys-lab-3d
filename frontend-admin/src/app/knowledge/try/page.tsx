@@ -67,8 +67,8 @@ function toolStepLabel(role: "tool_call" | "tool_result", content: string, conte
   const name = context?.name;
   if (typeof name === "string" && name) {
     const map: Record<string, string> = {
-      listKnowledgePages: "查询知识页目录",
-      getKnowledgePageContents: "读取知识页正文",
+      listKnowledgePages: "查询知识库目录",
+      getKnowledgePageContents: "读取知识库正文",
     };
     return `工具结果：${map[name] ?? name}`;
   }
@@ -371,7 +371,7 @@ export default function AdminAiChatPage() {
     <AdminShell admin={admin}>
       <div className="page-toolbar">
         <div className="page-toolbar__left">
-          <PageCrumb parent="知识页" parentHref="/knowledge">
+          <PageCrumb parent="知识库" parentHref="/knowledge">
             <h2 className="page-title">试聊</h2>
           </PageCrumb>
         </div>

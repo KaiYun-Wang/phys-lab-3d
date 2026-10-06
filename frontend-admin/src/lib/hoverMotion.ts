@@ -58,7 +58,7 @@ const HOVER_RULES: HoverRule[] = [
   { sel: ".placeholder-row", scale: 1, lift: -1.5, noPress: true },
   // 仪表盘：周期切换段控件（按钮组挤开）+ 统计卡行 / 内容卡片（卡片组挤开）
   { sel: ".range-toggle__btn", scale: 1.06, push: true },
-  // 卡片右上角胶囊链（查看全部 / 知识页 / 快捷入口箭头）；状态徽章为 span.pill-tag 不受影响
+  // 卡片右上角胶囊链（查看全部 / 知识库 / 快捷入口箭头）；状态徽章为 span.pill-tag 不受影响
   { sel: "a.pill-tag", scale: 1.06 },
   { sel: ".stat-card", scale: 1.03, push: true, noPress: true },
   { sel: ".section-card", scale: 1.02, push: true, noPress: true },

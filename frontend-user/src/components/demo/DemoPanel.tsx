@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import {
   clearDemoProgress,
   completeDemoStep,
@@ -45,6 +46,8 @@ export type DemoStageUi = {
   caption: string;
   captionLabel: string;
   voiceOn: boolean;
+  /** 字幕开关：关闭后场景字幕条隐藏文本，仅保留控制按钮 */
+  captionsOn: boolean;
   canSkip: boolean;
   canPrev: boolean;
   nextLabel: string;
@@ -118,7 +121,18 @@ export function DemoPanel({
   const [browsing, setBrowsing] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [hoverTip, setHoverTip] = useState<{ i: number; left: number } | null>(null);
+  /** 进度节点气泡：记录视口坐标，经 portal 渲染到 body 顶层（不被右栏裁剪） */
+  const [hoverTip, setHoverTip] = useState<{
+    i: number;
+    /** 节点中心（锚点，视口坐标） */
+    ax: number;
+    /** 气泡中心：挂载后按实测宽度收边（避免按最坏宽度过度偏离节点） */
+    x: number;
+    top: number;
+    /** 底部小三角相对气泡中心的偏移，始终指向锚点 */
+    arrow: number;
+  } | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [error, setError] = useState("");
@@ -126,6 +140,8 @@ export function DemoPanel({
   const [stepIndex, setStepIndex] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [voiceOn, setVoiceOn] = useState(true);
+  /** 字幕开关：关闭后场景字幕条隐藏文本，仅保留控制按钮 */
+  const [captionsOn, setCaptionsOn] = useState(true);
   /** per-question feedback after submit */
   const [quizFb, setQuizFb] = useState<Record<number, DemoQuizResult>>({});
   const abortRef = useRef<AbortController | null>(null);
@@ -133,6 +149,8 @@ export function DemoPanel({
   const runIdRef = useRef(0);
   const voiceRef = useRef(voiceOn);
   voiceRef.current = voiceOn;
+  const captionsRef = useRef(captionsOn);
+  captionsRef.current = captionsOn;
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const stepIndexRef = useRef(stepIndex);
@@ -147,11 +165,18 @@ export function DemoPanel({
     captionLabel: string;
     highlightId: string | null;
   } | null>(null);
-  const stageUiRef = useRef<{
-    caption: string;
-    captionLabel: string;
-    highlightId: string | null;
-  }>({ caption: "", captionLabel: "", highlightId: null });
+  /** 舞台字幕/按钮的最近一次完整快照（工具开关重推时据此保持其余字段不变） */
+  const stageUiRef = useRef<DemoStageUi>({
+    highlightId: null,
+    caption: "",
+    captionLabel: "",
+    voiceOn: true,
+    captionsOn: true,
+    canSkip: false,
+    canPrev: false,
+    nextLabel: "下一步 ›",
+    prevLabel: "‹ 上一步",
+  });
   const skipCooldownRef = useRef(0);
   const detailRef = useRef(detail);
   detailRef.current = detail;
@@ -172,26 +197,42 @@ export function DemoPanel({
 
   const pushUi = useCallback(
     (partial: Partial<DemoStageUi>) => {
-      const next = {
+      const next: DemoStageUi = {
         highlightId: null as string | null,
         caption: "",
         captionLabel: "",
         voiceOn: voiceRef.current,
+        captionsOn: captionsRef.current,
         canSkip: false,
         canPrev: false,
         nextLabel: "下一步 ›",
         prevLabel: "‹ 上一步",
         ...partial,
       };
-      stageUiRef.current = {
-        caption: next.caption,
-        captionLabel: next.captionLabel,
-        highlightId: next.highlightId,
-      };
+      stageUiRef.current = next;
       onStageUi?.(next);
     },
     [onStageUi],
   );
+
+  /** 切换语音/字幕开关时重推舞台 UI：以最近快照为基线，保持当前字幕与按钮状态不变 */
+  const pushToolsUi = useCallback(() => {
+    const next: DemoStageUi = {
+      ...stageUiRef.current,
+      voiceOn: voiceRef.current,
+      captionsOn: captionsRef.current,
+    };
+    stageUiRef.current = next;
+    onStageUi?.(next);
+  }, [onStageUi]);
+
+  /** 字幕开关：关 → 字幕条只留控制按钮；开 → 立即恢复当前字幕文本 */
+  const toggleCaptions = useCallback(() => {
+    const on = !captionsRef.current;
+    captionsRef.current = on;
+    setCaptionsOn(on);
+    pushToolsUi();
+  }, [pushToolsUi]);
 
   const clearStage = useCallback(() => {
     stopSpeaking();
@@ -633,12 +674,52 @@ export function DemoPanel({
     softResumeMedia();
   };
 
-  /** 进度条任意跳转 */
+  /** 进度条任意跳转：视频式 seek——先把参数复位到该步「起点状态」，再从头重演该步（语音+参数动画） */
   const jumpToStep = (i: number) => {
     if (i < 0 || i >= steps.length) return;
+    // 点任意节点（含正在播的那一步）都要重新完整演示：先瞬时跳回该步起点的参数
+    // （即上一步的目标参数），runStep 的参数动画便能从起点重新演示一遍；第 1 步无起点数据则不复位。
+    const prevParams = i > 0 ? steps[i - 1]?.params : undefined;
+    if (prevParams) {
+      try {
+        adapter.applyParams({ ...adapter.getParams(), ...prevParams });
+      } catch {
+        /* ignore */
+      }
+    }
     unlockMedia();
     void playFrom(i);
   };
+
+  /** 跳到演示小结（复用同一播放管线：from = steps.length 即 while 跳过各步、直接播小结段） */
+  const jumpToSummary = () => {
+    if (steps.length === 0) return;
+    unlockMedia();
+    void playFrom(steps.length);
+  };
+
+  /** 记录节点锚点（真实收边在气泡挂载后按实测宽度进行，见下方 useLayoutEffect） */
+  const setTipFor = (i: number, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    const ax = r.left + r.width / 2;
+    setHoverTip({ i, ax, x: ax, top: r.top - 10, arrow: 0 });
+  };
+
+  // 气泡挂载后按实测宽度收边：短气泡不再被 180px 最坏值拉偏，且三角始终指向节点。
+  // 在 paint 前（layout effect）完成修正，不会出现「先偏后跳」。
+  useLayoutEffect(() => {
+    const el = tipRef.current;
+    if (!el || !hoverTip) return;
+    const w = el.offsetWidth;
+    const half = w / 2 + 6;
+    const vw = window.innerWidth;
+    const want = Math.min(Math.max(hoverTip.ax, half), vw - half);
+    const maxOff = Math.max(0, w / 2 - 10);
+    const arrow = Math.max(-maxOff, Math.min(maxOff, hoverTip.ax - want));
+    if (Math.abs(want - hoverTip.x) > 0.5 || Math.abs(arrow - hoverTip.arrow) > 0.5) {
+      setHoverTip((t) => (t ? { ...t, x: want, arrow } : t));
+    }
+  }, [hoverTip]);
 
   const doClearProgress = async () => {
     if (!detail) return;
@@ -760,30 +841,71 @@ export function DemoPanel({
               <div className="demo-scrubber__rail">
                 <div className="demo-scrubber__fill" style={{ width: `${progressPct}%` }} />
                 {steps.map((s, i) => {
-                  const left = steps.length === 1 ? 0 : (i / (steps.length - 1)) * 100;
+                  // 步骤节点均布在 0~(n-1)/n，末端 100% 留给「实验小结」节点；
+                  // fill 宽度 completed/n 恰与节点位置对齐。
+                  const left = (i / steps.length) * 100;
                   const isDone = i < completed;
                   const active = i === stepIndex && (playing || phase === "paused");
+                  // 仅播放中脉冲（暂停时保持静态高亮，不再跳动）
+                  const pulsing = playing && i === stepIndex;
                   return (
                     <button
                       key={i}
                       type="button"
-                      className={`demo-scrubber__node${isDone ? " done" : ""}${active ? " active" : ""}`}
+                      className={`demo-scrubber__node${isDone ? " done" : ""}${active ? " active" : ""}${
+                        pulsing ? " pulsing" : ""
+                      }`}
                       style={{ left: `${left}%` }}
                       aria-label={`第 ${i + 1} 步：${s.title}`}
-                      onMouseEnter={() => setHoverTip({ i, left })}
+                      onMouseEnter={(e) => setTipFor(i, e.currentTarget)}
                       onMouseLeave={() => setHoverTip(null)}
-                      onFocus={() => setHoverTip({ i, left })}
+                      onFocus={(e) => setTipFor(i, e.currentTarget)}
                       onBlur={() => setHoverTip(null)}
                       onClick={() => jumpToStep(i)}
                     />
                   );
                 })}
-                {hoverTip != null && steps[hoverTip.i] && (
-                  <div className="demo-scrubber__tip" style={{ left: `${hoverTip.left}%` }} role="tooltip">
-                    <span className="demo-scrubber__tip-n">{hoverTip.i + 1}</span>
-                    {steps[hoverTip.i].title}
-                  </div>
-                )}
+                {/* 实验小结节点（进度终点站）：气泡固定文案，点击直达小结段 */}
+                <button
+                  type="button"
+                  className={`demo-scrubber__node demo-scrubber__node--sum${
+                    completed >= steps.length ? " done" : ""
+                  }${phase === "done" ? " active" : ""}`}
+                  style={{ left: "100%" }}
+                  aria-label="实验小结"
+                  onMouseEnter={(e) => setTipFor(steps.length, e.currentTarget)}
+                  onMouseLeave={() => setHoverTip(null)}
+                  onFocus={(e) => setTipFor(steps.length, e.currentTarget)}
+                  onBlur={() => setHoverTip(null)}
+                  onClick={jumpToSummary}
+                />
+                {hoverTip != null &&
+                  (hoverTip.i >= steps.length || steps[hoverTip.i]) &&
+                  typeof document !== "undefined" &&
+                  createPortal(
+                    <div
+                      ref={tipRef}
+                      className="demo-scrubber__tip"
+                      style={
+                        {
+                          left: hoverTip.x,
+                          top: hoverTip.top,
+                          "--tip-arrow": `${hoverTip.arrow}px`,
+                        } as CSSProperties
+                      }
+                      role="tooltip"
+                    >
+                      {hoverTip.i < steps.length ? (
+                        <>
+                          <span className="demo-scrubber__tip-n">{hoverTip.i + 1}</span>
+                          {steps[hoverTip.i].title}
+                        </>
+                      ) : (
+                        "实验小结"
+                      )}
+                    </div>,
+                    document.body,
+                  )}
               </div>
               <p className="demo-scrubber__hint">
                 {steps[stepIndex]?.title ?? "—"}
@@ -793,14 +915,31 @@ export function DemoPanel({
           )}
 
           <div className="demo-panel__tools">
-            <label>
-              <input
-                type="checkbox"
-                checked={voiceOn}
-                onChange={(e) => setVoiceOn(e.target.checked)}
+            <button
+              type="button"
+              className={`demo-tool${voiceOn ? " on" : ""}`}
+              role="switch"
+              aria-checked={voiceOn}
+              onClick={() => setVoiceOn((v) => !v)}
+            >
+              <i
+                className={`fa-solid ${voiceOn ? "fa-volume-high" : "fa-volume-xmark"}`}
+                aria-hidden
               />
-              语音讲解
-            </label>
+              <span className="demo-tool__label">语音讲解</span>
+              <span className="demo-tool__chip" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={`demo-tool${captionsOn ? " on" : ""}`}
+              role="switch"
+              aria-checked={captionsOn}
+              onClick={toggleCaptions}
+            >
+              <i className="fa-solid fa-closed-captioning" aria-hidden />
+              <span className="demo-tool__label">字幕</span>
+              <span className="demo-tool__chip" aria-hidden />
+            </button>
           </div>
 
           <div className="demo-panel__actions">

@@ -33,8 +33,13 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
         return "实验：多普勒效应（route=doppler）\n"
                 + "界面：左侧控制栏自上而下为「波参数」组（源频率、源速度、波速三个滑块）、"
                 + "「观察者」组（观察者位置滑块）、原理说明。口播勿说从左到右。\n"
-                + "声源工作方式：声源沿中轴自动往复振荡（像警报器来回移动）。"
-                + "旧的「手动/自动模式」开关与「声源方向」滑块已移除，禁止再提。\n"
+                + "声源工作方式：声源沿中轴自动往复振荡（像警报器来回移动），峰值速度由源速度滑块决定。\n"
+                + "场景视觉锚点（口播可引导观察）：声源是一颗发光脉冲信标，脉冲节奏与源频率同步，"
+                + "频率越高脉冲越快；每个脉冲在水平面上绽放一圈发光波环，"
+                + "声源前进方向的波环被压密、颜色偏亮蓝，后方的波环被拉疏、颜色偏淡红，"
+                + "声源往返时整场波环颜色随运动方向流动。观察者是一座接收塔："
+                + "上方悬浮接收小屏，屏上波形疏密随观测频率比变化（靠近变密、远离变疏），"
+                + "屏角带频率比读数；每当一圈波扫过观察者，塔身会闪光并荡开涟漪。\n"
                 + "可调参数（仅这些）：\n"
                 + "- sourceFrequency：声源频率 f0，单位 Hz，范围 [0.5, 5]，步长 0.1\n"
                 + "- sourceVelocity：声源速度，即往复振荡的峰值速度，单位 m/s，范围 [0, 15]，步长 0.1\n"
@@ -44,7 +49,8 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
                 + "马赫数 = vs / v。\n"
                 + "读数特征：观测频率随声源往复运动在蓝移峰值与红移谷值之间来回摆动，"
                 + "口播请用「峰值/谷值」或「在蓝移与红移之间摆动」描述，不要断言某一瞬间的固定读数。\n"
-                + "演示建议：sourceVelocity 保持小于 waveSpeed（马赫数小于 1），避免超音速附近的读数奇点；"
+                + "演示建议（硬约束）：sourceVelocity 必须小于 waveSpeed（马赫数小于 1），"
+                + "聚焦亚音速情形，突出「速度越大频移越剧烈」；"
                 + "观察者位置尽量放在声源振荡范围之外的一侧，让「靠近=蓝移、远离=红移」的对应更清晰。\n"
                 + "计划 steps 数必须在 4～8；附 summary 与 quizzes（1～5 道四选一，按知识点自定题量）。\n"
                 + "每步字段：title、narration、animate（布尔）。\n"
@@ -56,7 +62,8 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
                 + "sourceFrequency→源频率/source frequency，sourceVelocity→源速度/source speed，"
                 + "waveSpeed→波速/wave speed，observerPosition→观察者位置/observer position；"
                 + "读数 observedFrequency→观测频率，dopplerShiftRatio→多普勒比，machNumber→马赫数。\n"
-                + "narration：2～4 句教学口语；引导学生看声源前后波前的疏密与左上角读数。\n";
+                + "narration：2～4 句教学口语；引导学生看波环的疏密与颜色（前方亮蓝、后方淡红）、"
+                + "观察者上方接收屏的波形疏密，或左上角读数（观测频率、多普勒比、马赫数）。\n";
     }
 
     @Override
@@ -82,12 +89,13 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
                 + "\"params\":{\"sourceFrequency\":2,\"sourceVelocity\":5,\"waveSpeed\":10,\"observerPosition\":15},"
                 + "\"focus\":\"sourceVelocity\","
                 + "\"narration\":\"把源速度提到 5 米每秒，声源开始沿中轴往复运动，峰值速度和滑块一致。"
-                + "请注意看场景：声源前进方向上的波前被压密，后方被拉疏。"
+                + "请注意看场景：声源前进方向上的波环被压得更密、颜色偏亮蓝，后方的波环被拉疏、颜色偏淡红。"
                 + "因为声源来回走，观测频率会在蓝移峰值和红移谷值之间持续摆动。\"},"
                 + "{\"title\":\"读蓝移红移峰值\","
                 + "\"animate\":false,"
                 + "\"narration\":\"观察读数的摆动：声源靠近时观测频率冲到峰值约 4 赫兹，是源频率的两倍，这就是蓝移；"
                 + "远离时降到谷值约 1.33 赫兹，只有源频率的三分之二，这就是红移。"
+                + "再看观察者塔上方的小屏：波形在靠近时变密、远离时变疏，每圈波扫过时塔身还会闪光。"
                 + "峰值马赫数 0.5，还没有到超音速。\"},"
                 + "{\"title\":\"提高源速度\","
                 + "\"animate\":true,"
@@ -120,7 +128,11 @@ public class DopplerExperimentDefinition implements ExperimentDefinition {
                 + "\"options\":[\"A. 观测频率与源频率之比\",\"B. 源速度与波速之比\","
                 + "\"C. 波长与波速之比\",\"D. 观察者距离与波速之比\"],"
                 + "\"answerIndex\":1,"
-                + "\"explanation\":\"马赫数是源速度与波速的比值，达到 1 意味着声源追上自己发出的波。\"}"
+                + "\"explanation\":\"马赫数是源速度与波速的比值，达到 1 意味着声源追上自己发出的波。\"},"
+                + "{\"question\":\"声源朝观察者靠近时，观察者上方接收屏的波形会如何变化？\","
+                + "\"options\":[\"A. 变密\",\"B. 变疏\",\"C. 不变\",\"D. 先变疏后变密\"],"
+                + "\"answerIndex\":0,"
+                + "\"explanation\":\"靠近时单位时间到达观察者的波数增多，接收频率升高，屏上波形变密。\"}"
                 + "]"
                 + "}";
     }

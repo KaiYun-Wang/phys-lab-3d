@@ -9,7 +9,7 @@
 | 应用 | 目录 | 端口 | 角色 |
 | --- | --- | --- | --- |
 | 用户端 | `frontend-user` | 3000 | 浏览与操作 3D 物理实验；注册/登录、个人资料、收藏、评论、AI 助手 |
-| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；知识页维护；AI 试聊 |
+| 管理端 | `frontend-admin` | 3001 | 实验/学科/收藏/评论运营；知识库维护；AI 试聊 |
 | 后端 | `backend` | 8080 | 用户端与管理端共用 API 服务 |
 
 **技术栈**
@@ -96,7 +96,7 @@ docker run -d `
 - 创建 Bucket：`phys-lab`
 
 本地后端配置：复制 `application-example.yml` 为 `application-local.yml` 后按文件内注释填写。
-知识页正文在 `seed_data.sql` 中预置，也可在管理端「知识页」编辑。
+知识库正文在 `seed_data.sql` 中预置，也可在管理端「知识库」编辑。
 
 ### Redis
 

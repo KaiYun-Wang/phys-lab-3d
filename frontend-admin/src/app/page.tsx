@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const shortcuts = [
     { title: "实验管理", href: "/experiments", icon: "fa-flask", tone: "ok" },
     { title: "用户列表", href: "/users", icon: "fa-users", tone: "sky" },
-    { title: "知识页", href: "/knowledge", icon: "fa-book-open", tone: "purple" },
+    { title: "知识库", href: "/knowledge", icon: "fa-book-open", tone: "purple" },
     { title: "公告管理", href: "/announcements", icon: "fa-bullhorn", tone: "warn" },
   ];
 
@@ -183,7 +183,7 @@ export default function DashboardPage() {
               <span className="heading-sm">AI 辅导</span>
             </span>
             <Link href="/knowledge" className="pill-tag pill-tag--info">
-              知识页
+              知识库
               <i className="fa-solid fa-arrow-right" aria-hidden />
             </Link>
           </div>

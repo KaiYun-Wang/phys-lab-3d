@@ -71,7 +71,7 @@ public class KnowledgePageServiceImpl implements IKnowledgePageService {
     @Transactional
     public void delete(Long id) {
         if (pageMapper.deleteById(id) == 0) {
-            throw new ApiException(404, "知识页不存在");
+            throw new ApiException(404, "知识库不存在");
         }
     }
 
@@ -116,7 +116,7 @@ public class KnowledgePageServiceImpl implements IKnowledgePageService {
     private KnowledgePage require(Long id) {
         KnowledgePage page = pageMapper.selectById(id);
         if (page == null) {
-            throw new ApiException(404, "知识页不存在");
+            throw new ApiException(404, "知识库不存在");
         }
         return page;
     }

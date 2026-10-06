@@ -81,9 +81,9 @@ export default function KnowledgeEditPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <PageCrumb parent="知识页" parentHref="/knowledge">
+          <PageCrumb parent="知识库" parentHref="/knowledge">
             <h2 className="page-title">
-              编辑知识页
+              编辑知识库
             </h2>
           </PageCrumb>
         </div>

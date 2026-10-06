@@ -72,14 +72,14 @@ export default function KnowledgeListPage() {
     <AdminShell admin={admin}>
       <section className="page-toolbar">
         <div className="page-toolbar__left">
-          <h2 className="page-title">知识页</h2>
+          <h2 className="page-title">知识库</h2>
         </div>
         <div className="page-toolbar__actions">
           <Link href="/knowledge/try" className="btn-pill btn-pill--outline btn-pill--sm">
             试聊
           </Link>
           <Link href="/knowledge/new" className="btn-pill btn-pill--primary btn-pill--sm">
-            + 新增知识页
+            + 新增知识库
           </Link>
         </div>
       </section>
@@ -117,7 +117,7 @@ export default function KnowledgeListPage() {
               <i className="fa-solid fa-file-lines" aria-hidden />
             </div>
             <span className="heading-sm">
-              {query ? "无匹配知识页" : "暂无知识页"}
+              {query ? "无匹配知识库" : "暂无知识库"}
             </span>
             {!query ? (
               <Link href="/knowledge/new" className="btn-pill btn-pill--primary btn-pill--sm">
@@ -149,7 +149,7 @@ export default function KnowledgeListPage() {
                     <td>
                       <div className="row-actions">
                         <RowDetailButton
-                          title="知识页详情"
+                          title="知识库详情"
                           fields={[
                             { label: "标题", value: row.title },
                             { label: "描述", value: row.description || "—" },
@@ -186,7 +186,7 @@ export default function KnowledgeListPage() {
       {deleteTarget ? (
         <div className="modal-overlay" role="dialog">
           <div className="modal card card--elevated">
-            <h3 className="heading-sm">删除知识页</h3>
+            <h3 className="heading-sm">删除知识库</h3>
             <p className="caption mt-8">
               确定删除「{deleteTarget.title}」？
             </p>

@@ -160,6 +160,7 @@ export function ExperimentContainer({
     caption: "",
     captionLabel: "",
     voiceOn: true,
+    captionsOn: true,
     canSkip: false,
     canPrev: false,
     nextLabel: "下一步 ›",
@@ -430,7 +431,8 @@ export function ExperimentContainer({
         <div className="exp-canvas-layer">
         <Canvas
           ref={canvasRef}
-          shadows
+          /* three r18x 已弃用 PCFSoftShadowMap（每帧打印降级警告）；显式用 PCFShadowMap，渲染结果与当前降级一致 */
+          shadows={{ type: THREE.PCFShadowMap }}
           gl={{
             antialias: !isMobile,
             alpha: true,
@@ -655,6 +657,7 @@ export function ExperimentContainer({
         label={demoUi.captionLabel}
         text={demoUi.caption}
         visible={!!demoUi.caption}
+        captionsOn={demoUi.captionsOn}
         showPrev={demoUi.canPrev}
         showNext={demoUi.canSkip}
         nextLabel={demoUi.nextLabel}
