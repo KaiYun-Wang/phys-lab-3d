@@ -6382,6 +6382,28 @@
   background: rgba(56, 189, 248, 0.06);
   color: #9ca3af;
 }
+.ai-messages .bubble--md .ai-md-table-wrap {
+  margin: 0.55em 0;
+  overflow-x: auto;
+}
+.ai-messages .bubble--md table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.ai-messages .bubble--md th,
+.ai-messages .bubble--md td {
+  padding: 5px 9px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  text-align: left;
+  vertical-align: top;
+}
+.ai-messages .bubble--md th {
+  font-weight: 600;
+  color: var(--sx-white);
+  background: rgba(148, 163, 184, 0.12);
+}
 .ai-messages .msg.user .bubble {
   background: #16233a;
   border: 1px solid rgba(56, 189, 248, 0.45);

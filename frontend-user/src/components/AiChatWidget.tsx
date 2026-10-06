@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   createAiSession,
   deleteAiSession,
@@ -923,7 +924,18 @@ export default function AiChatWidget({
                     <div className={`bubble${m.role === "assistant" ? " bubble--md" : ""}`}>
                       {m.role === "assistant" ? (
                         m.content ? (
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              table: ({ node, ...props }) => (
+                                <div className="ai-md-table-wrap">
+                                  <table {...props} />
+                                </div>
+                              ),
+                            }}
+                          >
+                            {m.content}
+                          </ReactMarkdown>
                         ) : sending && m.id < 0 ? (
                           "…"
                         ) : null
