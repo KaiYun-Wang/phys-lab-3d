@@ -58,10 +58,15 @@ const HOVER_RULES: HoverRule[] = [
   { sel: ".placeholder-row", scale: 1, lift: -1.5, noPress: true },
   // 仪表盘：周期切换段控件（按钮组挤开）+ 统计卡行 / 内容卡片（卡片组挤开）
   { sel: ".range-toggle__btn", scale: 1.06, push: true },
+  // 卡片右上角胶囊链（查看全部 / 知识页 / 快捷入口箭头）；状态徽章为 span.pill-tag 不受影响
+  { sel: "a.pill-tag", scale: 1.06 },
   { sel: ".stat-card", scale: 1.03, push: true, noPress: true },
   { sel: ".section-card", scale: 1.02, push: true, noPress: true },
   // 自定义下拉的选项：左缘锚定放大（面板 overflow-x 已设为 hidden，吸收右侧溢出）
   { sel: ".admin-select__opt", scale: 1.035, origin: "left center" },
+  // 图标选择器：触发器 / 图标选项（网格密集，仅中心放大）+ hover tick 与按压音效
+  { sel: ".icon-picker__trigger", scale: 1.03 },
+  { sel: ".icon-picker__item", scale: 1.05 },
   // 时间范围选择器：触发器 / 预设按钮组（挤开）/ 月份导航小按钮 / 日历格子（网格密集，仅中心放大）
   { sel: ".date-range__trigger", scale: 1.03 },
   { sel: ".date-range__preset", scale: 1.06, push: true },
@@ -72,6 +77,8 @@ const HOVER_RULES: HoverRule[] = [
   // 封面缩略图 / 编辑页封面预览（有图时可点开大图，按压带按钮音效）
   { sel: ".cover-thumb:has(img)", scale: 1.06 },
   { sel: ".cover-upload__preview:has(img)", scale: 1.06 },
+  // 个人中心头像（有图时可点开大图查看）
+  { sel: ".profile-avatar-btn", scale: 1.06 },
 ];
 
 const ITEM_SELECTOR = HOVER_RULES.map((r) => r.sel).join(", ");

@@ -30,7 +30,15 @@ const SIDEBAR_COLLAPSED = 64;
 let shellRevealedOnce = false;
 
 /** 侧栏底部：界面音效开关（默认开，偏好持久化于 uiSound） */
-function SoundToggle({ collapsed }: { collapsed: boolean }) {
+function SoundToggle({
+  collapsed,
+  onTipShow,
+  onTipHide,
+}: {
+  collapsed: boolean;
+  onTipShow: (e: React.MouseEvent<HTMLElement>, label: string) => void;
+  onTipHide: () => void;
+}) {
   const [on, setOn] = useState(true);
 
   useEffect(() => {
@@ -42,9 +50,19 @@ function SoundToggle({ collapsed }: { collapsed: boolean }) {
     <button
       type="button"
       className={`sound-toggle${on ? " is-on" : ""}`}
-      onClick={() => setSoundOn(!on)}
+      onClick={(e) => {
+        const next = !on;
+        setSoundOn(next);
+        // 切换后状态反转：收起态悬停中浮层文案同步为新状态
+        if (collapsed) onTipShow(e, next ? "界面音效：开" : "界面音效：关");
+      }}
       aria-pressed={on}
       aria-label={on ? "关闭界面音效" : "开启界面音效"}
+      // 收起态仅有小喇叭图标：悬停补浮层提示（同导航项），展开态已有文字无需提示
+      onMouseEnter={(e) => {
+        if (collapsed) onTipShow(e, on ? "界面音效：开" : "界面音效：关");
+      }}
+      onMouseLeave={onTipHide}
     >
       <span className="sound-toggle__icon">
         <i className={`fa-solid ${on ? "fa-volume-high" : "fa-volume-xmark"}`} aria-hidden />
@@ -303,13 +321,19 @@ export default function AdminShell({
               </>
             ) : null}
           </button>
+          {/* 提示改用 fixed 浮层（同导航项）：CSS ::after 会被侧栏层叠上下文压在主内容卡片之下 */}
           <button
             type="button"
             className="sidebar__collapse"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={(e) => {
+              const next = !collapsed;
+              setCollapsed(next);
+              // 切换后按钮作用反转：悬停中浮层文案同步为新动作
+              showTip(e, next ? "展开菜单" : "收起菜单");
+            }}
             aria-label={collapsed ? "展开菜单" : "收起菜单"}
-            data-tooltip={collapsed ? "展开菜单" : "收起菜单"}
-            data-tooltip-pos="right"
+            onMouseEnter={(e) => showTip(e, collapsed ? "展开菜单" : "收起菜单")}
+            onMouseLeave={hideTip}
           >
             {collapsed ? "»" : "«"}
           </button>
@@ -365,7 +389,7 @@ export default function AdminShell({
         </div>
 
         <div className="sidebar__foot">
-          <SoundToggle collapsed={collapsed} />
+          <SoundToggle collapsed={collapsed} onTipShow={showTip} onTipHide={hideTip} />
           <div className="sidebar-foot-row">
             <SidebarProfile
               admin={admin}
@@ -381,7 +405,8 @@ export default function AdminShell({
                 rel="noreferrer"
                 className="sidebar-github"
                 aria-label="GitHub 仓库"
-                title="GitHub 仓库"
+                onMouseEnter={(e) => showTip(e, "GitHub 仓库")}
+                onMouseLeave={hideTip}
               >
                 <i className="fa-brands fa-github" aria-hidden />
               </a>
@@ -404,7 +429,7 @@ export default function AdminShell({
         <div className="dash-content">{children}</div>
       </div>
 
-      {collapsed && tip ? (
+      {tip ? (
         <div className="sidebar-float-tip" style={{ top: `${tip.y}px` }} role="tooltip">
           {tip.label}
         </div>

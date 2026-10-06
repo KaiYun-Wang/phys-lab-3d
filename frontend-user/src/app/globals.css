@@ -1103,8 +1103,8 @@
 /* 圆形切换键（设计稿：32px 圆钮 + 青色描边） */
 .sx-rank-nav {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  /* 不写 transform：hoverMotion 引擎会接管该元素的 transform（居中改用 top 偏移实现） */
+  top: calc(50% - 16px);
   z-index: 30;
   width: 32px;
   height: 32px;
@@ -2082,20 +2082,19 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* 公告入口：铃铛 + 文字；hover 提亮，展开 = sky 激活态（尺寸对齐演示稿） */
+/* 公告入口：铃铛图标钮（与音效开关同款，悬停浮层提示「公告」）；展开 = sky 激活态 */
 .kh-announce {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   border: none;
   border-radius: 0.5rem;
   background: transparent;
   color: #9ca3af;
-  font-family: var(--font-body);
   font-size: 12.5px;
-  font-weight: 500;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
 }
@@ -2971,6 +2970,16 @@
   height: 54px;
   font-size: 18px;
 }
+/* 头像可点开大图：按钮包裹（放大镜指针，hover 缩放由微交互引擎接管） */
+.pf-ava-btn {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  line-height: 0;
+  cursor: zoom-in;
+}
 
 /* 活动读数条 */
 .pf-stats {
@@ -3315,17 +3324,20 @@
   flex-direction: column;
   gap: 7px;
 }
+/* 校验错误态（与登录页 auth 输入框同款：红边 + 内阴影） */
+.pf-page .sx-input.is-invalid {
+  border-color: rgba(255, 180, 171, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 180, 171, 0.12), inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.pf-page .sx-input.is-invalid:focus {
+  border-color: var(--kh-error);
+  box-shadow: 0 0 0 3px rgba(255, 180, 171, 0.2), inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
 .pf-field__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-}
-.pf-counter {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  color: rgba(125, 211, 252, 0.85);
 }
 .pf-hint {
   font-size: 11.5px;
@@ -3447,17 +3459,72 @@
   color: #7dd3fc;
 }
 
-/* 反馈行 */
-.pf-feedback {
-  margin-top: 16px;
+/* 操作反馈浮层：顶部居中玻璃条（保存 / 修改密码等统一弹提示） */
+.pf-toast-stack {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 260;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.pf-toast {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 18px;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 22, 36, 0.92);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 12px 32px -12px rgba(2, 8, 23, 0.8);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
   text-align: center;
-  font-size: 12.5px;
+  animation: pf-toast-in 0.25s ease, pf-toast-out 0.35s ease 2.65s forwards;
 }
-.pf-feedback--ok {
-  color: #6ee7b7;
+.pf-toast > svg {
+  flex-shrink: 0;
 }
-.pf-feedback--err {
+.pf-toast--ok > svg {
+  color: #34d399;
+}
+.pf-toast--err > svg {
   color: #fda4af;
+}
+@keyframes pf-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pf-toast-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-toast {
+    animation: none;
+  }
 }
 
 /* 全站页脚（首页 / 个人中心共用）：低压扁条 + 弱灰 mono 小字 */
@@ -3567,6 +3634,56 @@
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--sx-ink-mute);
+}
+
+/* 头像大图查看层（同管理端封面大图交互：点遮罩 / 关闭按钮 / Esc 关闭） */
+.pf-ava-lightbox {
+  position: relative;
+  animation: pf-ava-lightbox-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+.pf-ava-lightbox__img {
+  display: block;
+  width: min(72vw, 340px);
+  height: min(72vw, 340px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  background: #0b1220;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 0 44px -8px rgba(56, 189, 248, 0.5);
+}
+.pf-ava-lightbox__close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid #27354f;
+  background: #131b2b;
+  color: var(--sx-mute);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.pf-ava-lightbox__close:hover {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.5);
+}
+@keyframes pf-ava-lightbox-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-ava-lightbox {
+    animation: none;
+  }
 }
 
 .announcement-modal-overlay {

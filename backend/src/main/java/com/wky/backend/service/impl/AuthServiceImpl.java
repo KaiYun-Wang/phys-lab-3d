@@ -37,12 +37,18 @@ public class AuthServiceImpl extends ServiceImpl<UserMapper, User> implements IA
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setNickname(request.getUsername());
+        // 昵称默认取用户名后 5 位（须满足 3-10 昵称约束，用户名最短 3 位时取全部）
+        user.setNickname(defaultNickname(request.getUsername()));
         user.setStatus(UserStatus.ENABLED);
         save(user);
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), AuthPrincipal.TYPE_USER);
         return new LoginResponse(token, UserProfileResponse.from(user));
+    }
+
+    /** 昵称默认值：用户名后 5 位（用户名本身可能长于昵称上限 10，故不直接沿用） */
+    private static String defaultNickname(String username) {
+        return username.length() > 5 ? username.substring(username.length() - 5) : username;
     }
 
     @Override

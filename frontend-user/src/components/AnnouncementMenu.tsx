@@ -59,10 +59,11 @@ export default function AnnouncementMenu() {
           className={`kh-announce${open ? " is-open" : ""}`}
           aria-haspopup="dialog"
           aria-expanded={open}
+          aria-label="公告"
+          data-tooltip="公告"
           onClick={() => setOpen((v) => !v)}
         >
           <i className="fa-regular fa-bell kh-announce__icon" aria-hidden />
-          <span>公告</span>
         </button>
         {open ? (
           <div className="announcement-popover" role="dialog" aria-label="公告">

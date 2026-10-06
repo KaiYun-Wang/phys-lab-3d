@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
 import RowDetailButton from "@/components/RowDetailButton";
 import { useAdmin } from "@/components/AdminProvider";
-import IconPicker from "@/components/IconPicker";
+import IconPicker, { iconLabel } from "@/components/IconPicker";
 import { useToast } from "@/components/Toast";
 import {
   createExampleQuestion,
@@ -318,6 +318,17 @@ export default function ExampleQuestionsPage() {
                           fields={[
                             { label: "标题", value: row.title },
                             { label: "描述", value: row.description || "—" },
+                            {
+                              label: "图标",
+                              value: row.icon ? (
+                                <span className="detail-grid__icon">
+                                  <i className={`fa-solid ${row.icon}`} aria-hidden />
+                                  {iconLabel(row.icon) ?? row.icon}
+                                </span>
+                              ) : (
+                                "—"
+                              ),
+                            },
                             { label: "示例问题", value: row.question },
                             { label: "更新时间", value: formatDateTime(row.updateTime) },
                           ]}

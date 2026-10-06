@@ -61,6 +61,9 @@ const HOVER_RULES: HoverRule[] = [
   { sel: ".kh-announce", scale: 1.05 },
   { sel: ".kh-sound", scale: 1.12 },
   { sel: ".kh-github", scale: 1.12 },
+  // 首页收藏榜（TOP 榜）：翻页箭头 / 进度圆点（悬停放大 + tick 与按压音效；翻页时另有纸页声）
+  { sel: ".sx-rank-nav", scale: 1.12 },
+  { sel: ".sx-rank-dot", scale: 1.4 },
   // AI 悬浮球（原 CSS hover/active 缩放已移交引擎，保留辉光反馈）
   { sel: ".ai-fab", scale: 1.08 },
   // 登录页：登录/注册页签 / 密码可见性小按钮
@@ -73,6 +76,9 @@ const HOVER_RULES: HoverRule[] = [
   { sel: ".pf-btn", scale: 1.06, push: true },
   { sel: ".pf-link", scale: 1.05 },
   { sel: ".pf-modal__close", scale: 1.1 },
+  // 个人中心：头像（点开大图查看）/ 头像大图关闭按钮
+  { sel: ".pf-ava-btn", scale: 1.06 },
+  { sel: ".pf-ava-lightbox__close", scale: 1.1 },
   { sel: ".pf-sess", scale: 1, lift: -1.5, noPress: true },
   // 实验页控件（工作台 UI 层）：图标按钮 / 胶囊 / 底部播放条 / 选项切换 / 评论排序筛选 / 发布按钮
   { sel: ".exp-icon-btn", scale: 1.12 },

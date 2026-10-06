@@ -162,8 +162,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public UserProfileResponse resetAvatar(Long userId) {
         User user = requireUser(userId);
         deleteAvatarFile(user.getAvatarUrl());
+        // ponytail: updateById 默认跳过 null 字段，须用 lambdaUpdate 显式 SET NULL；
+        // 否则数据库旧链接残留，前端刷新后仍指向已删除的 MinIO 文件（破图）
+        lambdaUpdate()
+                .eq(User::getId, userId)
+                .set(User::getAvatarUrl, null)
+                .update();
         user.setAvatarUrl(null);
-        updateById(user);
         return UserProfileResponse.from(user);
     }
 

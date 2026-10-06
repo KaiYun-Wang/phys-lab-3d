@@ -108,8 +108,13 @@ public class AdminAuthServiceImpl extends ServiceImpl<AdminMapper, Admin> implem
     public AdminProfileResponse resetAvatar(Long adminId) {
         Admin admin = requireAdmin(adminId);
         deleteAvatarFile(admin.getAvatarUrl());
+        // ponytail: updateById 默认跳过 null 字段，须用 lambdaUpdate 显式 SET NULL；
+        // 否则数据库旧链接残留，前端刷新后仍指向已删除的 MinIO 文件（破图）
+        lambdaUpdate()
+                .eq(Admin::getId, adminId)
+                .set(Admin::getAvatarUrl, null)
+                .update();
         admin.setAvatarUrl(null);
-        updateById(admin);
         return AdminProfileResponse.from(admin);
     }
 

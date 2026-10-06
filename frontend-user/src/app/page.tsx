@@ -368,6 +368,7 @@ export default function Home() {
               rel="noreferrer"
               className="kh-github"
               aria-label="GitHub 仓库"
+              data-tooltip="GitHub 仓库"
             >
               <i className="fa-brands fa-github" aria-hidden />
             </a>

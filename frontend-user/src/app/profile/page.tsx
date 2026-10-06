@@ -26,10 +26,13 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 import { formatChatTime } from "@/lib/time";
 import ExperimentThumbnail from "@/components/ExperimentThumbnail";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   CalendarDays,
   Check,
+  CircleAlert,
+  CircleCheck,
   Eye,
   KeyRound,
   Lock,
@@ -43,14 +46,25 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { playPress } from "@/lib/uiSound";
 
-const NICKNAME_MAX = 20;
+/** 昵称长度限制（与后端 @Size 约束保持一致） */
+const NICKNAME_MIN = 3;
+const NICKNAME_MAX = 10;
+/** 密码长度限制（与后端 ChangePasswordRequest @Size 一致） */
+const PASSWORD_MIN = 5;
+const PASSWORD_MAX = 20;
 /** 个人中心最近对话展示条数 */
 const RECENT_SESSIONS = 5;
 /** 收藏网格默认展示前 N 个（2×2），其余折叠 */
 const FAV_COLLAPSED = 4;
 /** 「全部对话」弹框每页条数（滚动加载下一页） */
 const MODAL_PAGE_SIZE = 10;
+/** 头像格式与大小限制（与后端校验一致，选择文件时前置拦截） */
+const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+/** 页面内提示浮层自动消失时长（与 CSS 出场动画对齐） */
+const TOAST_DURATION = 3000;
 
 /** 学科徽章配色：与首页 SUBJECT_TONE 同一套语义色 */
 const SUBJECT_TONE: Record<string, { fg: string; bg: string; bd: string }> = {
@@ -80,18 +94,90 @@ function sessionHref(s: AiChatSession): string {
   return `/?aiSession=${s.id}`;
 }
 
-function AvatarView({ user, size = "xl" }: { user: UserProfile; size?: "xl" | "form" }) {
-  const src = avatarSrc(user.avatarUrl, API_BASE);
+/** 头像变更暂存：选择文件 / 恢复默认都只改本地预览，点「保存更改」才提交后端 */
+type PendingAvatar = { kind: "file"; file: File; previewUrl: string } | { kind: "reset" } | null;
+
+/** 表单字段级校验错误（失焦即校验，样式与登录页 auth 表单一致） */
+type FieldErrors = {
+  nickname?: string;
+  oldPassword?: string;
+  newPassword?: string;
+  newPassword2?: string;
+};
+
+function AvatarView({
+  src,
+  initials,
+  size = "xl",
+  onOpen,
+}: {
+  src: string | null;
+  initials: string;
+  size?: "xl" | "form";
+  onOpen?: (src: string) => void;
+}) {
   const cls = size === "xl" ? "pf-ava pf-ava--xl" : "pf-ava pf-ava--md";
-  if (src) {
+  const body = src ? (
     // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <div className={cls}>
-        <img src={src} alt="头像" />
+    <div className={cls}>
+      <img src={src} alt="头像" />
+    </div>
+  ) : (
+    <div className={cls}>{initials}</div>
+  );
+  // 有图时可点开大图查看（同管理端实验封面交互）；无图（默认头像）不可点
+  if (!src || !onOpen) return body;
+  return (
+    <button
+      type="button"
+      className="pf-ava-btn"
+      onClick={() => onOpen(src)}
+      aria-label="查看头像"
+      data-tooltip="查看头像"
+    >
+      {body}
+    </button>
+  );
+}
+
+/** 头像大图查看层：点遮罩 / 右上角按钮 / Esc 关闭（对齐管理端封面大图交互） */
+function AvatarLightbox({ src, onClose }: { src: string | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!src) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        playPress();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [src, onClose]);
+
+  if (!src) return null;
+
+  const close = () => {
+    playPress();
+    onClose();
+  };
+
+  return (
+    <div className="pf-modal-mask" role="presentation" onClick={close}>
+      <div
+        className="pf-ava-lightbox"
+        role="dialog"
+        aria-modal="true"
+        aria-label="头像大图预览"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="头像大图预览" className="pf-ava-lightbox__img" />
+        <button type="button" className="pf-ava-lightbox__close" aria-label="关闭预览" onClick={close}>
+          <X size={16} aria-hidden />
+        </button>
       </div>
-    );
-  }
-  return <div className={cls}>{avatarInitials(user.nickname || user.username)}</div>;
+    </div>
+  );
 }
 
 /** 全部 AI 对话浮层：Surface-2 玻璃弹框，内部滚动分页加载 */
@@ -215,15 +301,42 @@ function AllSessionsModal({ total, onClose }: { total: number | null; onClose: (
 export default function ProfilePage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  /** 未提交的本地头像预览 URL（objectURL，替换 / 清理时须 revoke） */
+  const previewUrlRef = useRef<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [favorites, setFavorites] = useState<Experiment[]>([]);
   const [sessions, setSessions] = useState<AiChatSession[]>([]);
   const [nickname, setNickname] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [allSessionsOpen, setAllSessionsOpen] = useState(false);
-  const [msg, setMsg] = useState("");
+  /** 未提交的头像变更（本地预览），点「保存更改」才提交后端 */
+  const [pendingAvatar, setPendingAvatar] = useState<PendingAvatar>(null);
+  /** 头像大图查看层的图片地址 */
+  const [avatarPreviewSrc, setAvatarPreviewSrc] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ id: number; type: "ok" | "err"; text: string } | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+
+  /** 页面提示浮层：新消息覆盖旧消息并重置自动消失计时 */
+  const showToast = useCallback((type: "ok" | "err", text: string) => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast({ id: Date.now(), type, text });
+    toastTimer.current = window.setTimeout(() => setToast(null), TOAST_DURATION);
+  }, []);
+
+  // 卸载时清理未提交的本地预览与提示定时器
+  useEffect(
+    () => () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     fetchMe()
@@ -252,19 +365,74 @@ export default function ProfilePage() {
     router.replace("/login");
   }
 
+  /** 单字段校验；返回错误文案或 undefined（规则文案与登录页保持一致） */
+  function validateField(field: keyof FieldErrors, values: Record<string, string>): string | undefined {
+    if (field === "nickname") {
+      const v = (values.nickname ?? "").trim();
+      if (!v) return "请输入昵称";
+      if (v.length < NICKNAME_MIN) return `昵称至少 ${NICKNAME_MIN} 个字符`;
+      if (v.length > NICKNAME_MAX) return `昵称最多 ${NICKNAME_MAX} 个字符`;
+      return undefined;
+    }
+    if (field === "oldPassword") {
+      if (!values.oldPassword) return "请输入当前密码";
+      return undefined;
+    }
+    if (field === "newPassword") {
+      const v = values.newPassword ?? "";
+      if (!v) return "请输入新密码";
+      if (v.length < PASSWORD_MIN) return `密码至少 ${PASSWORD_MIN} 个字符`;
+      if (v.length > PASSWORD_MAX) return `密码最多 ${PASSWORD_MAX} 个字符`;
+      return undefined;
+    }
+    // 确认新密码
+    if (!values.newPassword2) return "请再次输入新密码";
+    if (values.newPassword2 !== values.newPassword) return "两次输入的密码不一致";
+    return undefined;
+  }
+
+  function clearFieldError(field: keyof FieldErrors) {
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  }
+
+  /** 失焦即校验单字段（与登录页一致） */
+  function handleFieldBlur(field: keyof FieldErrors) {
+    const msg = validateField(field, { nickname, oldPassword, newPassword, newPassword2 });
+    setFieldErrors((prev) => ({ ...prev, [field]: msg }));
+  }
+
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setMsg("");
-    setErr("");
+    const name = nickname.trim();
+    const nameError = validateField("nickname", { nickname });
+    if (nameError) {
+      setFieldErrors((prev) => ({ ...prev, nickname: nameError }));
+      return;
+    }
     setLoading(true);
     try {
-      const u = await updateProfile({ nickname });
+      let u = user;
+      // 头像变更（此前仅本地预览）在保存时才提交后端存储路径
+      if (pendingAvatar?.kind === "file") {
+        u = await uploadAvatar(pendingAvatar.file);
+      } else if (pendingAvatar?.kind === "reset") {
+        u = await resetAvatar();
+      }
+      if (name !== u.nickname) {
+        u = await updateProfile({ nickname: name });
+      }
       setUser(u);
       setNickname(u.nickname);
-      setMsg("昵称已更新");
+      setFieldErrors((prev) => ({ ...prev, nickname: undefined }));
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
+      }
+      setPendingAvatar(null);
+      showToast("ok", "已保存");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "保存失败");
+      showToast("err", e instanceof Error ? e.message : "保存失败");
     } finally {
       setLoading(false);
     }
@@ -272,58 +440,61 @@ export default function ProfilePage() {
 
   async function savePassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMsg("");
-    setErr("");
-    const form = new FormData(e.currentTarget);
-    const oldPassword = String(form.get("oldPassword") ?? "");
-    const newPassword = String(form.get("newPassword") ?? "");
-    const newPassword2 = String(form.get("newPassword2") ?? "");
-    if (newPassword !== newPassword2) {
-      setErr("两次新密码不一致");
+    const values = { nickname, oldPassword, newPassword, newPassword2 };
+    const errs: FieldErrors = {
+      oldPassword: validateField("oldPassword", values),
+      newPassword: validateField("newPassword", values),
+      newPassword2: validateField("newPassword2", values),
+    };
+    if (errs.oldPassword || errs.newPassword || errs.newPassword2) {
+      setFieldErrors((prev) => ({ ...prev, ...errs }));
       return;
     }
     setLoading(true);
     try {
       await changePassword(oldPassword, newPassword);
-      e.currentTarget.reset();
-      setMsg("密码已更新");
+      setOldPassword("");
+      setNewPassword("");
+      setNewPassword2("");
+      setFieldErrors((prev) => ({
+        ...prev,
+        oldPassword: undefined,
+        newPassword: undefined,
+        newPassword2: undefined,
+      }));
+      showToast("ok", "密码已更新");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "修改失败");
+      showToast("err", e instanceof Error ? e.message : "修改失败");
     } finally {
       setLoading(false);
     }
   }
 
-  async function onAvatarChange(file: File | undefined) {
+  /** 选择图片：仅本地预览与前置校验，点保存才真正上传 */
+  function onAvatarChange(file: File | undefined) {
     if (!file) return;
-    setMsg("");
-    setErr("");
-    setLoading(true);
-    try {
-      const u = await uploadAvatar(file);
-      setUser(u);
-      setMsg("头像已更新");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "上传失败");
-    } finally {
-      setLoading(false);
-      if (fileRef.current) fileRef.current.value = "";
+    if (!AVATAR_TYPES.includes(file.type)) {
+      showToast("err", "仅支持 JPG / PNG / WebP 格式");
+      return;
     }
+    if (file.size > AVATAR_MAX_BYTES) {
+      showToast("err", "图片不能超过 2MB");
+      return;
+    }
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const previewUrl = URL.createObjectURL(file);
+    previewUrlRef.current = previewUrl;
+    setPendingAvatar({ kind: "file", file, previewUrl });
+    if (fileRef.current) fileRef.current.value = "";
   }
 
-  async function onAvatarReset() {
-    setMsg("");
-    setErr("");
-    setLoading(true);
-    try {
-      const u = await resetAvatar();
-      setUser(u);
-      setMsg("已恢复默认头像");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "操作失败");
-    } finally {
-      setLoading(false);
+  /** 恢复默认：仅切回本地默认头像显示，点保存才提交后端清除链接 */
+  function onAvatarReset() {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
     }
+    setPendingAvatar({ kind: "reset" });
   }
 
   if (!user) {
@@ -334,14 +505,24 @@ export default function ProfilePage() {
     );
   }
 
-  const dirty = nickname !== user.nickname;
+  // 展示优先级：本地待提交文件预览 > 恢复默认（无图） > 服务端已存头像
+  const displayAvatarSrc =
+    pendingAvatar?.kind === "file"
+      ? pendingAvatar.previewUrl
+      : pendingAvatar?.kind === "reset"
+        ? null
+        : avatarSrc(user.avatarUrl, API_BASE);
+  const hasAvatar =
+    pendingAvatar?.kind === "file" ? true : pendingAvatar?.kind === "reset" ? false : !!user.avatarUrl;
+  const avatarFallback = avatarInitials(user.nickname || user.username);
+  const dirty = nickname.trim() !== user.nickname || pendingAvatar !== null;
   const visibleFavs = favorites.slice(0, FAV_COLLAPSED);
 
   return (
     <div className="pf-page">
       <header className="pf-nav">
         <div className="page-shell pf-nav__inner">
-          <BrandLockup href="/" size={30} />
+          <BrandLockup href="/" size={30} spin />
           <a href="/" className="kh-header__link">
             <ArrowLeft size={14} aria-hidden />
             返回实验
@@ -353,7 +534,7 @@ export default function ProfilePage() {
         {/* 身份横幅 */}
         <section className="pf-banner">
           <div className="pf-banner__left">
-            <AvatarView user={user} />
+            <AvatarView src={displayAvatarSrc} initials={avatarFallback} onOpen={setAvatarPreviewSrc} />
             <div>
               <div className="pf-banner__name">
                 {user.nickname}
@@ -539,9 +720,14 @@ export default function ProfilePage() {
                 </span>
                 <span className="pf-card__state">{dirty ? "有未保存的更改" : "已同步"}</span>
               </header>
-              <form className="pf-card__body" onSubmit={saveProfile}>
+              <form className="pf-card__body" onSubmit={saveProfile} noValidate>
                 <div className="pf-ava-row">
-                  <AvatarView user={user} size="form" />
+                  <AvatarView
+                    src={displayAvatarSrc}
+                    initials={avatarFallback}
+                    size="form"
+                    onOpen={setAvatarPreviewSrc}
+                  />
                   <div className="pf-ava-btns">
                     <button
                       type="button"
@@ -555,7 +741,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       className="pf-btn pf-btn--warn"
-                      disabled={loading}
+                      disabled={loading || !hasAvatar}
                       onClick={onAvatarReset}
                     >
                       <RotateCcw size={12} aria-hidden />
@@ -570,26 +756,35 @@ export default function ProfilePage() {
                     />
                   </div>
                 </div>
-                <span className="pf-hint">支持 JPG / PNG / WebP，不超过 2MB</span>
+                <span className="pf-hint">支持 JPG / PNG / WebP，不超过 2MB；头像变更点「保存更改」后生效</span>
 
                 <div className="pf-field">
                   <div className="pf-field__head">
                     <label className="sx-label" htmlFor="nickname">
                       昵称
                     </label>
-                    <span className="pf-counter">
-                      {nickname.length}/{NICKNAME_MAX}
-                    </span>
                   </div>
                   <input
                     id="nickname"
-                    className="sx-input"
-                    maxLength={NICKNAME_MAX}
+                    className={`sx-input${fieldErrors.nickname ? " is-invalid" : ""}`}
                     value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNickname(v);
+                      // 不做截断：长度一旦不在 3-10 立即标红提示
+                      setFieldErrors((prev) => ({ ...prev, nickname: validateField("nickname", { nickname: v }) }));
+                    }}
+                    onBlur={() => handleFieldBlur("nickname")}
                     placeholder="请输入昵称"
+                    aria-invalid={!!fieldErrors.nickname}
                     required
                   />
+                  {fieldErrors.nickname && (
+                    <p className="auth-field-error" role="alert">
+                      <AlertCircle size={12} aria-hidden />
+                      {fieldErrors.nickname}
+                    </p>
+                  )}
                 </div>
 
                 <div className="pf-field">
@@ -633,7 +828,7 @@ export default function ProfilePage() {
                 </span>
                 <span className="pf-card__state">修改后立即生效</span>
               </header>
-              <form className="pf-card__body" onSubmit={savePassword}>
+              <form className="pf-card__body" onSubmit={savePassword} noValidate>
                 <div className="pf-field">
                   <div className="pf-field__head">
                     <label className="sx-label" htmlFor="oldPassword">
@@ -642,15 +837,27 @@ export default function ProfilePage() {
                   </div>
                   <input
                     id="oldPassword"
-                    name="oldPassword"
                     type="password"
-                    className="sx-input"
+                    className={`sx-input${fieldErrors.oldPassword ? " is-invalid" : ""}`}
                     autoComplete="current-password"
-                    minLength={5}
-                    maxLength={20}
+                    minLength={PASSWORD_MIN}
+                    maxLength={PASSWORD_MAX}
+                    value={oldPassword}
+                    onChange={(e) => {
+                      setOldPassword(e.target.value);
+                      clearFieldError("oldPassword");
+                    }}
+                    onBlur={() => handleFieldBlur("oldPassword")}
                     placeholder="5–20 个字符"
+                    aria-invalid={!!fieldErrors.oldPassword}
                     required
                   />
+                  {fieldErrors.oldPassword && (
+                    <p className="auth-field-error" role="alert">
+                      <AlertCircle size={12} aria-hidden />
+                      {fieldErrors.oldPassword}
+                    </p>
+                  )}
                 </div>
                 <div className="pf-field">
                   <div className="pf-field__head">
@@ -661,15 +868,28 @@ export default function ProfilePage() {
                   </div>
                   <input
                     id="newPassword"
-                    name="newPassword"
                     type="password"
-                    className="sx-input"
+                    className={`sx-input${fieldErrors.newPassword ? " is-invalid" : ""}`}
                     autoComplete="new-password"
-                    minLength={5}
-                    maxLength={20}
+                    minLength={PASSWORD_MIN}
+                    maxLength={PASSWORD_MAX}
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      clearFieldError("newPassword");
+                      clearFieldError("newPassword2");
+                    }}
+                    onBlur={() => handleFieldBlur("newPassword")}
                     placeholder="输入新密码"
+                    aria-invalid={!!fieldErrors.newPassword}
                     required
                   />
+                  {fieldErrors.newPassword && (
+                    <p className="auth-field-error" role="alert">
+                      <AlertCircle size={12} aria-hidden />
+                      {fieldErrors.newPassword}
+                    </p>
+                  )}
                 </div>
                 <div className="pf-field">
                   <div className="pf-field__head">
@@ -679,15 +899,27 @@ export default function ProfilePage() {
                   </div>
                   <input
                     id="newPassword2"
-                    name="newPassword2"
                     type="password"
-                    className="sx-input"
+                    className={`sx-input${fieldErrors.newPassword2 ? " is-invalid" : ""}`}
                     autoComplete="new-password"
-                    minLength={5}
-                    maxLength={20}
+                    minLength={PASSWORD_MIN}
+                    maxLength={PASSWORD_MAX}
+                    value={newPassword2}
+                    onChange={(e) => {
+                      setNewPassword2(e.target.value);
+                      clearFieldError("newPassword2");
+                    }}
+                    onBlur={() => handleFieldBlur("newPassword2")}
                     placeholder="再次输入新密码"
+                    aria-invalid={!!fieldErrors.newPassword2}
                     required
                   />
+                  {fieldErrors.newPassword2 && (
+                    <p className="auth-field-error" role="alert">
+                      <AlertCircle size={12} aria-hidden />
+                      {fieldErrors.newPassword2}
+                    </p>
+                  )}
                 </div>
                 <div className="pf-card__foot">
                   <span className="pf-sync">
@@ -703,9 +935,21 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {msg && <p className="pf-feedback pf-feedback--ok">{msg}</p>}
-        {err && <p className="pf-feedback pf-feedback--err">{err}</p>}
       </main>
+
+      {/* 操作反馈浮层：保存 / 修改密码等成功失败统一在此弹出 */}
+      {toast && (
+        <div className="pf-toast-stack" aria-live="polite">
+          <div key={toast.id} className={`pf-toast pf-toast--${toast.type}`} role="status">
+            {toast.type === "ok" ? (
+              <CircleCheck size={14} aria-hidden />
+            ) : (
+              <CircleAlert size={14} aria-hidden />
+            )}
+            {toast.text}
+          </div>
+        </div>
+      )}
 
       {allSessionsOpen && (
         <AllSessionsModal
@@ -713,6 +957,8 @@ export default function ProfilePage() {
           onClose={() => setAllSessionsOpen(false)}
         />
       )}
+
+      <AvatarLightbox src={avatarPreviewSrc} onClose={() => setAvatarPreviewSrc(null)} />
 
       <footer className="site-foot">
         <div className="page-shell site-foot__in">PhysLab 3D — 交互式 3D 物理仿真平台</div>

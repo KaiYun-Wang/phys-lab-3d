@@ -230,6 +230,7 @@ export default function ExperimentsPage() {
                               className="cover-thumb cover-thumb--button"
                               onClick={() => setPreviewCoverSrc(coverSrc)}
                               aria-label={`查看「${exp.title}」封面大图`}
+                              data-tooltip="查看封面"
                             >
                               <img src={coverSrc} alt="" />
                             </button>
@@ -356,6 +357,7 @@ export default function ExperimentsPage() {
                             className="cover-thumb cover-thumb--button"
                             onClick={() => setPreviewCoverSrc(coverSrc)}
                             aria-label={`查看「${exp.title}」封面大图`}
+                            data-tooltip="查看封面"
                           >
                             <img src={coverSrc} alt="" />
                           </button>

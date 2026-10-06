@@ -170,6 +170,7 @@ export default function CoverUploadField({ value, onChange, disabled }: CoverUpl
             className="cover-upload__preview-btn"
             onClick={() => setLightboxSrc(previewSrc)}
             aria-label="查看封面大图"
+            data-tooltip="查看封面"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={previewSrc} alt="" className="cover-upload__img" />

@@ -1357,8 +1357,9 @@ body.is-sidebar-resizing .sidebar {
   color: var(--text-strong);
 }
 
+/* 开启态整体点亮为 sky 蓝（对齐用户端顶栏小喇叭的 is-on 提亮） */
 .sound-toggle.is-on {
-  color: var(--text-mute);
+  color: var(--accent-bright);
 }
 
 .sound-toggle__icon {
@@ -1522,6 +1523,17 @@ body.is-sidebar-resizing .sidebar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* 头像可点开大图：按钮包裹（放大镜指针，hover 缩放由微交互引擎接管） */
+.profile-avatar-btn {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-pill);
+  line-height: 0;
+  cursor: zoom-in;
 }
 
 .profile-avatar-actions {
@@ -1800,6 +1812,17 @@ body.is-sidebar-resizing .sidebar {
   line-height: 1.5;
   color: var(--danger-soft);
   animation: kh-fade-up 0.2s ease both;
+}
+
+/* 表单文本输入校验错误态（个人中心等 .text-input 场景，与登录页 auth-input 同款） */
+.text-input.is-invalid {
+  border-color: var(--danger-border-hover);
+  box-shadow: 0 0 0 3px var(--danger-bg), inset 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.text-input.is-invalid:focus {
+  border-color: var(--danger-soft);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.22), inset 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .auth-submit {
@@ -2198,6 +2221,26 @@ body.is-sidebar-resizing .sidebar {
   user-select: text;
 }
 
+/* 详情弹窗「图标」行：渲染 Font Awesome 图标 + 名称（公告 / 示例问题共用） */
+.detail-grid__icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-grid__icon i {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-inset);
+  font-size: 12px;
+  color: var(--accent);
+}
+
 /* 列表页图标（标题前内联小图标） */
 .data-table__icon {
   display: inline-block;
@@ -2210,7 +2253,8 @@ body.is-sidebar-resizing .sidebar {
   width: 48px;
   height: 24px;
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  /* 不设 overflow:hidden：否则会裁掉按钮上的「查看封面」::after 悬停提示；
+     圆角裁剪移交内部 img 自身（减 1px 边框内径），视觉不变 */
   background: var(--surface-inset);
   border: 1px solid var(--border-inset);
   flex-shrink: 0;
@@ -2221,6 +2265,7 @@ body.is-sidebar-resizing .sidebar {
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: calc(var(--radius-sm) - 1px);
 }
 
 .cover-thumb__fallback {
@@ -2409,7 +2454,8 @@ body.is-sidebar-resizing .sidebar {
   width: 200px;
   aspect-ratio: 2 / 1;
   border-radius: var(--radius-inset);
-  overflow: hidden;
+  /* 不设 overflow:hidden：否则会裁掉按钮上的「查看封面」::after 悬停提示；
+     圆角裁剪移交内部 img 自身（减 1px 边框内径），视觉不变 */
   background: var(--surface-inset);
   border: 1px solid var(--border-inset);
 }
@@ -2419,6 +2465,7 @@ body.is-sidebar-resizing .sidebar {
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: calc(var(--radius-inset) - 1px);
 }
 
 .cover-upload__preview-btn {
@@ -2486,6 +2533,10 @@ body.is-sidebar-resizing .sidebar {
 
 @media (prefers-reduced-motion: reduce) {
   .cover-lightbox__frame {
+    animation: none;
+  }
+
+  .icon-picker__pop {
     animation: none;
   }
 }
@@ -2603,6 +2654,13 @@ body.is-sidebar-resizing .sidebar {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--text-faint);
+  transition: transform var(--t), color var(--t);
+}
+
+/* 展开时箭头翻转并点亮，与弹层展开方向呼应 */
+.icon-picker__trigger.is-open .icon-picker__caret {
+  transform: rotate(180deg);
+  color: var(--accent);
 }
 
 .icon-picker__pop {
@@ -2621,6 +2679,18 @@ body.is-sidebar-resizing .sidebar {
   border-radius: var(--radius-card);
   background: var(--surface-card);
   box-shadow: var(--shadow-float);
+  animation: icon-picker-in 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+@keyframes icon-picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .icon-picker__item {

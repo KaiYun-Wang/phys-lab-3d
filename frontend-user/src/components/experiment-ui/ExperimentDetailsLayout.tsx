@@ -14,7 +14,7 @@ export function ExperimentDetailsLayout({ title, backHref, children }: Experimen
     <main className="exp-details">
       <header className="exp-details__header">
         <div className="page-shell exp-details__bar">
-          <BrandLockup href="/" size={26} showTagline={false} />
+          <BrandLockup href="/" size={26} spin showTagline={false} />
 
           <nav className="exp-details__crumb" aria-label="位置">
             <Link href="/" className="exp-details__crumb-link">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminShell from "@/components/AdminShell";
 import RowDetailButton from "@/components/RowDetailButton";
+import { iconLabel } from "@/components/IconPicker";
 import { useAdmin } from "@/components/AdminProvider";
 import {
   deleteAnnouncement,
@@ -128,7 +129,17 @@ export default function AnnouncementsPage() {
                           fields={[
                             { label: "标题", value: item.title },
                             { label: "描述", value: item.description || "—" },
-                            { label: "图标", value: item.icon || "—" },
+                            {
+                              label: "图标",
+                              value: item.icon ? (
+                                <span className="detail-grid__icon">
+                                  <i className={`fa-solid ${item.icon}`} aria-hidden />
+                                  {iconLabel(item.icon) ?? item.icon}
+                                </span>
+                              ) : (
+                                "—"
+                              ),
+                            },
                             { label: "发布时间", value: formatDateTime(item.createTime) },
                           ]}
                         />
