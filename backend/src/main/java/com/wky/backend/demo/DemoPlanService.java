@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wky.backend.config.AiModelFactory;
+import com.wky.backend.config.ReadOnlyMode;
 import com.wky.backend.domain.entity.DemoSession;
 import com.wky.backend.domain.entity.Experiment;
 import com.wky.backend.exception.ApiException;
@@ -38,6 +39,7 @@ public class DemoPlanService {
     private final IExperimentService experimentService;
     private final DemoSessionMapper sessionMapper;
     private final DemoTtsService demoTtsService;
+    private final ReadOnlyMode readOnlyMode;
 
     /** Generate + validate + save. Returns tool-facing string with demoId. */
     @Transactional
@@ -99,6 +101,10 @@ public class DemoPlanService {
     /** Lazy/idempotent TTS fill; returns { ok, ready, made }. */
     public Map<String, Object> ensureAudio(Long userId, Long id) {
         requireOwned(userId, id);
+        if (readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：不合成新音频；已有音频前端直接从剧本读 URL 播放，缺的走浏览器语音
+            return Map.of("ok", true, "tts", false, "ready", false);
+        }
         return demoTtsService.ensureAudio(id);
     }
 
@@ -246,6 +252,11 @@ public class DemoPlanService {
             throw new ApiException(400, "stepIndex 越界");
         }
         int next = stepIndex + 1;
+        if (readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：进度不落库，仅回执（保障播放链路不中断）
+            return Map.of("ok", true, "stepIndex", stepIndex,
+                    "currentStep", Math.max(s.getCurrentStep() == null ? 0 : s.getCurrentStep(), next));
+        }
         s.setCurrentStep(Math.max(s.getCurrentStep() == null ? 0 : s.getCurrentStep(), next));
         s.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(s);
@@ -259,7 +270,8 @@ public class DemoPlanService {
     @Transactional
     public Map<String, Object> submitQuiz(Long userId, Long id, int questionIndex, int answerIndex) {
         DemoSession s = requireOwned(userId, id);
-        if (!stepsFinished(s)) {
+        // 只读体验（演示版本）：进度不落库、current_step 不会推进，放开「先看完全部步骤」的前置校验
+        if (!readOnlyMode.enabled() && !stepsFinished(s)) {
             throw new ApiException(400, "请先看完全部演示步骤再答题");
         }
         List<Map<String, Object>> quizzes = quizzesOf(s.getPlanJson());
@@ -276,17 +288,20 @@ public class DemoPlanService {
         int correctIdx = ((Number) quiz.get("answerIndex")).intValue();
         boolean correct = answerIndex == correctIdx;
 
-        List<Integer> answers = new ArrayList<>();
-        if (s.getQuizAnswers() != null) {
-            answers.addAll(s.getQuizAnswers());
+        if (!readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：作答不落库，对错与解析只现场计算返回
+            List<Integer> answers = new ArrayList<>();
+            if (s.getQuizAnswers() != null) {
+                answers.addAll(s.getQuizAnswers());
+            }
+            while (answers.size() < quizzes.size()) {
+                answers.add(null);
+            }
+            answers.set(questionIndex, answerIndex);
+            s.setQuizAnswers(answers);
+            s.setUpdateTime(LocalDateTime.now());
+            sessionMapper.updateById(s);
         }
-        while (answers.size() < quizzes.size()) {
-            answers.add(null);
-        }
-        answers.set(questionIndex, answerIndex);
-        s.setQuizAnswers(answers);
-        s.setUpdateTime(LocalDateTime.now());
-        sessionMapper.updateById(s);
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("questionIndex", questionIndex);
@@ -329,6 +344,10 @@ public class DemoPlanService {
             throw new ApiException(400, "status 须为 ready|playing|aborted");
         }
         DemoSession s = requireOwned(userId, id);
+        if (readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：状态不落库，仅回执
+            return Map.of("id", s.getId(), "status", status.trim());
+        }
         s.setStatus(status.trim());
         s.setUpdateTime(LocalDateTime.now());
         sessionMapper.updateById(s);

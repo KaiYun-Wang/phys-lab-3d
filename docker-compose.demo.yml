@@ -1,0 +1,44 @@
+# ============================================================
+# 演示环境（只读体验版）一键部署
+# 前提：Linux 服务器；PostgreSQL / Redis / MinIO 已用 docker run 跑在宿主机上。
+#
+# 三个服务均使用 host 网络：
+#   - backend 以 localhost 直连宿主机上的 PG / Redis / MinIO（与 config/application-demo.yml 中地址一致）
+#   - 用户端绑定宿主机 3000、管理端绑定 3001（启动脚本已固定端口，不会漂移）
+#
+# 使用步骤（服务器上执行）：
+#   1) mkdir -p config，把 application-demo.yml 放入 config/（host 等地址改成 localhost）
+#   2) echo "PUBLIC_API_URL=http://<服务器IP>:8080" > .env
+#   3) docker compose -f docker-compose.demo.yml up -d --build
+#
+# 注意：NEXT_PUBLIC_API_URL 是构建期变量，服务器 IP / 域名变化后需重新 build 前端镜像。
+# ============================================================
+
+services:
+  backend:
+    build: ./backend
+    image: physlab-backend:demo
+    # host 网络：容器内 localhost === 宿主机，直连宿主机上的 PG / Redis / MinIO
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      # 演示配置外挂：改连接地址 / 只读开关后重启容器即可生效，无需重新打镜像
+      - ./config/application-demo.yml:/app/config/application-demo.yml:ro
+
+  frontend-user:
+    build:
+      context: ./frontend-user
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?请先在 .env 中设置 PUBLIC_API_URL=http://<服务器IP>:8080}
+    image: physlab-user:demo
+    network_mode: host
+    restart: unless-stopped
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?请先在 .env 中设置 PUBLIC_API_URL=http://<服务器IP>:8080}
+    image: physlab-admin:demo
+    network_mode: host
+    restart: unless-stopped

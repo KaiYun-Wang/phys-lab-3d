@@ -5,7 +5,8 @@ spring:
   application:
     name: backend
   profiles:
-    active: aliyun
+    # 演示分支默认走 demo profile（连接配置见 application-demo.yml，已 gitignore）
+    active: demo
   servlet:
     multipart:
       max-file-size: 10MB
@@ -38,6 +39,11 @@ phys-lab:
   jwt:
     secret: phys-lab-3d
     expiration-ms: 86400000
+  # 只读体验模式（演示版本）：非 GET 请求统一拒绝（见 security/ReadOnlyModeFilter），
+  # 写路径不落库。演示分支默认开启；如需临时绕过，在 application-demo.yml 覆写为 false。
+  readonly:
+    enabled: true
+    message: 体验环境仅支持查询操作
   ai:
     # 对话模型（OpenAI 兼容）
     chat:

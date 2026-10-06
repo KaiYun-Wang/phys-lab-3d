@@ -1,6 +1,8 @@
 package com.wky.backend.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wky.backend.security.JwtAuthenticationFilter;
+import com.wky.backend.security.ReadOnlyModeFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +30,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ReadOnlyMode readOnlyMode;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -49,7 +53,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/ai/example-questions").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // 注意顺序：JwtAuthenticationFilter 先以 UsernamePasswordAuthenticationFilter 为锚点注册排序，
+                // 之后的只读模式过滤器才能以它为锚点（Spring Security 只认「已注册排序」的锚点，否则启动报错）
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new ReadOnlyModeFilter(readOnlyMode, objectMapper), JwtAuthenticationFilter.class);
         return http.build();
     }
 

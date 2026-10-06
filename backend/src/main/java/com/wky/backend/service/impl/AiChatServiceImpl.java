@@ -23,6 +23,7 @@ import com.wky.backend.ai.ExperimentAiTools;
 import com.wky.backend.ai.KnowledgeAiTools;
 import com.wky.backend.config.AiModelFactory;
 import com.wky.backend.config.AiProperties;
+import com.wky.backend.config.ReadOnlyMode;
 import com.wky.backend.demo.DemoAiTools;
 import com.wky.backend.demo.DemoChatContext;
 import com.wky.backend.demo.ExperimentDefinitionRegistry;
@@ -74,6 +75,7 @@ public class AiChatServiceImpl implements IAiChatService {
     private final KnowledgeAiTools knowledgeAiTools;
     private final DemoAiTools demoAiTools;
     private final ExperimentDefinitionRegistry experimentDefinitionRegistry;
+    private final ReadOnlyMode readOnlyMode;
 
     /** userBase=实验+知识; userDemo=+demo; admin=仅知识库. */
     private ToolBundle userBaseTools;
@@ -150,6 +152,10 @@ public class AiChatServiceImpl implements IAiChatService {
     @Override
     @Transactional
     public AiChatSessionResponse createSession(Long ownerId, CommentOwnerType ownerType, Long experimentId) {
+        if (readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：会话不落库，返回虚拟会话供前端挂聊天
+            return syntheticSession(ReadOnlyMode.SYNTHETIC_SESSION_ID, "新对话", experimentId);
+        }
         AiChatSession session = new AiChatSession();
         session.setOwnerId(ownerId);
         session.setOwnerType(ownerType);
@@ -189,6 +195,10 @@ public class AiChatServiceImpl implements IAiChatService {
     @Override
     public List<AiChatMessageResponse> listMessages(
             Long ownerId, CommentOwnerType ownerType, Long sessionId, Long beforeId, int limit) {
+        if (readOnlyMode.isSyntheticSession(sessionId)) {
+            // 只读体验的虚拟会话没有历史消息
+            return List.of();
+        }
         requireOwnedSession(ownerId, ownerType, sessionId);
         int size = Math.min(Math.max(limit, 1), 100);
         LambdaQueryWrapper<AiChatMessage> q = new LambdaQueryWrapper<AiChatMessage>()
@@ -210,6 +220,10 @@ public class AiChatServiceImpl implements IAiChatService {
     @Transactional
     public AiChatReplyResponse chat(
             Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
+        if (readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：固定文案回复，不落库、不调用模型
+            return readOnlyReply(ownerId, ownerType, sessionId, request);
+        }
         PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
         try {
             bindDemoContext(ownerId, prepared.context(), prepared.demoEnabled());
@@ -241,6 +255,11 @@ public class AiChatServiceImpl implements IAiChatService {
             Consumer<String> onDelta,
             Consumer<StreamDone> onDone,
             Consumer<Throwable> onError) {
+        if (readOnlyMode.enabled()) {
+            // 只读体验（演示版本）：直接推固定文案（meta → delta → done），不落库、不调用模型
+            emitReadOnlyStream(ownerId, ownerType, sessionId, onMeta, onDelta, onDone);
+            return;
+        }
         try {
             PreparedChat prepared = prepareChat(ownerId, ownerType, sessionId, request);
             bindDemoContext(ownerId, prepared.context(), prepared.demoEnabled());
@@ -780,6 +799,68 @@ public class AiChatServiceImpl implements IAiChatService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ---- 只读体验（演示版本）：固定文案回复，不落库、不调用模型 ----
+
+    private AiChatReplyResponse readOnlyReply(
+            Long ownerId, CommentOwnerType ownerType, Long sessionId, AiChatMessageRequest request) {
+        String title = readOnlySessionTitle(ownerId, ownerType, sessionId);
+        LocalDateTime now = LocalDateTime.now();
+        long msgBase = -System.currentTimeMillis();
+        return AiChatReplyResponse.builder()
+                .userMessage(AiChatMessageResponse.builder()
+                        .id(msgBase)
+                        .sessionId(sessionId)
+                        .role("user")
+                        .content(request.getContent())
+                        .createTime(now)
+                        .build())
+                .assistantMessage(AiChatMessageResponse.builder()
+                        .id(msgBase - 1)
+                        .sessionId(sessionId)
+                        .role("assistant")
+                        .content(readOnlyMode.message())
+                        .createTime(now)
+                        .build())
+                .session(syntheticSession(sessionId, title, null))
+                .build();
+    }
+
+    private void emitReadOnlyStream(
+            Long ownerId, CommentOwnerType ownerType, Long sessionId,
+            Consumer<StreamMeta> onMeta, Consumer<String> onDelta, Consumer<StreamDone> onDone) {
+        String title = readOnlySessionTitle(ownerId, ownerType, sessionId);
+        long msgBase = -System.currentTimeMillis();
+        onMeta.accept(new StreamMeta(sessionId, title, msgBase));
+        onDelta.accept(readOnlyMode.message());
+        onDone.accept(new StreamDone(msgBase - 1, syntheticSession(sessionId, title, null), null));
+    }
+
+    /** 虚拟会话与真实会话都回一个可展示的标题；真实会话仅读取（不写库），无权限或不存在则回默认标题。 */
+    private String readOnlySessionTitle(Long ownerId, CommentOwnerType ownerType, Long sessionId) {
+        if (sessionId == null || sessionId < 0) {
+            return "新对话";
+        }
+        AiChatSession session = sessionMapper.selectById(sessionId);
+        if (session == null
+                || !ownerId.equals(session.getOwnerId())
+                || ownerType != session.getOwnerType()
+                || !StringUtils.hasText(session.getTitle())) {
+            return "新对话";
+        }
+        return session.getTitle();
+    }
+
+    private static AiChatSessionResponse syntheticSession(Long sessionId, String title, Long experimentId) {
+        LocalDateTime now = LocalDateTime.now();
+        return AiChatSessionResponse.builder()
+                .id(sessionId)
+                .experimentId(experimentId)
+                .title(title)
+                .createTime(now)
+                .updateTime(now)
+                .build();
     }
 
     private AiChatSession requireOwnedSession(Long ownerId, CommentOwnerType ownerType, Long sessionId) {

@@ -10,6 +10,10 @@ import { BrandLockup } from "@/components/BrandLogo";
 /** 「记住密码」把凭据存在本机，方便下次直接登录（仅本地便利，非安全边界） */
 const REMEMBER_KEY = "physlab.remember";
 
+/** 演示分支：登录页预填体验账号（后端只读模式只放行查询类请求；注册会被拦截提示，保留原 UI） */
+const DEMO_USERNAME = "admin";
+const DEMO_PASSWORD = "admin123";
+
 /** 与后端 @Size 约束保持一致：username 3–20，password 5–20 */
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 20;
@@ -49,8 +53,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(DEMO_USERNAME);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [password2, setPassword2] = useState("");
 
   const isLogin = tab === "login";
@@ -110,8 +114,8 @@ export default function LoginPage() {
       setPassword2("");
     } else {
       const saved = readRemembered();
-      setUsername(saved?.username ?? "");
-      setPassword(saved?.password ?? "");
+      setUsername(saved?.username ?? DEMO_USERNAME);
+      setPassword(saved?.password ?? DEMO_PASSWORD);
       setPassword2("");
       setRemember(!!saved);
     }

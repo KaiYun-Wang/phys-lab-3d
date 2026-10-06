@@ -24,6 +24,25 @@ export default function KnowledgeEditPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; content?: string }>({});
+
+  /** 单字段校验；返回错误文案或 undefined */
+  function validateField(field: "title" | "content", values: Record<string, string>): string | undefined {
+    if (field === "title") return values.title ? undefined : "请输入文档名";
+    return values.content ? undefined : "请输入正文";
+  }
+
+  function clearFieldError(field: "title" | "content") {
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  }
+
+  function handleBlur(field: "title" | "content") {
+    const msg = validateField(field, {
+      title: form?.title.trim() ?? "",
+      content: form?.content.trim() ?? "",
+    });
+    setFieldErrors((prev) => ({ ...prev, [field]: msg }));
+  }
 
   useEffect(() => {
     if (!Number.isFinite(id)) return;
@@ -62,12 +81,21 @@ export default function KnowledgeEditPage() {
   async function handleSave(e: FormEvent) {
     e.preventDefault();
     if (!form) return;
+    const values = { title: form.title.trim(), content: form.content.trim() };
+    const nextErrors = {
+      title: validateField("title", values),
+      content: validateField("content", values),
+    };
+    if (nextErrors.title || nextErrors.content) {
+      setFieldErrors(nextErrors);
+      return;
+    }
     setSaving(true);
     try {
       await updateKnowledgePage(id, {
-        title: form.title.trim(),
+        title: values.title,
         description: form.description?.trim() || "",
-        content: form.content.trim(),
+        content: values.content,
       });
       toast.success("已保存");
     } catch (err) {
@@ -93,18 +121,29 @@ export default function KnowledgeEditPage() {
         {loading || !form ? (
           <p className="caption">加载中…</p>
         ) : (
-          <form className="experiment-form" onSubmit={handleSave}>
+          <form className="experiment-form" onSubmit={handleSave} noValidate>
             <div className="form-grid">
               <div className="field field--full">
                 <label htmlFor="kp-title">文档名</label>
                 <input
                   id="kp-title"
-                  className="text-input"
+                  className={`text-input${fieldErrors.title ? " is-invalid" : ""}`}
                   value={form.title}
                   maxLength={200}
                   required
-                  onChange={(e) => setForm((f) => (f ? { ...f, title: e.target.value } : f))}
+                  aria-invalid={!!fieldErrors.title}
+                  onChange={(e) => {
+                    setForm((f) => (f ? { ...f, title: e.target.value } : f));
+                    clearFieldError("title");
+                  }}
+                  onBlur={() => handleBlur("title")}
                 />
+                {fieldErrors.title ? (
+                  <p className="auth-field-error" role="alert">
+                    <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                    {fieldErrors.title}
+                  </p>
+                ) : null}
               </div>
               <div className="field field--full">
                 <label htmlFor="kp-desc">描述</label>
@@ -122,10 +161,20 @@ export default function KnowledgeEditPage() {
                 <KnowledgeMarkdownEditor
                   value={form.content}
                   required
+                  invalid={!!fieldErrors.content}
                   fileName={fileName}
-                  onChange={(content) => setForm((f) => (f ? { ...f, content } : f))}
+                  onChange={(content) => {
+                    setForm((f) => (f ? { ...f, content } : f));
+                    clearFieldError("content");
+                  }}
                   onFile={onFile}
                 />
+                {fieldErrors.content ? (
+                  <p className="auth-field-error" role="alert">
+                    <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                    {fieldErrors.content}
+                  </p>
+                ) : null}
               </div>
             </div>
             <div className="modal-actions mt-16">

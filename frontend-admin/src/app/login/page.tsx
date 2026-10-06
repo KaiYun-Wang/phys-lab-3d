@@ -9,8 +9,9 @@ import { attachHoverMotion } from "@/lib/hoverMotion";
 export default function LoginPage() {
   const router = useRouter();
   const pageRef = useRef<HTMLElement>(null);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  // 演示分支：预填体验账号（后端只读模式只放行查询类请求）
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const [error, setError] = useState("");

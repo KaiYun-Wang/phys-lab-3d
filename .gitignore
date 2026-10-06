@@ -11,5 +11,9 @@ backend/target
 backend/org/
 backend/src/main/resources/application-local.yml
 backend/src/main/resources/application-aliyun.yml
+backend/src/main/resources/application-demo.yml
+# 演示部署：compose 的 PUBLIC_API_URL 与服务器侧外挂配置（含密钥）
+.env
+config/application-demo.yml
 docs
 .qoder
