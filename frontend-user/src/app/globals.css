@@ -6824,6 +6824,9 @@
 .ai-panel.ai-panel--rail {
   position: static;
   inset: auto;
+  /* 复位浮层的 z-index:95：flex 子项的 z-index 即使 position:static 也生效，
+     不复位会盖住右栏左缘的 .exp-rail-resizer，「实验助手」打开时拖不动宽度 */
+  z-index: auto;
   width: 100% !important;
   height: 100% !important;
   max-width: none;

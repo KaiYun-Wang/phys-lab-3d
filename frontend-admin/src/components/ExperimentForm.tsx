@@ -23,6 +23,11 @@ type ExperimentFormProps = {
   onCancel: () => void;
 };
 
+type FieldErrors = { route?: string; title?: string; description?: string };
+
+/** 创建模式下路由 slug 规则（与后端一致） */
+const ROUTE_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 function topicsToString(topics: string[]) {
   return topics.join(", ");
 }
@@ -51,6 +56,7 @@ export default function ExperimentForm({
   const [coverUrl, setCoverUrl] = useState(initial.coverUrl ?? "");
   const [topicsRaw, setTopicsRaw] = useState(topicsToString(initial.topics));
   const [status, setStatus] = useState<ExperimentStatus>(initial.status);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -78,13 +84,45 @@ export default function ExperimentForm({
     };
   }, []);
 
+  /** 单字段校验；返回错误文案或 undefined */
+  function validateField(field: keyof FieldErrors, values: Record<string, string>): string | undefined {
+    if (field === "route") {
+      const v = values.route;
+      if (!v) return "请输入路由 slug";
+      if (!ROUTE_PATTERN.test(v)) return "仅支持小写字母、数字与连字符，如 double-slit";
+      return undefined;
+    }
+    if (field === "title") return values.title ? undefined : "请输入标题";
+    return values.description ? undefined : "请输入简介";
+  }
+
+  function clearFieldError(field: keyof FieldErrors) {
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  }
+
+  function handleBlur(field: keyof FieldErrors) {
+    const values = { route: route.trim(), title: title.trim(), description: description.trim() };
+    setFieldErrors((prev) => ({ ...prev, [field]: validateField(field, values) }));
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const values = { route: route.trim(), title: title.trim(), description: description.trim() };
+    const nextErrors: FieldErrors = {
+      // 编辑模式下路由只读，不校验
+      route: mode === "create" ? validateField("route", values) : undefined,
+      title: validateField("title", values),
+      description: validateField("description", values),
+    };
+    if (Object.values(nextErrors).some(Boolean)) {
+      setFieldErrors(nextErrors);
+      return;
+    }
     onSubmit({
-      route: route.trim(),
-      title: title.trim(),
+      route: values.route,
+      title: values.title,
       subjectTypeId,
-      description: description.trim(),
+      description: values.description,
       // 空值必须显式发空串：后端 updateById 跳过 null 字段，省略字段会导致「删除封面」保存不生效
       coverUrl: coverUrl.trim(),
       topics: stringToTopics(topicsRaw),
@@ -93,7 +131,7 @@ export default function ExperimentForm({
   }
 
   return (
-    <form className="experiment-form" onSubmit={handleSubmit}>
+    <form className="experiment-form" onSubmit={handleSubmit} noValidate>
       <div className="form-grid">
         <div className="field">
           <label htmlFor="route">路由 slug</label>
@@ -113,18 +151,30 @@ export default function ExperimentForm({
           ) : (
             <>
               <input
-                className="text-input"
+                className={`text-input${fieldErrors.route ? " is-invalid" : ""}`}
                 id="route"
                 value={route}
-                onChange={(e) => setRoute(e.target.value)}
+                onChange={(e) => {
+                  setRoute(e.target.value);
+                  clearFieldError("route");
+                }}
+                onBlur={() => handleBlur("route")}
                 placeholder="double-slit"
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                 data-tooltip="小写字母、数字与连字符，如 double-slit"
+                aria-invalid={!!fieldErrors.route}
                 required
               />
-              <p className="field-hint">
-                与用户端 URL /experiments/&#123;route&#125; 及 3D 组件 registry 对应，创建后不可更改。
-              </p>
+              {fieldErrors.route ? (
+                <p className="auth-field-error" role="alert">
+                  <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                  {fieldErrors.route}
+                </p>
+              ) : (
+                <p className="field-hint">
+                  与用户端 URL /experiments/&#123;route&#125; 及 3D 组件 registry 对应，创建后不可更改。
+                </p>
+              )}
             </>
           )}
         </div>
@@ -132,13 +182,24 @@ export default function ExperimentForm({
         <div className="field">
           <label htmlFor="title">标题</label>
           <input
-            className="text-input"
+            className={`text-input${fieldErrors.title ? " is-invalid" : ""}`}
             id="title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              clearFieldError("title");
+            }}
+            onBlur={() => handleBlur("title")}
             placeholder="双缝实验"
+            aria-invalid={!!fieldErrors.title}
             required
           />
+          {fieldErrors.title ? (
+            <p className="auth-field-error" role="alert">
+              <i className="fa-solid fa-circle-exclamation" aria-hidden />
+              {fieldErrors.title}
+            </p>
+          ) : null}
         </div>
 
         <div className="field">
@@ -166,13 +227,24 @@ export default function ExperimentForm({
         <div className="field field--full">
           <label htmlFor="description">简介</label>
           <textarea
-            className="text-input text-input--textarea"
+            className={`text-input text-input--textarea${fieldErrors.description ? " is-invalid" : ""}`}
             id="description"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              clearFieldError("description");
+            }}
+            onBlur={() => handleBlur("description")}
             rows={4}
+            aria-invalid={!!fieldErrors.description}
             required
           />
+          {fieldErrors.description ? (
+            <p className="auth-field-error" role="alert">
+              <i className="fa-solid fa-circle-exclamation" aria-hidden />
+              {fieldErrors.description}
+            </p>
+          ) : null}
         </div>
 
         <div className="field field--full">

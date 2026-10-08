@@ -24,11 +24,14 @@ export default function AnnouncementCard({
     const measure = () => {
       const wrap = wrapRef.current;
       const track = trackRef.current;
-      if (!wrap || !track) {
+      const seg = (track?.firstElementChild as HTMLElement | null) ?? null;
+      if (!wrap || !seg) {
         setOverflowing(false);
         return;
       }
-      setOverflowing(track.scrollWidth / 2 - wrap.clientWidth > 4);
+      // 只比较文案净宽（不含尾部回环间隔）：整段放得下就不算溢出、不滚动
+      const gap = parseFloat(getComputedStyle(seg).paddingRight) || 0;
+      setOverflowing(seg.offsetWidth - gap - wrap.clientWidth > 4);
     };
     measure();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
@@ -45,13 +48,16 @@ export default function AnnouncementCard({
   const startMarquee = () => {
     const wrap = wrapRef.current;
     const track = trackRef.current;
-    if (!wrap || !track) return;
-    const overflow = track.scrollWidth / 2 - wrap.clientWidth;
+    const seg = (track?.firstElementChild as HTMLElement | null) ?? null;
+    if (!wrap || !seg) return;
+    // 文案净宽（不含尾部间隔）超出可视宽才滚动
+    const gap = parseFloat(getComputedStyle(seg).paddingRight) || 0;
+    const overflow = seg.offsetWidth - gap - wrap.clientWidth;
     setOverflowing(overflow > 4);
     if (overflow <= 4) return;
-    // 双份内容回环：单圈时长按半程宽度估算
-    const half = track.scrollWidth / 2;
-    setLoopDur(Math.min(18, Math.max(2.8, half / 28)));
+    // 双份内容回环：单圈时长按单份宽度（含间隔）估算
+    const copyW = seg.offsetWidth;
+    setLoopDur(Math.min(18, Math.max(2.8, copyW / 28)));
     setLooping(true);
   };
 
@@ -81,9 +87,11 @@ export default function AnnouncementCard({
               style={looping ? { animationDuration: `${loopDur}s` } : undefined}
             >
               <span className="announcement-card__desc-seg">{desc}</span>
-              <span className="announcement-card__desc-seg" aria-hidden>
-                {desc}
-              </span>
+              {looping ? (
+                <span className="announcement-card__desc-seg" aria-hidden>
+                  {desc}
+                </span>
+              ) : null}
             </span>
           </span>
         ) : null}

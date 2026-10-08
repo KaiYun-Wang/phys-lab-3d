@@ -31,11 +31,14 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
     const measure = () => {
       const wrap = wrapRef.current;
       const track = trackRef.current;
-      if (!wrap || !track) {
+      const seg = (track?.firstElementChild as HTMLElement | null) ?? null;
+      if (!wrap || !seg) {
         setOverflowing(false);
         return;
       }
-      setOverflowing(track.scrollWidth / 2 - wrap.clientWidth > 4);
+      // 只比较文案净宽（不含尾部回环间隔）：整段放得下就不算溢出、不滚动
+      const gap = parseFloat(getComputedStyle(seg).paddingRight) || 0;
+      setOverflowing(seg.offsetWidth - gap - wrap.clientWidth > 4);
     };
     measure();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
@@ -67,13 +70,16 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
     if (renaming || menuOpen) return;
     const wrap = wrapRef.current;
     const track = trackRef.current;
-    if (!wrap || !track) return;
-    const overflow = track.scrollWidth / 2 - wrap.clientWidth;
+    const seg = (track?.firstElementChild as HTMLElement | null) ?? null;
+    if (!wrap || !seg) return;
+    // 文案净宽（不含尾部间隔）超出可视宽才滚动
+    const gap = parseFloat(getComputedStyle(seg).paddingRight) || 0;
+    const overflow = seg.offsetWidth - gap - wrap.clientWidth;
     setOverflowing(overflow > 4);
     if (overflow <= 4) return;
-    // 双份内容回环：单圈时长按半程宽度估算
-    const half = track.scrollWidth / 2;
-    setLoopDur(Math.min(16, Math.max(2.5, half / 30)));
+    // 双份内容回环：单圈时长按单份宽度（含间隔）估算
+    const copyW = seg.offsetWidth;
+    setLoopDur(Math.min(16, Math.max(2.5, copyW / 30)));
     setLooping(true);
   };
 
@@ -147,9 +153,11 @@ export function SessionHistoryItem({ title, active, onOpen, onRename, onDelete }
               style={looping ? { animationDuration: `${loopDur}s` } : undefined}
             >
               <span className="ai-sess-title-seg">{title || "新对话"}</span>
-              <span className="ai-sess-title-seg" aria-hidden>
-                {title || "新对话"}
-              </span>
+              {looping ? (
+                <span className="ai-sess-title-seg" aria-hidden>
+                  {title || "新对话"}
+                </span>
+              ) : null}
             </span>
           </span>
         )}

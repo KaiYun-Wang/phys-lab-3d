@@ -40,6 +40,7 @@ export default function ExampleQuestionsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<ExampleQuestionInput>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; question?: string }>({});
   const [deleteTarget, setDeleteTarget] = useState<ExampleQuestionRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
   // 排序模式：拖拽全量列表后一次性保存
@@ -75,12 +76,14 @@ export default function ExampleQuestionsPage() {
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setFieldErrors({});
     setCreating(true);
   }
 
   function openEdit(row: ExampleQuestionRecord) {
     setCreating(false);
     setEditing(row);
+    setFieldErrors({});
     setForm({
       title: row.title,
       description: row.description ?? "",
@@ -96,12 +99,21 @@ export default function ExampleQuestionsPage() {
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
+    const values = { title: form.title.trim(), question: form.question.trim() };
+    const nextErrors = {
+      title: values.title ? undefined : "请输入标题",
+      question: values.question ? undefined : "请输入示例问题",
+    };
+    if (nextErrors.title || nextErrors.question) {
+      setFieldErrors(nextErrors);
+      return;
+    }
     setSaving(true);
     const payload: ExampleQuestionInput = {
-      title: form.title.trim(),
+      title: values.title,
       description: form.description?.trim() || undefined,
       icon: form.icon?.trim() || undefined,
-      question: form.question.trim(),
+      question: values.question,
     };
     try {
       if (editing) {
@@ -371,19 +383,29 @@ export default function ExampleQuestionsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="heading-sm">{editing ? "编辑示例问题" : "新增示例问题"}</h3>
-            <form className="experiment-form mt-16" onSubmit={handleSave}>
+            <form className="experiment-form mt-16" onSubmit={handleSave} noValidate>
               <div className="form-grid">
                 <div className="field field--full">
                   <label htmlFor="eq-title">标题</label>
                   <input
                     id="eq-title"
-                    className="text-input"
+                    className={`text-input${fieldErrors.title ? " is-invalid" : ""}`}
                     value={form.title}
                     maxLength={100}
                     required
                     placeholder="如：实验原理"
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    aria-invalid={!!fieldErrors.title}
+                    onChange={(e) => {
+                      setForm((f) => ({ ...f, title: e.target.value }));
+                      setFieldErrors((prev) => (prev.title ? { ...prev, title: undefined } : prev));
+                    }}
                   />
+                  {fieldErrors.title ? (
+                    <p className="auth-field-error" role="alert">
+                      <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                      {fieldErrors.title}
+                    </p>
+                  ) : null}
                 </div>
                 <IconPicker
                   label="图标（可选）"
@@ -406,14 +428,24 @@ export default function ExampleQuestionsPage() {
                   <label htmlFor="eq-question">示例问题</label>
                   <textarea
                     id="eq-question"
-                    className="text-input text-input--textarea"
+                    className={`text-input text-input--textarea${fieldErrors.question ? " is-invalid" : ""}`}
                     rows={3}
                     maxLength={500}
                     required
                     placeholder="用户点击后发送的完整问法"
                     value={form.question}
-                    onChange={(e) => setForm((f) => ({ ...f, question: e.target.value }))}
+                    aria-invalid={!!fieldErrors.question}
+                    onChange={(e) => {
+                      setForm((f) => ({ ...f, question: e.target.value }));
+                      setFieldErrors((prev) => (prev.question ? { ...prev, question: undefined } : prev));
+                    }}
                   />
+                  {fieldErrors.question ? (
+                    <p className="auth-field-error" role="alert">
+                      <i className="fa-solid fa-circle-exclamation" aria-hidden />
+                      {fieldErrors.question}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <div className="form-actions">

@@ -18,6 +18,8 @@ type Props = {
   fileName?: string | null;
   rows?: number;
   required?: boolean;
+  /** 校验失败时的红框态（与 .text-input.is-invalid 一致） */
+  invalid?: boolean;
 };
 
 function scrollRatio(el: HTMLElement) {
@@ -37,6 +39,7 @@ export default function KnowledgeMarkdownEditor({
   fileName,
   rows = 20,
   required,
+  invalid,
 }: Props) {
   const fileId = useId();
   const [showPreview, setShowPreview] = useState(true);
@@ -122,7 +125,7 @@ export default function KnowledgeMarkdownEditor({
       <div className={`kp-md__split${showPreview ? "" : " kp-md__split--solo"}`} style={splitStyle}>
         <textarea
           ref={editRef}
-          className="text-input text-input--textarea kp-md__editor"
+          className={`text-input text-input--textarea kp-md__editor${invalid ? " is-invalid" : ""}`}
           rows={rows}
           required={required}
           value={value}

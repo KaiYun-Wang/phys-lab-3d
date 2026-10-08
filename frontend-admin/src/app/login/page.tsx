@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   function collectErrors() {
     const errs: { username?: string; password?: string } = {};
-    if (!username.trim()) errs.username = "请输入用户名";
+    if (!username.trim()) errs.username = "请输入账号";
     if (!password) errs.password = "请输入密码";
     return errs;
   }
@@ -92,9 +92,9 @@ export default function LoginPage() {
             <p className="auth-subtitle">仅限授权管理员访问</p>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div className="auth-field">
-              <label htmlFor="username">用户名</label>
+              <label htmlFor="username">账号</label>
               <div className="auth-input-wrap">
                 <span className="auth-input-wrap__icon">
                   <i className="fa-solid fa-user" aria-hidden />
@@ -104,7 +104,7 @@ export default function LoginPage() {
                   id="username"
                   type="text"
                   autoComplete="username"
-                  placeholder="管理员账号"
+                  placeholder="请输入账号"
                   value={username}
                   onChange={(e) => handleChange("username", e.target.value)}
                   onBlur={() => handleBlur("username")}
@@ -137,7 +137,7 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  placeholder="••••••••"
+                  placeholder="请输入密码"
                   value={password}
                   onChange={(e) => handleChange("password", e.target.value)}
                   onBlur={() => handleBlur("password")}
