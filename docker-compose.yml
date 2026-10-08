@@ -1,0 +1,58 @@
+# ============================================================
+# PhysLab 3D（main）部署：3 个应用容器（nginx 不在本项目内，之后单独部署）
+# 前提：宿主机上已有 PostgreSQL / Redis / MinIO
+#       （用 docker run 独立跑的公共服务，本项目不动它们）
+#
+# 使用步骤（服务器上，仓库根目录执行）：
+#   1) 准备配置：mkdir -p config
+#      把 application-aliyun.yml 放进 config/（参考 config/application-aliyun.yml.example；
+#      其中 datasource.host / minio.endpoint / redis.host 指向宿主机，推荐写 host.docker.internal）
+#   2) 启动：docker compose up -d --build（首次构建较慢）
+#   3) 验证：docker compose ps 三个容器 Up / docker compose logs backend 看到 Started
+#
+# 说明：
+#   - 应用容器不发布任何端口，nginx 配好前浏览器访问不了是正常的
+#   - 入口层（nginx 等）之后单独部署，接入 physlab-net 网络按容器名反代即可：
+#     backend:8080 / frontend-user:3000 / frontend-admin:3001
+#   - 前端请求走相对路径（/api/...），以后加域名 / HTTPS 只改入口层配置，镜像不用重打
+# ============================================================
+
+services:
+  backend:
+    build: ./backend
+    image: physlab-backend
+    container_name: physlab-backend
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    extra_hosts:
+      # 容器内通过 host.docker.internal 访问宿主机上的 PG / Redis / MinIO
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # 连接配置外挂：改完 docker restart physlab-backend 生效，不用重新打镜像
+      - ./config/application-aliyun.yml:/app/config/application-aliyun.yml:ro
+
+  frontend-user:
+    build:
+      context: ./frontend-user
+      args:
+        # 空串 = 相对路径（页面请求 /api/... 同源走 nginx）
+        NEXT_PUBLIC_API_URL: ""
+    image: physlab-frontend-user
+    container_name: physlab-frontend-user
+    restart: unless-stopped
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      args:
+        NEXT_PUBLIC_API_URL: ""
+        NEXT_PUBLIC_USER_URL: ""
+        NEXT_PUBLIC_BASE_PATH: /admin
+    image: physlab-frontend-admin
+    container_name: physlab-frontend-admin
+    restart: unless-stopped
+
+networks:
+  default:
+    name: physlab-net

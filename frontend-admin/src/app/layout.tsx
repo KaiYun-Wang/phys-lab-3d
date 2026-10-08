@@ -5,10 +5,13 @@ import Providers from "@/components/Providers";
 import "@/styles/tokens.css";
 import "@/styles/admin.css";
 
+// 图标路径随 basePath 走：部署时挂在 /admin 下，本地开发为空（根路径）
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "PhysLab 3D Admin",
   description: "PhysLab 3D 管理端",
-  icons: { icon: "/favicon-admin-202610052031.svg" },
+  icons: { icon: `${basePath}/favicon-admin-202610052031.svg` },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

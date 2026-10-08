@@ -1,6 +1,8 @@
 import { clearToken, getToken } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+/** 部署时挂在 /admin 子路径（构建参数 NEXT_PUBLIC_BASE_PATH），本地开发为空 */
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export type AdminProfile = {
   id: number;
@@ -74,7 +76,7 @@ export async function apiFetch<T>(
   if (res.status === 401 && auth) {
     clearToken();
     if (typeof window !== "undefined") {
-      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      window.location.href = `${BASE_PATH}/login?redirect=${encodeURIComponent(window.location.pathname)}`;
     }
     throw new Error("登录已过期");
   }
@@ -802,7 +804,7 @@ export async function streamAdminAiMessage(
   if (res.status === 401) {
     clearToken();
     if (typeof window !== "undefined") {
-      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      window.location.href = `${BASE_PATH}/login?redirect=${encodeURIComponent(window.location.pathname)}`;
     }
     throw new Error("登录已过期");
   }

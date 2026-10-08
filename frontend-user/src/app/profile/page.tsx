@@ -638,7 +638,7 @@ export default function ProfilePage() {
                               fill
                               sizes="240px"
                               className="object-cover"
-                              unoptimized={cover.startsWith("http")}
+                              unoptimized /* 封面为 /api/ 反代相对路径，浏览器直连加载，不经 Next 图片优化器 */
                             />
                           ) : (
                             <ExperimentThumbnail route={exp.route} />
