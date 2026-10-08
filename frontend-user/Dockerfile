@@ -1,6 +1,5 @@
 # 用户端镜像（端口 3000）：多阶段构建 + standalone 输出
-# NEXT_PUBLIC_API_URL 是构建期变量：部署时传空串 → 前端请求走相对路径（/api/...），
-# 由统一入口 nginx 转发；以后换域名 / 上 HTTPS 无需重新打镜像
+# NEXT_PUBLIC_API_URL：构建期传入，部署传空串 = 请求走相对路径（/api/...）
 FROM node:20-alpine AS build
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=""
@@ -14,7 +13,7 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
-# standalone：只带运行时需要的最小 node_modules + server.js
+# standalone 产物：server.js + 最小 node_modules
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public

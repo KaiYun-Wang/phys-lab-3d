@@ -1,7 +1,7 @@
 import { clearToken, getToken } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-/** 部署时挂在 /admin 子路径（构建参数 NEXT_PUBLIC_BASE_PATH），本地开发为空 */
+/** 部署子路径（NEXT_PUBLIC_BASE_PATH，本地为空） */
 export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export type AdminProfile = {

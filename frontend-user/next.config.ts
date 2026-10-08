@@ -11,7 +11,7 @@ try {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["three"],
-  // Docker 镜像用 standalone 输出（只带运行时需要的最小 node_modules）
+  // Docker 镜像用 standalone 输出
   output: "standalone",
   images: {
     remotePatterns: [
