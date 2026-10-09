@@ -181,7 +181,7 @@ export default function FavoritesRankCarousel({ experiments }: Props) {
                       sizes="380px"
                       className="object-cover"
                       draggable={false}
-                      unoptimized={cover.startsWith("http")}
+                      unoptimized /* 相对路径封面不经 Next 图片优化器 */
                     />
                   ) : (
                     /* 无封面时铺该实验的技术示意图，避免预览窗留空 */

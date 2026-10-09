@@ -136,7 +136,7 @@ function ExperimentCard({
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               className="object-cover"
-              unoptimized={cover.startsWith("http")}
+              unoptimized /* 相对路径封面不经 Next 图片优化器 */
             />
           ) : (
             <ExperimentThumbnail route={exp.route} className="kh-card__thumb" />

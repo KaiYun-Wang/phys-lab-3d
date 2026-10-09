@@ -11,6 +11,8 @@ try {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["three"],
+  // Docker 镜像用 standalone 输出
+  output: "standalone",
   images: {
     remotePatterns: [
       { protocol: "http", hostname: apiHostname, pathname: "/**" },

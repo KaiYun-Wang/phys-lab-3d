@@ -1,0 +1,59 @@
+# ============================================================
+# PhysLab 3D（main）：3 个应用容器（入口 nginx 属服务器级，不在本项目内）
+# 前提：宿主机已有 PostgreSQL / Redis / MinIO（docker run 的公共服务）
+#
+# 使用步骤（服务器上，仓库根目录执行）：
+#   1) mkdir -p config，把 application-aliyun.yml 放进 config/（同目录有 .example 模板）
+#   2) docker compose up -d --build（首次构建较慢）
+#   3) 验证：curl -s http://127.0.0.1:39003/api/experiments 返回 JSON 即通
+#
+# 端口约定（只绑本机回环，公网不可达）：
+#   39001 用户端 / 39002 管理端 / 39003 后端；新项目按段顺延（39011 起）
+# ============================================================
+
+services:
+  backend:
+    build: ./backend
+    image: physlab-backend
+    container_name: physlab-backend
+    restart: unless-stopped
+    ports:
+      # 只绑本机回环，公网不可达
+      - "127.0.0.1:39003:8080"
+    environment:
+      TZ: Asia/Shanghai
+    extra_hosts:
+      # 容器内以 host.docker.internal 访问宿主机
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # 连接配置外挂（改完 restart 容器生效）
+      - ./config/application-aliyun.yml:/app/config/application-aliyun.yml:ro
+
+  frontend-user:
+    build:
+      context: ./frontend-user
+      args:
+        # 空串 = 相对路径（请求 /api/...）
+        NEXT_PUBLIC_API_URL: ""
+    image: physlab-frontend-user
+    container_name: physlab-frontend-user
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:39001:3000"
+
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      args:
+        NEXT_PUBLIC_API_URL: ""
+        NEXT_PUBLIC_USER_URL: ""
+        NEXT_PUBLIC_BASE_PATH: /admin
+    image: physlab-frontend-admin
+    container_name: physlab-frontend-admin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:39002:3001"
+
+networks:
+  default:
+    name: physlab-net
