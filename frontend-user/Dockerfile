@@ -1,9 +1,12 @@
 # 用户端镜像（端口 3000）：多阶段构建 + standalone 输出
 # NEXT_PUBLIC_API_URL：构建期传入，部署传空串 = 请求走相对路径（/api/...）
+# NEXT_PUBLIC_SITE_URL：站点公网地址，供 sitemap / canonical / 分享元数据使用
 FROM node:20-alpine AS build
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=""
+ARG NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

@@ -2,7 +2,8 @@ import { MetadataRoute } from "next";
 import { API_BASE } from "@/lib/api";
 import { getAllExperimentIds } from "@/experiments/registry";
 
-const SITE_URL = "https://sciencelab-two.vercel.app";
+// 站点公网地址：构建期注入（NEXT_PUBLIC_SITE_URL），未配置或为空时回落 localhost
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type ExperimentRoute = { route: string };
 

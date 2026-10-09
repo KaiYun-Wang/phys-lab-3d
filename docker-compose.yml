@@ -35,6 +35,8 @@ services:
       args:
         # 空串 = 相对路径（请求 /api/...）
         NEXT_PUBLIC_API_URL: ""
+        # 站点公网地址：sitemap / canonical / 分享元数据用；留空回落 localhost，域名变更后改这里并重建
+        NEXT_PUBLIC_SITE_URL: "https://phys-lab-3d.xyz"
     image: physlab-frontend-user
     container_name: physlab-frontend-user
     restart: unless-stopped

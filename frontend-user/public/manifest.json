@@ -1,7 +1,7 @@
 {
   "name": "PhysLab 3D",
   "short_name": "PhysLab3D",
-  "description": "Explore 6 interactive 3D physics experiments.",
+  "description": "在浏览器里做 3D 物理实验：调节参数、实时观测、理解规律。",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -16,6 +16,6 @@
     }
   ],
   "categories": ["education", "science", "utilities"],
-  "lang": "en",
+  "lang": "zh-CN",
   "dir": "ltr"
 }

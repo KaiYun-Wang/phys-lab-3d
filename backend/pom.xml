@@ -10,21 +10,26 @@
 	</parent>
 	<groupId>com.wky</groupId>
 	<artifactId>backend</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>backend</name>
-	<description>backend</description>
-	<url/>
+	<version>1.0.0</version>
+	<name>PhysLab 3D Backend</name>
+	<description>PhysLab 3D 后端 API（用户端与管理端共用）</description>
+	<url>https://github.com/KaiYun-Wang/phys-lab-3d</url>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/licenses/MIT</url>
+		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<name>KaiYun-Wang</name>
+			<url>https://github.com/KaiYun-Wang</url>
+		</developer>
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>scm:git:https://github.com/KaiYun-Wang/phys-lab-3d.git</connection>
+		<developerConnection>scm:git:https://github.com/KaiYun-Wang/phys-lab-3d.git</developerConnection>
+		<url>https://github.com/KaiYun-Wang/phys-lab-3d</url>
 	</scm>
 	<properties>
 		<java.version>17</java.version>

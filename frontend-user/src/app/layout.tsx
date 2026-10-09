@@ -15,11 +15,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-const SITE_URL = "https://sciencelab-two.vercel.app";
+// 站点公网地址：构建期注入（NEXT_PUBLIC_SITE_URL），未配置或为空时回落 localhost
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 const SITE_NAME = "PhysLab 3D";
 const SITE_TITLE = "PhysLab 3D";
 const SITE_DESCRIPTION =
-  "PhysLab 3D — Free interactive physics education platform with 6 virtual experiments. 3D visualizations, real-time data analysis. Learn physics by doing.";
+  "PhysLab 3D —— 浏览器里的交互式 3D 物理实验平台：调节参数、观察现象、理解规律，覆盖光学、量子、相对论、流体、声学等主题。";
 
 export const metadata: Metadata = {
   title: {
@@ -28,33 +29,28 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
-    "science lab",
-    "virtual experiments",
-    "physics education",
-    "physics",
-    "3D",
-    "interactive",
-    "education",
-    "3D physics experiments",
-    "interactive learning",
-    "physics simulations",
-    "virtual physics lab",
-    "online physics lab",
-    "free physics experiments",
-    "interactive 3D simulations",
-    "pendulum simulation",
-    "projectile motion",
-    "wave interference",
-    "electromagnetic field",
-    "general relativity",
-    "special relativity",
-    "science for students",
-    "high school physics",
-    "physlab3d",
+    "物理实验",
+    "3D 物理仿真",
+    "虚拟实验室",
+    "在线物理实验",
+    "交互式物理",
+    "物理教学",
+    "光学实验",
+    "量子物理",
+    "相对论",
+    "流体力学",
+    "声学",
+    "双缝实验",
+    "光电效应",
+    "多普勒效应",
+    "凸透镜成像",
+    "伯努利原理",
+    "史瓦西黑洞",
+    "physlab",
   ],
-  authors: [{ name: "Rudra Sarker", url: "https://rudra496.github.io/site" }],
-  creator: "Rudra Sarker",
-  publisher: "Rudra Sarker",
+  authors: [{ name: "KaiYun-Wang", url: "https://github.com/KaiYun-Wang" }],
+  creator: "KaiYun-Wang",
+  publisher: "KaiYun-Wang",
   category: "Education",
   metadataBase: new URL(SITE_URL),
   alternates: {
@@ -62,33 +58,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "zh_CN",
     url: SITE_URL,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     siteName: SITE_NAME,
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "PhysLab 3D — Interactive 3D Science Experiments",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
-    images: ["/og-image.png"],
-    creator: "@rudra496",
-    site: "@rudra496",
   },
   icons: {
-    icon: [
-      { url: "/favicon-v2.svg", type: "image/svg+xml" },
-    ],
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: "/favicon-v2.svg", type: "image/svg+xml" }],
   },
   manifest: "/manifest.json",
   robots: {
@@ -103,10 +80,6 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-  verification: {
-    // Replace with actual Google Search Console verification code when available
-    // google: "your-actual-google-verification-code",
   },
 };
 
@@ -125,20 +98,14 @@ const jsonLd = {
       offers: {
         "@type": "Offer",
         price: "0",
-        priceCurrency: "USD",
+        priceCurrency: "CNY",
       },
       author: {
         "@type": "Person",
         "@id": `${SITE_URL}/#author`,
-        name: "Rudra Sarker",
-        url: "https://rudra496.github.io/site",
-        sameAs: [
-          "https://rudra496.github.io/site",
-          "https://www.linkedin.com/in/rudrasarker",
-          "https://www.facebook.com/share/1AHSdHLeoz/",
-          "https://github.com/rudra496",
-          "mailto:rudrasarker125@gmail.com",
-        ],
+        name: "KaiYun-Wang",
+        url: "https://github.com/KaiYun-Wang",
+        sameAs: ["https://github.com/KaiYun-Wang"],
       },
     },
     {
@@ -163,8 +130,8 @@ const jsonLd = {
       url: SITE_URL,
       founder: {
         "@type": "Person",
-        name: "Rudra Sarker",
-        url: "https://rudra496.github.io/site",
+        name: "KaiYun-Wang",
+        url: "https://github.com/KaiYun-Wang",
       },
     },
   ],
