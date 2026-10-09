@@ -25,6 +25,12 @@ PhysLab 3D 是一个免费的 3D 交互物理实验平台：打开浏览器就�
 
 ---
 
+## 演示地址（账号密码已填）
+
+用户端：https://phys-lab-3d.xyz/
+
+管理端：https://phys-lab-3d.xyz/admin
+
 ## 实验库
 
 | 实验 | 主题 | 看点 |
